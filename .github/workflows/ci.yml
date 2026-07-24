@@ -16,14 +16,14 @@ jobs:
       - name: Node.js 설정
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: 'package.json'
           cache: npm
 
       - name: 패키지 설치
         run: npm ci
 
       - name: ESLint 검사
-        run: npm run lint
+        run: npm run lint:ci
 
       - name: 타입 체크
         run: npm run type-check
