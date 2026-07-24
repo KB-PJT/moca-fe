@@ -7,22 +7,40 @@
 ## Tech Stack
 
 - Vue 3 + Vite
-- JavaScript (TypeScript 미사용)
+- TypeScript
 - Vue Router
-- Pinia
-- Tailwind CSS
+- Pinia, Vue Query
+- Tailwind CSS, shadcn-vue
 - ESLint + Prettier (+ oxlint)
 - Vitest
 
+## 품질 검증 / 사용자 분석
+
+| 구분      | 항목       | 용도                             |
+| --------- | ---------- | -------------------------------- |
+| 품질 검증 | ESLint     | 코드 스타일                      |
+| 품질 검증 | Lighthouse | 성능/접근성/SEO 자동 점수 측정   |
+| 사용자 분석 | PostHog  | 사용자 행동 분석 (퍼널·세션 리플레이) |
+
+## 외부 라이브러리
+
+| 구분        | API             | 용도                                          |
+| ----------- | --------------- | --------------------------------------------- |
+| 지도        | Kakao Map API   | 지도 표시, 반경 검색, 마커                    |
+| 지도        | Kakao Local API | 가맹점 검색, 좌표 ↔ 주소 변환                 |
+| 사용자 분석 | PostHog         | 사용자 행동 분석 (퍼널·세션 리플레이)         |
+| UI 컴포넌트 | shadcn-vue      | Sheet, Dialog, Form, Toast 등 인터랙션 뼈대 컴포넌트 |
+
 ## GitHub Flow
 
-`main`에서 브랜치 생성 → 개발/커밋 → Push & PR 생성 → 코드 리뷰(최소 1인) → GitHub Actions 테스트 → `main` 병합 → 브랜치 삭제 순으로 진행합니다.
+`develop`에서 브랜치 생성 → 개발/커밋 → Push & PR 생성 → 코드 리뷰(최소 1인) → GitHub Actions 테스트 → `develop` 병합 → 브랜치 삭제 순으로 진행합니다.
 
-- `main`에서 직접 개발 금지, 항상 최신 `main`에서 브랜치 분기
+- `develop`에서 직접 개발 금지, 항상 최신 `develop`에서 브랜치 분기
 - 하나의 브랜치 = 하나의 기능
 - 작은 단위로 자주 커밋
 - 리뷰 + 테스트 통과 후에만 Merge
 - 커밋/PR 전 `npm run lint`, `npm run format` 실행
+- `main`은 배포 전용 브랜치이며 직접 분기/커밋하지 않고, `develop`에서 배포 시점에만 병합
 
 ### 브랜치 네이밍
 
@@ -85,7 +103,7 @@ PR 템플릿은 `.github/pull_request_template.md`에 정의하며, 다음 항�
 
 ## Git 명령어
 
-1. 작업 시작 전 - `git pull origin main` 필수!!
+1. 작업 시작 전 - `git pull origin develop` 필수!!
 2. `git checkout -b 브랜치명`
 3. `git add .` (커밋에 포함될 파일 선택)
 4. `git commit -m "커밋 메시지"`
