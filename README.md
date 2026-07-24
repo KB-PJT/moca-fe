@@ -14,6 +14,70 @@
 - ESLint + Prettier (+ oxlint)
 - Vitest
 
+## 프로젝트 구조
+
+`src`는 도메인(feature) 기반으로 구성합니다.
+
+```
+src/
+├── domains/
+│   ├── auth/                 # 로그인, 온보딩
+│   │   ├── components/
+│   │   ├── views/
+│   │   ├── stores/
+│   │   ├── composables/
+│   │   └── api/
+│   ├── card/                 # 카드 연동/추가/관리
+│   │   ├── components/
+│   │   ├── views/
+│   │   ├── stores/
+│   │   ├── composables/
+│   │   └── api/
+│   ├── home/                 # 홈
+│   │   ├── components/
+│   │   ├── views/
+│   │   └── api/
+│   ├── map/                  # 지도, 혜택 비교 하단시트
+│   │   ├── components/
+│   │   ├── views/
+│   │   ├── composables/
+│   │   └── api/
+│   ├── benefit-report/       # 혜택/실적 리포트
+│   │   ├── components/
+│   │   ├── views/
+│   │   └── api/
+│   ├── mypage/                # 마이페이지
+│   │   ├── components/
+│   │   ├── views/
+│   │   └── api/
+│   └── notification/          # 알림함
+│       ├── components/
+│       ├── views/
+│       └── api/
+│
+├── shared/
+│   ├── components/            # 공통 재사용 컴포넌트, NavBar 등
+│   ├── composables/           # 공통 훅, 인증 가드 등
+│   └── ui/                    # shadcn-vue 컴포넌트가 설치되는 위치
+│
+├── router/
+│   └── index.ts
+│
+└── stores/                    # 여러 도메인이 공유하는 전역 store, 예: 인증 상태
+```
+
+**도메인별 역할**
+
+| 도메인            | 역할               |
+| ----------------- | ------------------ |
+| `auth`            | 로그인/온보딩      |
+| `card`            | 카드 연동/추가/관리 |
+| `home`            | 홈                 |
+| `map`             | 지도/혜택 비교     |
+| `benefit-report`  | 혜택/실적 리포트   |
+| `mypage`          | 마이페이지         |
+| `notification`    | 알림함             |
+
 ## 품질 검증 / 사용자 분석
 
 | 구분      | 항목       | 용도                             |
