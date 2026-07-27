@@ -1,7 +1,8 @@
 <script setup lang="ts"></script>
 
 <template>
-  <div class="mx-auto min-h-screen max-w-[430px] bg-white">
+  <div class="pb-16">
     <RouterView />
+    <!-- <BottomBar /> -->
   </div>
 </template>

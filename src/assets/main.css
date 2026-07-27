@@ -1,0 +1,16 @@
+/* Tailwind v4 사용 중. tailwind.config.js를 만들지 마세요.
+   색상·폰트 추가는 아래 @theme 안에서 합니다. */
+@import 'tailwindcss';
+
+@theme {
+  /* 색상 placeholder - 디자인 확정 후 값만 교체 */
+  --color-primary: #6366f1;
+  --color-primary-light: #a5b4fc;
+  --color-surface: #ffffff;
+  --color-muted: #9ca3af;
+
+  /* 폰트 사이즈 */
+  --text-title: 20px;
+  --text-body: 16px;
+  --text-caption: 12px;
+}
