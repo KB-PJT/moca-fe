@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import BottomBar from './BottomBar.vue'
+import BottomBar from '@/shared/components/BottomBar.vue'
 </script>
 
 <template>
-  <div class="pb-16">
-    <RouterView />
-    <BottomBar />
-  </div>
+  <RouterView />
+  <BottomBar />
 </template>
