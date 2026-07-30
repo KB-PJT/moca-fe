@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { Eye, EyeOff } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { cn } from '@/shared/utils/cn'
@@ -21,8 +21,10 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
+const inputId = useId()
 const visible = ref(false)
 const inputType = computed(() => (visible.value ? 'text' : 'password'))
+const toggleLabel = computed(() => (visible.value ? '비밀번호 숨기기' : '비밀번호 보기'))
 
 function toggleVisible() {
   visible.value = !visible.value
@@ -31,13 +33,14 @@ function toggleVisible() {
 
 <template>
   <div class="flex flex-col gap-1.5">
-    <label v-if="label" class="text-body text-charcoal">
+    <label v-if="label" :for="inputId" class="text-body text-charcoal">
       {{ label }}
       <span v-if="required" class="text-error">*</span>
     </label>
 
     <div class="relative">
       <Input
+        :id="inputId"
         :model-value="modelValue"
         :type="inputType"
         :maxlength="maxlength"
@@ -48,6 +51,7 @@ function toggleVisible() {
       />
       <button
         type="button"
+        :aria-label="toggleLabel"
         class="text-gray absolute inset-y-0 right-3 flex items-center"
         @click="toggleVisible"
       >
