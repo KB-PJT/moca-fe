@@ -11,3 +11,9 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+interface Window {
+  // 카카오맵 SDK 타입 정의가 따로 없어서 any로 선언한다.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  kakao: any
+}
