@@ -18,7 +18,7 @@ function isActive(to: string) {
 
 <template>
   <nav
-    class="border-divider bg-background fixed inset-x-0 bottom-0 mx-auto flex h-16 max-w-97.5 items-center justify-around border-t"
+    class="border-divider bg-background fixed inset-x-0 bottom-0 z-20 mx-auto flex h-16 max-w-97.5 items-center justify-around border-t"
   >
     <RouterLink
       v-for="tab in tabs"
