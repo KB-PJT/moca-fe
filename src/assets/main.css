@@ -103,6 +103,11 @@
 }
 
 :root {
+  /* PWA 화면 영역 */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --app-bar-height: 3rem;
+
   /* 배경·텍스트 */
   --background: #ffffff;
   --foreground: #2f2f2f;
@@ -142,8 +147,14 @@
     @apply border-border outline-ring/50;
   }
 
+  html,
+  body,
+  #app {
+    @apply size-full;
+  }
+
   body {
-    @apply bg-neutral-200 text-foreground font-sans;
+    @apply bg-neutral-200 text-foreground font-sans overflow-hidden;
     font-size: 14px;
     line-height: 20px;
     -webkit-font-smoothing: antialiased;

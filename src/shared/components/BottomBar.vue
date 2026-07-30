@@ -18,13 +18,13 @@ function isActive(to: string) {
 
 <template>
   <nav
-    class="border-divider bg-background fixed inset-x-0 bottom-0 z-20 mx-auto flex h-16 max-w-97.5 items-center justify-around border-t"
+    class="border-divider bg-background mx-auto flex w-full shrink-0 items-start justify-around border-t pb-[var(--safe-area-bottom)]"
   >
     <RouterLink
       v-for="tab in tabs"
       :key="tab.to"
       :to="tab.to"
-      class="flex flex-1 flex-col items-center justify-center gap-1"
+      class="flex h-16 flex-1 flex-col items-center justify-center gap-1"
       :class="isActive(tab.to) ? 'text-primary' : 'text-gray'"
     >
       <component :is="tab.icon" class="size-6" />

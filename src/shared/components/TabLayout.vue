@@ -3,6 +3,10 @@ import BottomBar from '@/shared/components/BottomBar.vue'
 </script>
 
 <template>
-  <RouterView />
-  <BottomBar />
+  <div class="flex h-full min-h-0 flex-col">
+    <div class="min-h-0 flex-1">
+      <RouterView />
+    </div>
+    <BottomBar />
+  </div>
 </template>
