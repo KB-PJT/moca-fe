@@ -23,6 +23,21 @@ const router = createRouter({
       component: () => import('@/domains/card/views/CardConnectView.vue'),
     },
     {
+      path: '/cards/connect/all',
+      name: 'card-bulk-connect',
+      component: () => import('@/domains/card/views/CardBulkConnectView.vue'),
+    },
+    {
+      path: '/cards/connect/progress',
+      name: 'card-connect-progress',
+      component: () => import('@/domains/card/views/CardConnectProgressView.vue'),
+    },
+    {
+      path: '/cards/connect/complete',
+      name: 'card-connect-complete',
+      component: () => import('@/domains/card/views/CardConnectCompleteView.vue'),
+    },
+    {
       path: '/cards/manage',
       name: 'card-manage',
       component: () => import('@/domains/card/views/CardManageView.vue'),
