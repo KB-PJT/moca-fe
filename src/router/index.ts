@@ -18,44 +18,49 @@ const router = createRouter({
       component: () => import('@/domains/auth/views/OnboardingView.vue'),
     },
     {
-      path: '/cards/connect',
-      name: 'card-connect',
-      component: () => import('@/domains/card/views/CardConnectView.vue'),
-    },
-    {
-      path: '/cards/connect/all',
-      name: 'card-bulk-connect',
-      component: () => import('@/domains/card/views/CardBulkConnectView.vue'),
-    },
-    {
-      path: '/cards/connect/select',
-      name: 'card-issuer-select',
-      component: () => import('@/domains/card/views/CardIssuerSelectView.vue'),
-    },
-    {
-      path: '/cards/connect/select/:issuerId',
-      name: 'card-issuer-connect',
-      component: () => import('@/domains/card/views/CardIssuerConnectView.vue'),
-    },
-    {
-      path: '/cards/connect/progress',
-      name: 'card-connect-progress',
-      component: () => import('@/domains/card/views/CardConnectProgressView.vue'),
-    },
-    {
-      path: '/cards/connect/complete',
-      name: 'card-connect-complete',
-      component: () => import('@/domains/card/views/CardConnectCompleteView.vue'),
-    },
-    {
-      path: '/cards/manage',
-      name: 'card-manage',
-      component: () => import('@/domains/card/views/CardManageView.vue'),
-    },
-    {
-      path: '/cards/:id',
-      name: 'card-detail',
-      component: () => import('@/domains/card/views/CardDetailView.vue'),
+      path: '/cards',
+      children: [
+        {
+          path: 'connect',
+          name: 'card-connect',
+          component: () => import('@/domains/card/views/CardConnectView.vue'),
+        },
+        {
+          path: 'connect/all',
+          name: 'card-bulk-connect',
+          component: () => import('@/domains/card/views/CardBulkConnectView.vue'),
+        },
+        {
+          path: 'connect/select',
+          name: 'card-issuer-select',
+          component: () => import('@/domains/card/views/CardIssuerSelectView.vue'),
+        },
+        {
+          path: 'connect/select/:issuerId',
+          name: 'card-issuer-connect',
+          component: () => import('@/domains/card/views/CardIssuerConnectView.vue'),
+        },
+        {
+          path: 'connect/progress',
+          name: 'card-connect-progress',
+          component: () => import('@/domains/card/views/CardConnectProgressView.vue'),
+        },
+        {
+          path: 'connect/complete',
+          name: 'card-connect-complete',
+          component: () => import('@/domains/card/views/CardConnectCompleteView.vue'),
+        },
+        {
+          path: 'manage',
+          name: 'card-manage',
+          component: () => import('@/domains/card/views/CardManageView.vue'),
+        },
+        {
+          path: ':id',
+          name: 'card-detail',
+          component: () => import('@/domains/card/views/CardDetailView.vue'),
+        },
+      ],
     },
     {
       path: '/',
