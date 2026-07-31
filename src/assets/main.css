@@ -53,6 +53,7 @@
   /* MOCA 전용 색상 — bg-brown, text-charcoal 등으로 사용 */
   --color-charcoal: #2f2f2f;
   --color-gray: #8b8b8b;
+  --color-primary-hover: #f2701c;
   --color-brown: #a67c52;
   --color-brown-light: #d6b98c;
   --color-screen: #f8f5f2;

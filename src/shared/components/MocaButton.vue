@@ -29,8 +29,16 @@ const shadcnVariant = computed(() => {
 })
 
 const variantClass = computed(() => {
-  if (props.variant === 'secondary') return 'border-primary text-primary bg-card hover:bg-accent'
+  if (props.variant === 'secondary')
+    return 'border-primary! bg-card! text-primary shadow-none! hover:bg-accent! hover:text-primary'
   if (props.variant === 'ghost') return 'text-charcoal'
+  return 'hover:bg-primary-hover!'
+})
+
+const stateClass = computed(() => {
+  if (props.loading) return 'disabled:opacity-100!'
+  if (props.disabled)
+    return 'disabled:border-disabled! disabled:bg-disabled! disabled:[color:white]! disabled:opacity-100!'
   return ''
 })
 </script>
@@ -40,7 +48,8 @@ const variantClass = computed(() => {
     :type="type"
     :variant="shadcnVariant"
     :disabled="disabled || loading"
-    :class="cn(block && 'w-full', variantClass, props.class)"
+    :aria-busy="loading"
+    :class="cn(block && 'w-full', variantClass, stateClass, props.class)"
   >
     <LoaderCircle v-if="loading" class="size-4 animate-spin" />
     <slot />
