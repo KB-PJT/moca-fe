@@ -28,6 +28,16 @@ const router = createRouter({
       component: () => import('@/domains/card/views/CardBulkConnectView.vue'),
     },
     {
+      path: '/cards/connect/select',
+      name: 'card-issuer-select',
+      component: () => import('@/domains/card/views/CardIssuerSelectView.vue'),
+    },
+    {
+      path: '/cards/connect/select/:issuerId',
+      name: 'card-issuer-connect',
+      component: () => import('@/domains/card/views/CardIssuerConnectView.vue'),
+    },
+    {
       path: '/cards/connect/progress',
       name: 'card-connect-progress',
       component: () => import('@/domains/card/views/CardConnectProgressView.vue'),
