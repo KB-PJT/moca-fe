@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import CardIssuerIcon from '@/domains/card/components/CardIssuerIcon.vue'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import CardSearchIllustration from '@/domains/card/components/CardSearchIllustration.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
+
+const router = useRouter()
 
 const cardIssuers = [
   { id: 'bc-baro', name: 'BC 바로카드' },
@@ -15,6 +18,10 @@ const cardIssuers = [
   { id: 'hana', name: '하나카드' },
   { id: 'hyundai', name: '현대카드' },
 ] as const
+
+function connectAllCards() {
+  void router.push({ name: 'card-bulk-connect' })
+}
 </script>
 
 <template>
@@ -52,7 +59,9 @@ const cardIssuers = [
 
     <template #footer>
       <div class="flex flex-col gap-2">
-        <MocaButton block class="h-14 text-subheading!">내 카드 한번에 불러오기</MocaButton>
+        <MocaButton block class="h-14 text-subheading!" @click="connectAllCards">
+          내 카드 한번에 불러오기
+        </MocaButton>
         <MocaButton block variant="secondary" class="h-14 text-subheading!">
           기관 직접 선택하기
         </MocaButton>
