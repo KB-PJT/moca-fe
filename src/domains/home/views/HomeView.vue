@@ -29,6 +29,7 @@ import EmptyState from '@/shared/components/EmptyState.vue'
         <MocaButton block>연결 시작하기</MocaButton>
         <MocaButton variant="secondary" block>나중에 하기</MocaButton>
         <MocaButton variant="ghost" block>더보기</MocaButton>
+        <MocaButton block disabled>비활성 버튼</MocaButton>
         <MocaButton block loading>불러오는 중</MocaButton>
       </div>
     </SectionCard>
