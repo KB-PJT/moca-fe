@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckCircle2, LockKeyhole, ShieldCheck } from '@lucide/vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CardConnectionFieldGroup from '@/domains/card/components/CardConnectionFieldGroup.vue'
 import CardIssuerIcon from '@/domains/card/components/CardIssuerIcon.vue'
@@ -45,6 +45,8 @@ const visiblePasswords = ref<Partial<Record<CardConnectionFieldKey, boolean>>>({
 const additionalInputRequired = ref(false)
 const includeCardImages = ref(true)
 const isSubmitting = ref(false)
+
+// SECURITY(NOW): 민감정보는 이 화면의 메모리에서만 관리하며 저장소·전역 상태·로그에 남기지 않는다.
 
 const issuerId = computed(() => {
   const routeIssuerId = route.params.issuerId
@@ -158,7 +160,10 @@ function connectIssuer() {
     includeCardImages: includeCardImages.value,
   })
 
-  // TODO(API): 서버 응답에 따라 additionalInputRequired를 설정한다.
+  // TODO(API): 공통 API client를 통해 HTTPS로만 전송하고 민감 필드가 요청·오류 로그에
+  // 기록되지 않도록 redaction 정책을 적용한다. 저장이 필요하다면 서버/KMS 정책으로 처리하며
+  // 프론트 번들에 대칭 암호화 키를 포함하지 않는다.
+  // 서버 응답에 따라 additionalInputRequired를 설정한다.
   // HTTP 409만으로 KB 추가 입력 여부를 판단하지 않는다.
   // 실제 API 요청 및 응답 타입은 계약 확정 후 별도 구현한다.
   void router
@@ -176,6 +181,7 @@ function returnToIssuerSelection() {
 }
 
 watch(issuerId, resetForm)
+onBeforeUnmount(resetForm)
 </script>
 
 <template>
@@ -191,6 +197,7 @@ watch(issuerId, resetForm)
         </div>
       </section>
 
+      <!-- API 연동 완료 후 HTTPS 전송과 서버 측 민감정보 보호가 적용된 상태를 안내하는 문구 -->
       <section class="mt-3 flex gap-2 rounded-md bg-[#fbf6f0] px-3 py-3 text-[#a67c52]">
         <LockKeyhole class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <p class="text-caption leading-5">
