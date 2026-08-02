@@ -3,10 +3,13 @@ import PageLayout from '@/shared/components/PageLayout.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import EmptyState from '@/shared/components/EmptyState.vue'
+import MainHeader from '@/shared/components/MainHeader.vue'
 </script>
 
 <template>
-  <PageLayout title="홈" :show-back="false" has-bottom-bar>
+  <PageLayout hide-app-bar has-bottom-bar>
+    <MainHeader title="MOCA" />
+
     <SectionCard title="이번 달 혜택">
       <template #action>
         <RouterLink to="/report" class="text-caption text-primary">전체보기</RouterLink>
