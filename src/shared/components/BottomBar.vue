@@ -2,6 +2,11 @@
 import { useRoute } from 'vue-router'
 import { ChartBar, House, MapPin, User } from '@lucide/vue'
 
+interface Props {
+  activePath?: string
+}
+
+const props = defineProps<Props>()
 const route = useRoute()
 
 const tabs = [
@@ -12,7 +17,7 @@ const tabs = [
 ]
 
 function isActive(to: string) {
-  return route.path === to
+  return (props.activePath ?? route.path) === to
 }
 </script>
 
