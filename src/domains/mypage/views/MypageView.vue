@@ -58,7 +58,7 @@ const connectedCardDescription = computed(
 const locationPermissionGranted = computed(() => summary.value?.locationPermissionGranted ?? false)
 
 function navigateToCardManage() {
-  void router.push({ name: 'card-manage' })
+  void router.push({ name: 'card-manage', query: { from: 'mypage' } })
 }
 
 function navigateToProfile() {
