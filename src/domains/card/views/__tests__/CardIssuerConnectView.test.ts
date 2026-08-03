@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { describe, expect, it } from 'vitest'
@@ -127,6 +127,44 @@ describe('CardIssuerConnectView', () => {
 
     expect(wrapper.findAll('input')).toHaveLength(2)
     expect(wrapper.text()).toContain('추가 인증 정보 없이 조회할 수 있어요')
+  })
+
+  it('실제 공통 버튼으로 footer에서 기관 입력 form을 제출하고 조회 화면으로 이동한다', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/cards/connect/select/:issuerId',
+          name: 'card-issuer-connect',
+          component: CardIssuerConnectView,
+        },
+        {
+          path: '/cards/connect/select/:issuerId/progress',
+          name: 'card-issuer-connect-progress',
+          component: { template: '<div />' },
+        },
+      ],
+    })
+    await router.push({ name: 'card-issuer-connect', params: { issuerId: 'samsung' } })
+    await router.isReady()
+
+    const wrapper = mount(CardIssuerConnectView, {
+      global: {
+        plugins: [createPinia(), router],
+        stubs: {
+          CardPageLayout: globalStubs.CardPageLayout,
+          CardIssuerIcon: globalStubs.CardIssuerIcon,
+          Switch: globalStubs.Switch,
+        },
+      },
+    })
+
+    await wrapper.get('#card-connection-homepageId').setValue('moca-user')
+    await wrapper.get('#card-connection-homepagePassword').setValue('password')
+    await wrapper.get('footer button').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('card-issuer-connect-progress')
   })
 
   it('카드사가 변경되면 입력값과 validation 오류를 초기화한다', async () => {

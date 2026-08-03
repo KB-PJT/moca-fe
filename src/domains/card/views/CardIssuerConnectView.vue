@@ -245,11 +245,11 @@ onBeforeUnmount(resetForm)
       <div class="flex flex-col items-center">
         <MocaButton
           block
-          type="submit"
-          form="card-issuer-connect-form"
+          type="button"
           :disabled="!canConnect"
           :loading="isSubmitting"
           class="h-14 text-subheading!"
+          @click="connectIssuer"
         >
           보유카드 조회하기
         </MocaButton>
