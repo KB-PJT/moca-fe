@@ -11,6 +11,8 @@ export interface OwnedCard {
   id: string
   issuer: CardIssuerId
   name: string
+  last4?: string
+  imageUrl?: string | null
 }
 
 export type CardConnectionStatus = 'waiting' | 'connecting' | 'connected' | 'failed'
@@ -60,6 +62,21 @@ export const useOwnedCardsStore = defineStore('ownedCards', () => {
     )
   }
 
+  function addOwnedCards(cards: OwnedCard[]) {
+    const existingIds = new Set(ownedCards.value.map((card) => card.id))
+    const newCards = cards.filter((card) => {
+      if (existingIds.has(card.id)) return false
+      existingIds.add(card.id)
+      return true
+    })
+
+    ownedCards.value = [...ownedCards.value, ...newCards]
+
+    for (const issuerId of new Set(newCards.map((card) => card.issuer))) {
+      setIssuerConnectionStatus(issuerId, 'connected')
+    }
+  }
+
   function resetConnectionStatuses() {
     connectionStatuses.value = Object.fromEntries(
       ownedIssuers.value.map((issuer) => [issuer.id, 'waiting']),
@@ -83,6 +100,7 @@ export const useOwnedCardsStore = defineStore('ownedCards', () => {
     failedIssuerCount,
     hydrate,
     setOwnedCards,
+    addOwnedCards,
     resetConnectionStatuses,
     setIssuerConnectionStatus,
   }

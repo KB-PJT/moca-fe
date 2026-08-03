@@ -23,7 +23,7 @@ export interface CardConnectionField {
 export interface CardConnectionConfig {
   loginFields: readonly CardConnectionField[]
   additionalFields: readonly CardConnectionField[]
-  additionalInputMode: 'none' | 'always' | 'conditional'
+  additionalInputMode: 'none' | 'always'
 }
 
 const HOMEPAGE_LOGIN_FIELDS = [
@@ -97,7 +97,7 @@ export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig>
   'kb-kookmin': {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
     additionalFields: [CARD_NUMBER_FIELD, KB_CARD_PASSWORD_FIELD],
-    additionalInputMode: 'conditional',
+    additionalInputMode: 'always',
   },
   hyundai: {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
