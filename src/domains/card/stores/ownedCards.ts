@@ -12,7 +12,7 @@ export interface OwnedCard {
   issuer: CardIssuerId
   name: string
   last4?: string
-  imageUrl?: string
+  imageUrl?: string | null
 }
 
 export type CardConnectionStatus = 'waiting' | 'connecting' | 'connected' | 'failed'

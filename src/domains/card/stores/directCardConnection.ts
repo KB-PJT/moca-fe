@@ -7,8 +7,7 @@ export interface DiscoveredCard {
   issuer: CardIssuerId
   name: string
   last4: string
-  imageUrl?: string
-  cardColor?: string
+  imageUrl?: string | null
 }
 
 export type DirectCardLookupStatus = 'idle' | 'looking-up' | 'success' | 'failed'

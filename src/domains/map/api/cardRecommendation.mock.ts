@@ -4,6 +4,7 @@ export interface CardRecommendation {
   rank: number
   cardId: string
   cardName: string
+  imageUrl?: string | null
   estimatedBenefit: number
   benefitType: '할인' | '적립' | '무료'
   reason: string

@@ -4,6 +4,7 @@
 export interface MyCardRankItem {
   rank: number
   cardName: string
+  imageUrl?: string | null
   benefitLabel: string
   performanceMet: boolean
   performanceCurrentAmount: number

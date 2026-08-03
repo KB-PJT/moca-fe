@@ -5,6 +5,7 @@ import { formatAmountWithUnit, formatDistance, formatPercent } from '@/shared/ut
 import type { Merchant } from '@/domains/map/api/merchants.mock'
 import { cardRecommendationByPlaceId } from '@/domains/map/api/cardRecommendation.mock'
 import { myCardRankingByPlaceId } from '@/domains/map/api/myCardRanking.mock'
+import CardImage from '@/shared/components/CardImage.vue'
 
 interface Props {
   merchant: Merchant
@@ -19,10 +20,6 @@ const categoryIcon: Record<Merchant['category'], typeof Utensils> = {
   편의점: ShoppingBag,
   마트: ShoppingCart,
 }
-
-// 랭킹 순서대로 카드 비주얼 색을 다르게 준다 (실제 카드 디자인 데이터는 없음).
-// MOCA 팔레트(brown 계열)에서만 골라서 브랜드 톤과 어긋나지 않게 한다.
-const rankCardVisualClass = ['bg-brown', 'bg-brown-light', 'bg-charcoal']
 
 const cardRecommendation = computed(
   () => cardRecommendationByPlaceId[props.merchant.placeId] ?? null,
@@ -71,7 +68,12 @@ function achievementPercent(current: number, required: number) {
 
       <div class="bg-accent mt-2 space-y-2 rounded-md p-3">
         <div class="flex items-center gap-3">
-          <div class="bg-brown h-10 w-7 shrink-0 rounded-md" />
+          <CardImage
+            :src="cardRecommendation.imageUrl"
+            :alt="`${cardRecommendation.cardName} 카드 이미지`"
+            small
+            class="shrink-0"
+          />
 
           <div class="min-w-0 flex-1">
             <p class="text-body text-charcoal truncate">{{ cardRecommendation.cardName }}</p>
@@ -109,17 +111,15 @@ function achievementPercent(current: number, required: number) {
       <p class="text-body text-charcoal">내 카드 혜택 순위</p>
 
       <div class="mt-2 space-y-3">
-        <div
-          v-for="(item, index) in myCardRanking"
-          :key="item.rank"
-          class="flex items-center gap-3"
-        >
+        <div v-for="item in myCardRanking" :key="item.rank" class="flex items-center gap-3">
           <div class="flex shrink-0 items-center gap-1">
             <span class="text-caption text-primary w-6 shrink-0 font-bold">#{{ item.rank }}</span>
 
-            <div
-              class="h-9 w-6 shrink-0 rounded-md"
-              :class="rankCardVisualClass[index % rankCardVisualClass.length]"
+            <CardImage
+              :src="item.imageUrl"
+              :alt="`${item.cardName} 카드 이미지`"
+              small
+              class="shrink-0"
             />
           </div>
 

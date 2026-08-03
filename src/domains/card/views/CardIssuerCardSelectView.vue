@@ -6,6 +6,7 @@ import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import { useOwnedCardsStore } from '@/domains/card/stores/ownedCards'
+import CardImage from '@/shared/components/CardImage.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import { Checkbox } from '@/shared/ui/checkbox'
 import { formatCardNumber } from '@/shared/utils/format'
@@ -116,19 +117,13 @@ onMounted(() => {
               class="border-b border-divider last:border-b-0"
             >
               <label class="flex min-h-18 cursor-pointer items-center gap-3 px-4 py-3">
-                <div
-                  class="flex h-10 w-16 shrink-0 items-end rounded-sm p-2 shadow-sm"
-                  :style="{
-                    background: directCardConnectionStore.includeCardImages
-                      ? `linear-gradient(145deg, ${card.cardColor ?? '#315b86'}, #132b47)`
-                      : '#e8e3de',
-                  }"
-                  aria-hidden="true"
-                >
-                  <span class="text-[8px] font-semibold text-white/90">
-                    •••• {{ card.last4 }}
-                  </span>
-                </div>
+                <CardImage
+                  :src="directCardConnectionStore.includeCardImages ? card.imageUrl : null"
+                  :alt="`${card.name} 카드 이미지`"
+                  small
+                  orientation="horizontal"
+                  class="shrink-0"
+                />
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-body font-semibold text-charcoal">{{ card.name }}</p>
                   <p class="mt-0.5 text-caption text-gray">{{ formatCardNumber(card.last4) }}</p>

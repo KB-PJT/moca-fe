@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
+import CardImage from '@/shared/components/CardImage.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import { formatCardNumber } from '@/shared/utils/format'
 
@@ -69,6 +70,12 @@ onMounted(() => {
           :key="card.id"
           class="flex min-h-14 items-center gap-3 border-b border-divider px-4 py-3 last:border-b-0"
         >
+          <CardImage
+            :src="card.imageUrl"
+            :alt="`${card.name} 카드 이미지`"
+            small
+            class="shrink-0"
+          />
           <span
             class="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary"
             aria-hidden="true"
