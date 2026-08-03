@@ -20,8 +20,14 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
+  function updateNickname(nickname: string) {
+    if (!user.value) return
+    user.value = { ...user.value, nickname }
+  }
+
   return {
     user,
     clearSession,
+    updateNickname,
   }
 })

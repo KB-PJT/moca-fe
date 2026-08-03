@@ -1,4 +1,5 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
@@ -43,8 +44,8 @@ async function mountAt(issuerId: string) {
         component: { template: '<div />' },
       },
       {
-        path: '/cards/connect/progress',
-        name: 'card-connect-progress',
+        path: '/cards/connect/select/:issuerId/progress',
+        name: 'card-issuer-connect-progress',
         component: { template: '<div />' },
       },
     ],
@@ -58,7 +59,7 @@ async function mountAt(issuerId: string) {
 
   const wrapper = mount(CardIssuerConnectView, {
     global: {
-      plugins: [router],
+      plugins: [createPinia(), router],
       stubs: globalStubs,
     },
   })
@@ -67,17 +68,10 @@ async function mountAt(issuerId: string) {
 }
 
 describe('CardIssuerConnectView', () => {
-  it('KB 최초 입력과 추가 인증 mock 상태를 동적으로 전환한다', async () => {
+  it('KB는 최초 화면부터 카드번호와 카드 비밀번호를 입력받는다', async () => {
     const { wrapper } = await mountAt('kb-kookmin')
 
     expect(wrapper.text()).toContain('KB국민카드')
-    expect(wrapper.findAll('input')).toHaveLength(2)
-
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('추가 인증 입력 보기'))
-      ?.trigger('click')
-
     expect(wrapper.findAll('input')).toHaveLength(4)
 
     await wrapper.get('#card-connection-homepageId').setValue('moca-user')
@@ -102,7 +96,6 @@ describe('CardIssuerConnectView', () => {
           cardNumber: '1234567890123456',
           cardPassword: '12',
         },
-        additionalInputRequired: true,
         includeCardImages: true,
       },
     ])
@@ -127,6 +120,51 @@ describe('CardIssuerConnectView', () => {
     expect(wrapper.get<HTMLInputElement>('#card-connection-cardPassword').element.value).toBe(
       '1234',
     )
+  })
+
+  it('추가 인증이 없는 기관은 홈페이지 로그인 정보만 입력받는다', async () => {
+    const { wrapper } = await mountAt('samsung')
+
+    expect(wrapper.findAll('input')).toHaveLength(2)
+    expect(wrapper.text()).toContain('추가 인증 정보 없이 조회할 수 있어요')
+  })
+
+  it('실제 공통 버튼으로 footer에서 기관 입력 form을 제출하고 조회 화면으로 이동한다', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/cards/connect/select/:issuerId',
+          name: 'card-issuer-connect',
+          component: CardIssuerConnectView,
+        },
+        {
+          path: '/cards/connect/select/:issuerId/progress',
+          name: 'card-issuer-connect-progress',
+          component: { template: '<div />' },
+        },
+      ],
+    })
+    await router.push({ name: 'card-issuer-connect', params: { issuerId: 'samsung' } })
+    await router.isReady()
+
+    const wrapper = mount(CardIssuerConnectView, {
+      global: {
+        plugins: [createPinia(), router],
+        stubs: {
+          CardPageLayout: globalStubs.CardPageLayout,
+          CardIssuerIcon: globalStubs.CardIssuerIcon,
+          Switch: globalStubs.Switch,
+        },
+      },
+    })
+
+    await wrapper.get('#card-connection-homepageId').setValue('moca-user')
+    await wrapper.get('#card-connection-homepagePassword').setValue('password')
+    await wrapper.get('footer button').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('card-issuer-connect-progress')
   })
 
   it('카드사가 변경되면 입력값과 validation 오류를 초기화한다', async () => {

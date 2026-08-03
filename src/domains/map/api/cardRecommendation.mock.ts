@@ -4,6 +4,7 @@ export interface CardRecommendation {
   rank: number
   cardId: number
   cardName: string
+  imageUrl?: string | null
   estimatedBenefit: number
   // TODO: 스펙 표에는 'RATE_DISCOUNT' 예시만 있고 적립/무료 케이스의 실제 enum 값이 없어 확인 필요.
   benefitType: '할인' | '적립' | '무료'

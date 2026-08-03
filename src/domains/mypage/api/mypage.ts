@@ -21,3 +21,10 @@ export async function fetchMyPageSummary(): Promise<MyPageSummary> {
   await new Promise((resolve) => setTimeout(resolve, 300))
   return MOCK_MYPAGE_SUMMARY
 }
+
+export async function updateLocationPermissionGranted(granted: boolean): Promise<MyPageSummary> {
+  // TODO: 백엔드 연동 시 app_user의 위치 기반 서비스 사용 여부 수정 API로 교체
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  MOCK_MYPAGE_SUMMARY.locationPermissionGranted = granted
+  return { ...MOCK_MYPAGE_SUMMARY }
+}

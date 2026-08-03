@@ -44,6 +44,21 @@ const router = createRouter({
           component: () => import('@/domains/card/views/CardIssuerConnectView.vue'),
         },
         {
+          path: 'connect/select/:issuerId/progress',
+          name: 'card-issuer-connect-progress',
+          component: () => import('@/domains/card/views/CardIssuerLookupView.vue'),
+        },
+        {
+          path: 'connect/select/:issuerId/cards',
+          name: 'card-issuer-card-select',
+          component: () => import('@/domains/card/views/CardIssuerCardSelectView.vue'),
+        },
+        {
+          path: 'connect/select/:issuerId/complete',
+          name: 'card-issuer-connect-complete',
+          component: () => import('@/domains/card/views/CardIssuerConnectCompleteView.vue'),
+        },
+        {
           path: 'connect/progress',
           name: 'card-connect-progress',
           component: () => import('@/domains/card/views/CardConnectProgressView.vue'),
@@ -100,6 +115,11 @@ const router = createRouter({
           path: 'mypage/profile',
           name: 'mypage-profile',
           component: () => import('@/domains/mypage/views/ProfileEditView.vue'),
+        },
+        {
+          path: 'mypage/notifications',
+          name: 'notification-settings',
+          component: () => import('@/domains/notification/views/NotificationSettingsView.vue'),
         },
       ],
     },
