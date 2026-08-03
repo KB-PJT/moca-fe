@@ -1,5 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+// 지도/상세 라우트가 같은 컴포넌트 인스턴스를 재사용하도록 import를 하나로 공유한다.
+const MapView = () => import('@/domains/map/views/MapView.vue')
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -89,7 +92,14 @@ const router = createRouter({
         {
           path: 'map',
           name: 'map',
-          component: () => import('@/domains/map/views/MapView.vue'),
+          component: MapView,
+        },
+        {
+          path: 'map/merchants/:placeId',
+          name: 'merchant-detail',
+          // 지도 화면과 완전히 같은 컴포넌트를 그대로 재사용한다.
+          // (라우트가 바뀌어도 언마운트되지 않아야 상세 화면 전환 중에도 실제 지도가 계속 보인다.)
+          component: MapView,
         },
         {
           path: 'report',
