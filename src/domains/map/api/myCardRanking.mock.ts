@@ -6,13 +6,10 @@ export interface MyCardRankItem {
   cardName: string
   issuer: string
   performanceMet: boolean
-
-  // 압축 시트 TOP3 미리보기에서 쓴다.
+  // 압축 시트 TOP3 미리보기와 상세 페이지 "내 카드 혜택 비교"에서 공통으로 쓴다.
   benefitLabel: string
-
-  // 상세 페이지 "내 카드 혜택 비교"에서 쓴다.
-  // 조건을 충족하지 못했어도 "충족했다면 받았을" 예상 혜택 금액을 그대로 보여준다.
-  estimatedBenefitAmount: number
+  // benefitLabel의 숫자 부분(%). 결제 금액을 입력해 실제 혜택 금액을 계산할 때 쓴다.
+  discountRate: number
   // performanceMet이 false인 카드에만 존재. 이 카드의 적용 조건(약관)을 보여줘서
   // 왜 아직 미충족인지 바로 이해할 수 있게 한다.
   terms?: string
@@ -27,7 +24,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '신한카드',
       performanceMet: true,
       benefitLabel: '10% 할인',
-      estimatedBenefitAmount: 3000,
+      discountRate: 10,
     },
     {
       rank: 2,
@@ -35,7 +32,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: 'KB국민카드',
       performanceMet: false,
       benefitLabel: '5% 할인',
-      estimatedBenefitAmount: 2000,
+      discountRate: 5,
       terms:
         'KB My WE:SH는 카페 업종 결제 시 10% 할인. 전월 실적 200,000원 이상 시 적용되며, 월 최대 1.5만원까지 할인돼요. 최소결제금액 10,000원 이상.',
     },
@@ -45,7 +42,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '우리카드',
       performanceMet: true,
       benefitLabel: '0.5% 캐시백',
-      estimatedBenefitAmount: 150,
+      discountRate: 0.5,
     },
   ],
   '2': [
@@ -55,7 +52,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: 'KB국민카드',
       performanceMet: false,
       benefitLabel: '10% 할인',
-      estimatedBenefitAmount: 690,
+      discountRate: 10,
       terms:
         'KB My WE:SH는 카페 업종 결제 시 10% 할인. 전월 실적 200,000원 이상 시 적용되며, 월 최대 1.5만원까지 할인돼요. 최소결제금액 10,000원 이상.',
     },
@@ -65,7 +62,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '신한카드',
       performanceMet: true,
       benefitLabel: '3% 적립',
-      estimatedBenefitAmount: 450,
+      discountRate: 3,
     },
     {
       rank: 3,
@@ -73,7 +70,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '우리카드',
       performanceMet: true,
       benefitLabel: '0.5% 캐시백',
-      estimatedBenefitAmount: 100,
+      discountRate: 0.5,
     },
   ],
   '4': [
@@ -83,7 +80,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '현대카드',
       performanceMet: false,
       benefitLabel: '5% 적립',
-      estimatedBenefitAmount: 1500,
+      discountRate: 5,
       terms:
         '현대카드 M은 마트 업종 결제 시 5% 적립. 전월 실적 300,000원 이상 시 적용되며, 월 최대 3만원까지 적립돼요. 최소결제금액 30,000원 이상.',
     },
@@ -93,7 +90,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '우리카드',
       performanceMet: true,
       benefitLabel: '0.5% 캐시백',
-      estimatedBenefitAmount: 50,
+      discountRate: 0.5,
     },
     {
       rank: 3,
@@ -101,7 +98,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: 'KB국민카드',
       performanceMet: true,
       benefitLabel: '1% 적립',
-      estimatedBenefitAmount: 300,
+      discountRate: 1,
     },
   ],
   '6': [
@@ -111,7 +108,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '삼성카드',
       performanceMet: true,
       benefitLabel: '15% 할인',
-      estimatedBenefitAmount: 1050,
+      discountRate: 15,
     },
     {
       rank: 2,
@@ -119,7 +116,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '신한카드',
       performanceMet: true,
       benefitLabel: '5% 할인',
-      estimatedBenefitAmount: 450,
+      discountRate: 5,
     },
     {
       rank: 3,
@@ -127,7 +124,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: 'KB국민카드',
       performanceMet: false,
       benefitLabel: '3% 할인',
-      estimatedBenefitAmount: 270,
+      discountRate: 3,
       terms:
         'KB My WE:SH는 카페 업종 결제 시 10% 할인. 전월 실적 200,000원 이상 시 적용되며, 월 최대 1.5만원까지 할인돼요. 최소결제금액 10,000원 이상.',
     },
@@ -139,7 +136,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '롯데카드',
       performanceMet: true,
       benefitLabel: '5% 적립',
-      estimatedBenefitAmount: 500,
+      discountRate: 5,
     },
     {
       rank: 2,
@@ -147,7 +144,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '우리카드',
       performanceMet: true,
       benefitLabel: '0.5% 캐시백',
-      estimatedBenefitAmount: 50,
+      discountRate: 0.5,
     },
     {
       rank: 3,
@@ -155,7 +152,7 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       issuer: '현대카드',
       performanceMet: false,
       benefitLabel: '2% 적립',
-      estimatedBenefitAmount: 240,
+      discountRate: 2,
       terms:
         '현대카드 M은 마트 업종 결제 시 5% 적립. 전월 실적 300,000원 이상 시 적용되며, 월 최대 3만원까지 적립돼요. 최소결제금액 30,000원 이상.',
     },
