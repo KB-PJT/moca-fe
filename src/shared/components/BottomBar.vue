@@ -2,6 +2,11 @@
 import { useRoute } from 'vue-router'
 import { ChartBar, House, MapPin, User } from '@lucide/vue'
 
+interface Props {
+  activePath?: string
+}
+
+const props = defineProps<Props>()
 const route = useRoute()
 
 const tabs = [
@@ -13,7 +18,8 @@ const tabs = [
 
 function isActive(to: string) {
   // '/map'뿐 아니라 '/map/merchants/6' 같은 하위 경로에서도 지도 탭이 켜지게 한다.
-  return route.path === to || route.path.startsWith(`${to}/`)
+  const path = props.activePath ?? route.path
+  return path === to || path.startsWith(`${to}/`)
 }
 </script>
 
