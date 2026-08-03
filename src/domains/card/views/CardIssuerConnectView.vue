@@ -11,13 +11,13 @@ import {
   type CardConnectionFieldKey,
 } from '@/domains/card/constants/cardConnection'
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
+import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import { Switch } from '@/shared/ui/switch'
 
 interface CardConnectionSubmitPayload {
   issuerId: keyof typeof CARD_ISSUERS
   values: Partial<Record<CardConnectionFieldKey, string>>
-  additionalInputRequired: boolean
   includeCardImages: boolean
 }
 
@@ -27,7 +27,7 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const router = useRouter()
-const isDevelopment = import.meta.env.DEV
+const directCardConnectionStore = useDirectCardConnectionStore()
 
 function createEmptyValues(): Record<CardConnectionFieldKey, string> {
   return {
@@ -42,7 +42,6 @@ function createEmptyValues(): Record<CardConnectionFieldKey, string> {
 const formValues = ref(createEmptyValues())
 const validationErrors = ref<Partial<Record<CardConnectionFieldKey, string>>>({})
 const visiblePasswords = ref<Partial<Record<CardConnectionFieldKey, boolean>>>({})
-const additionalInputRequired = ref(false)
 const includeCardImages = ref(true)
 const isSubmitting = ref(false)
 
@@ -60,24 +59,9 @@ const connectionConfig = computed(() =>
   issuerId.value ? CARD_CONNECTION_CONFIGS[issuerId.value] : null,
 )
 const loginFields = computed(() => connectionConfig.value?.loginFields ?? [])
-const additionalFields = computed(() => {
-  if (!connectionConfig.value) return []
-  if (
-    connectionConfig.value.additionalInputMode === 'conditional' &&
-    !additionalInputRequired.value
-  ) {
-    return []
-  }
-
-  return connectionConfig.value.additionalFields
-})
+const additionalFields = computed(() => connectionConfig.value?.additionalFields ?? [])
 const visibleFields = computed(() => [...loginFields.value, ...additionalFields.value])
-const hasAdditionalInfo = computed(
-  () =>
-    connectionConfig.value?.additionalInputMode === 'always' ||
-    (connectionConfig.value?.additionalInputMode === 'conditional' &&
-      additionalInputRequired.value),
-)
+const hasAdditionalInfo = computed(() => connectionConfig.value?.additionalInputMode === 'always')
 const canConnect = computed(
   () =>
     visibleFields.value.length > 0 &&
@@ -88,7 +72,6 @@ function resetForm() {
   formValues.value = createEmptyValues()
   validationErrors.value = {}
   visiblePasswords.value = {}
-  additionalInputRequired.value = false
   includeCardImages.value = true
   isSubmitting.value = false
 }
@@ -134,16 +117,6 @@ function togglePasswordVisibility(fieldKey: CardConnectionFieldKey) {
   }
 }
 
-function toggleKbAdditionalInput() {
-  additionalInputRequired.value = !additionalInputRequired.value
-
-  for (const field of CARD_CONNECTION_CONFIGS['kb-kookmin'].additionalFields) {
-    formValues.value[field.key] = ''
-    delete validationErrors.value[field.key]
-    delete visiblePasswords.value[field.key]
-  }
-}
-
 function connectIssuer() {
   if (!issuerId.value || !canConnect.value || isSubmitting.value) return
 
@@ -156,22 +129,21 @@ function connectIssuer() {
   emit('submit', {
     issuerId: issuerId.value,
     values,
-    additionalInputRequired: additionalInputRequired.value,
     includeCardImages: includeCardImages.value,
   })
 
   // TODO(API): 공통 API client를 통해 HTTPS로만 전송하고 민감 필드가 요청·오류 로그에
   // 기록되지 않도록 redaction 정책을 적용한다. 저장이 필요하다면 서버/KMS 정책으로 처리하며
   // 프론트 번들에 대칭 암호화 키를 포함하지 않는다.
-  // 서버 응답에 따라 additionalInputRequired를 설정한다.
-  // HTTP 409만으로 KB 추가 입력 여부를 판단하지 않는다.
   // 실제 API 요청 및 응답 타입은 계약 확정 후 별도 구현한다.
+  directCardConnectionStore.beginLookup(issuerId.value, includeCardImages.value)
   void router
     .push({
-      name: 'card-connect-progress',
-      query: { issuers: issuerId.value },
+      name: 'card-issuer-connect-progress',
+      params: { issuerId: issuerId.value },
     })
     .catch(() => {
+      directCardConnectionStore.reset()
       isSubmitting.value = false
     })
 }
@@ -245,16 +217,6 @@ onBeforeUnmount(resetForm)
           </div>
         </section>
 
-        <button
-          v-if="isDevelopment && issuer.id === 'kb-kookmin'"
-          type="button"
-          class="mt-4 text-caption font-medium text-primary underline underline-offset-4"
-          @click="toggleKbAdditionalInput"
-        >
-          개발용 ·
-          {{ additionalInputRequired ? '최초 입력 화면 보기' : '추가 인증 입력 보기' }}
-        </button>
-
         <section
           class="mt-4 flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 shadow-tile"
         >
@@ -283,11 +245,11 @@ onBeforeUnmount(resetForm)
       <div class="flex flex-col items-center">
         <MocaButton
           block
-          type="submit"
-          form="card-issuer-connect-form"
+          type="button"
           :disabled="!canConnect"
           :loading="isSubmitting"
           class="h-14 text-subheading!"
+          @click="connectIssuer"
         >
           보유카드 조회하기
         </MocaButton>

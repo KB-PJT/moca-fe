@@ -2,6 +2,11 @@
 import { useRoute } from 'vue-router'
 import { ChartBar, House, MapPin, User } from '@lucide/vue'
 
+interface Props {
+  activePath?: string
+}
+
+const props = defineProps<Props>()
 const route = useRoute()
 
 const tabs = [
