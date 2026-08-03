@@ -12,7 +12,8 @@ const tabs = [
 ]
 
 function isActive(to: string) {
-  return route.path === to
+  // '/map'뿐 아니라 '/map/merchants/6' 같은 하위 경로에서도 지도 탭이 켜지게 한다.
+  return route.path === to || route.path.startsWith(`${to}/`)
 }
 </script>
 
