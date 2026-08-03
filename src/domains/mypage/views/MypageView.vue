@@ -11,10 +11,10 @@ import {
   Pencil,
   RefreshCw,
 } from '@lucide/vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchMyPageSummary } from '@/domains/mypage/api/mypage'
+import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import ListItem from '@/shared/components/ListItem.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
@@ -33,13 +33,23 @@ import {
 import { Switch } from '@/shared/ui/switch'
 
 const router = useRouter()
+const queryClient = useQueryClient()
 const authStore = useAuthStore()
 const isLogoutDialogOpen = ref(false)
+const locationPermissionError = ref('')
 
 const { data: summary } = useQuery({
   queryKey: ['mypage', 'summary'],
   queryFn: fetchMyPageSummary,
 })
+
+const { mutateAsync: updateLocationPermission, isPending: isLocationPermissionUpdating } =
+  useMutation({
+    mutationFn: updateLocationPermissionGranted,
+    onSuccess: (updatedSummary) => {
+      queryClient.setQueryData(['mypage', 'summary'], updatedSummary)
+    },
+  })
 
 const nickname = computed(() => authStore.user?.nickname ?? '사용자')
 const connectedCardDescription = computed(
@@ -53,6 +63,39 @@ function navigateToCardManage() {
 
 function navigateToProfile() {
   void router.push({ name: 'mypage-profile' })
+}
+
+function navigateToNotificationSettings() {
+  void router.push({ name: 'notification-settings' })
+}
+
+function requestBrowserLocationPermission() {
+  return new Promise<boolean>((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(false)
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      () => resolve(true),
+      () => resolve(false),
+      { enableHighAccuracy: false, maximumAge: 60_000, timeout: 10_000 },
+    )
+  })
+}
+
+async function handleLocationPermissionChange(enabled: boolean) {
+  locationPermissionError.value = ''
+
+  if (enabled) {
+    const isGranted = await requestBrowserLocationPermission()
+    if (!isGranted) {
+      locationPermissionError.value = '브라우저 설정에서 위치 권한을 허용해주세요.'
+      return
+    }
+  }
+
+  await updateLocationPermission(enabled)
 }
 
 function handleLogout() {
@@ -125,7 +168,12 @@ function handleLogout() {
         <template #right><ChevronRight class="size-4 text-gray" /></template>
       </ListItem>
 
-      <ListItem title="알림 설정" description="실적·주변 혜택 알림 관리" clickable>
+      <ListItem
+        title="알림 설정"
+        description="실적·주변 혜택 알림 관리"
+        clickable
+        @click="navigateToNotificationSettings"
+      >
         <template #left>
           <span
             class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
@@ -138,7 +186,9 @@ function handleLogout() {
 
       <ListItem
         title="위치 권한 설정"
-        :description="locationPermissionGranted ? '허용됨' : '허용 안 됨'"
+        :description="
+          locationPermissionError || (locationPermissionGranted ? '허용됨' : '허용 안 됨')
+        "
       >
         <template #left>
           <span
@@ -148,7 +198,13 @@ function handleLogout() {
           </span>
         </template>
         <template #right>
-          <Switch :model-value="locationPermissionGranted" aria-label="위치 권한 설정" />
+          <Switch
+            :model-value="locationPermissionGranted"
+            :disabled="isLocationPermissionUpdating"
+            class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
+            aria-label="위치 권한 설정"
+            @update:model-value="handleLocationPermissionChange"
+          />
         </template>
       </ListItem>
     </SectionCard>

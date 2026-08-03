@@ -91,6 +91,11 @@ const router = createRouter({
           name: 'mypage-profile',
           component: () => import('@/domains/mypage/views/ProfileEditView.vue'),
         },
+        {
+          path: 'mypage/notifications',
+          name: 'notification-settings',
+          component: () => import('@/domains/notification/views/NotificationSettingsView.vue'),
+        },
       ],
     },
   ],
