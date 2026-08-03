@@ -9,7 +9,11 @@ export interface Merchant {
   latitude: number
   longitude: number
   hasBenefit: boolean
-  bestBenefit?: string
+  bestBenefit?: {
+    cardId: number
+    cardName: string
+    estimatedBenefit: number
+  }
   // MAP-001 실제 응답에는 없는 UI 목업 전용 필드. 실제 영업시간 API가 생기면 교체.
   isOpen: boolean
 }
@@ -24,7 +28,7 @@ export const merchants: Merchant[] = [
     latitude: 37.5487,
     longitude: 127.0741,
     hasBenefit: true,
-    bestBenefit: '신한카드 10% 할인',
+    bestBenefit: { cardId: 21, cardName: '신한카드 Deep Dream', estimatedBenefit: 3000 },
     isOpen: false,
   },
   {
@@ -36,7 +40,7 @@ export const merchants: Merchant[] = [
     latitude: 37.5495,
     longitude: 127.0735,
     hasBenefit: true,
-    bestBenefit: 'KB국민카드 아메리카노 1잔 무료',
+    bestBenefit: { cardId: 15, cardName: 'KB My WE:SH', estimatedBenefit: 690 },
     isOpen: true,
   },
   {
@@ -59,7 +63,7 @@ export const merchants: Merchant[] = [
     latitude: 37.546,
     longitude: 127.0725,
     hasBenefit: true,
-    bestBenefit: '현대카드 5% 적립',
+    bestBenefit: { cardId: 33, cardName: '현대카드 M', estimatedBenefit: 1500 },
     isOpen: true,
   },
   // 아래 3개는 클러스터링 테스트용으로 placeId 1 근처에 몰아넣은 목데이터
@@ -83,7 +87,7 @@ export const merchants: Merchant[] = [
     latitude: 37.5486,
     longitude: 127.074,
     hasBenefit: true,
-    bestBenefit: '삼성카드 15% 할인',
+    bestBenefit: { cardId: 42, cardName: '삼성카드 taptap O', estimatedBenefit: 1050 },
     isOpen: true,
   },
   {
@@ -95,7 +99,7 @@ export const merchants: Merchant[] = [
     latitude: 37.5489,
     longitude: 127.074,
     hasBenefit: true,
-    bestBenefit: '롯데카드 5% 적립',
+    bestBenefit: { cardId: 58, cardName: '롯데카드 LOCA', estimatedBenefit: 500 },
     isOpen: true,
   },
 ]
