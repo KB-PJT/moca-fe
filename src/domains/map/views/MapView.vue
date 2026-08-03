@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { List, Map as MapIcon, Search, X } from '@lucide/vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { List, Map as MapIcon, Search } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { merchants, type Merchant } from '@/domains/map/api/merchants.mock'
 import { dotMarkerImage, pinMarkerImage } from '@/domains/map/composables/markerIcon'
+import MerchantBottomSheet from '@/domains/map/components/MerchantBottomSheet.vue'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mapInstance: any = null
@@ -15,6 +16,7 @@ const markerByPlaceId = new Map<string, any>()
 let selectedMarker: any = null
 const mapContainer = ref<HTMLElement | null>(null)
 const controlsRef = ref<HTMLElement | null>(null)
+const sheetRef = ref<HTMLElement | null>(null)
 let script: HTMLScriptElement | null = null
 
 const categories = ['전체', '음식점', '카페', '편의점', '마트']
@@ -22,18 +24,17 @@ const activeCategory = ref('전체')
 const viewMode = ref<'map' | 'list'>('map')
 const selectedMerchant = ref<Merchant | null>(null)
 
-// 하단 시트 높이(h-2/5)와 반드시 맞춰야 하는 값
-const SHEET_HEIGHT_RATIO = 0.4
-
 // 선택한 마커가 상단 컨트롤 영역 아래 ~ 열린 하단 시트 위 사이 정중앙에 오도록 지도를 이동
 function focusMarker(merchant: Merchant) {
-  if (!mapInstance || !mapContainer.value || !controlsRef.value) return
+  if (!mapInstance || !mapContainer.value || !controlsRef.value || !sheetRef.value) return
 
   const mapRect = mapContainer.value.getBoundingClientRect()
   const controlsRect = controlsRef.value.getBoundingClientRect()
+  // 시트가 translate-y-full로 화면 밖에 있어도 실제 box 높이 자체는 transform 영향을 안 받는다.
+  const sheetHeight = sheetRef.value.getBoundingClientRect().height
 
   const targetX = mapRect.width / 2
-  const sheetTopY = mapRect.height * (1 - SHEET_HEIGHT_RATIO)
+  const sheetTopY = mapRect.height - sheetHeight
   const targetY = (controlsRect.bottom - mapRect.top + sheetTopY) / 2
 
   const projection = mapInstance.getProjection()
@@ -50,7 +51,7 @@ function focusMarker(merchant: Merchant) {
   mapInstance.panTo(projection.coordsFromContainerPoint(newCenterPoint))
 }
 
-function selectMerchant(merchant: Merchant) {
+async function selectMerchant(merchant: Merchant) {
   const marker = markerByPlaceId.get(merchant.placeId)
   if (!marker) return
 
@@ -61,6 +62,9 @@ function selectMerchant(merchant: Merchant) {
   marker.setImage(pinMarkerImage(merchant.category))
   selectedMarker = marker
   selectedMerchant.value = merchant
+
+  // 시트가 처음 열리는 경우 DOM에 반영될 때까지 기다렸다가 높이를 재야 한다.
+  await nextTick()
   focusMarker(merchant)
 }
 
@@ -114,6 +118,10 @@ function initMap() {
   const center = new window.kakao.maps.LatLng(37.5481533, 127.0733985)
   mapInstance = new window.kakao.maps.Map(mapContainer.value, { center, level: 4 })
 
+  window.kakao.maps.event.addListener(mapInstance, 'click', () => {
+    if (selectedMerchant.value) closeSheet()
+  })
+
   updateMarkers()
 }
 
@@ -150,6 +158,7 @@ onUnmounted(() => {
         <Input
           placeholder="내 주변 혜택 가맹점"
           class="border-0 px-0 shadow-none focus-visible:ring-0"
+          @focus="closeSheet"
         />
       </div>
 
@@ -198,11 +207,10 @@ onUnmounted(() => {
     >
       <div
         v-if="selectedMerchant"
-        class="bg-card absolute inset-x-0 bottom-0 z-20 h-2/5 rounded-t-2xl"
+        ref="sheetRef"
+        class="bg-card absolute inset-x-0 bottom-0 z-20 max-h-4/5 overflow-y-auto rounded-t-2xl p-5"
       >
-        <button type="button" class="text-gray absolute top-4 right-4" @click="closeSheet">
-          <X class="size-5" />
-        </button>
+        <MerchantBottomSheet :merchant="selectedMerchant" @close="closeSheet" />
       </div>
     </Transition>
   </div>

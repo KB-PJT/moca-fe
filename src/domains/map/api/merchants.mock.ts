@@ -10,6 +10,8 @@ export interface Merchant {
   longitude: number
   hasBenefit: boolean
   bestBenefit?: string
+  // MAP-001 실제 응답에는 없는 UI 목업 전용 필드. 실제 영업시간 API가 생기면 교체.
+  isOpen: boolean
 }
 
 export const merchants: Merchant[] = [
@@ -23,6 +25,7 @@ export const merchants: Merchant[] = [
     longitude: 127.0741,
     hasBenefit: true,
     bestBenefit: '신한카드 10% 할인',
+    isOpen: false,
   },
   {
     placeId: '2',
@@ -34,6 +37,7 @@ export const merchants: Merchant[] = [
     longitude: 127.0735,
     hasBenefit: true,
     bestBenefit: 'KB국민카드 아메리카노 1잔 무료',
+    isOpen: true,
   },
   {
     placeId: '3',
@@ -44,6 +48,7 @@ export const merchants: Merchant[] = [
     latitude: 37.547,
     longitude: 127.073,
     hasBenefit: false,
+    isOpen: true,
   },
   {
     placeId: '4',
@@ -55,6 +60,7 @@ export const merchants: Merchant[] = [
     longitude: 127.0725,
     hasBenefit: true,
     bestBenefit: '현대카드 5% 적립',
+    isOpen: true,
   },
   // 아래 3개는 클러스터링 테스트용으로 placeId 1 근처에 몰아넣은 목데이터
   {
@@ -66,6 +72,7 @@ export const merchants: Merchant[] = [
     latitude: 37.5488,
     longitude: 127.0742,
     hasBenefit: false,
+    isOpen: true,
   },
   {
     placeId: '6',
@@ -77,6 +84,7 @@ export const merchants: Merchant[] = [
     longitude: 127.074,
     hasBenefit: true,
     bestBenefit: '삼성카드 15% 할인',
+    isOpen: true,
   },
   {
     placeId: '7',
@@ -88,5 +96,6 @@ export const merchants: Merchant[] = [
     longitude: 127.074,
     hasBenefit: true,
     bestBenefit: '롯데카드 5% 적립',
+    isOpen: true,
   },
 ]
