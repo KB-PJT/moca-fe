@@ -1,19 +1,30 @@
 <script setup lang="ts">
 import { Eye, EyeOff, LoaderCircle, Plus, RotateCw, Trash2 } from '@lucide/vue'
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import BottomBar from '@/shared/components/BottomBar.vue'
 import CardImage from '@/shared/components/CardImage.vue'
+import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 
 const REFRESH_DURATION_MS = 700
 
+type CardManagementAction = 'deactivate' | 'disconnect'
+
+interface PendingAction {
+  type: CardManagementAction
+  cardId: string
+  cardName: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const cardManagementStore = useCardManagementStore()
 const isRefreshing = ref(false)
+const isActionDialogOpen = ref(false)
+const pendingAction = ref<PendingAction | null>(null)
 let refreshTimer: ReturnType<typeof setTimeout> | undefined
 
 const activeBottomBarPath = computed(() => {
@@ -23,6 +34,21 @@ const activeBottomBarPath = computed(() => {
   if (from === 'mypage') return '/mypage'
   return undefined
 })
+const actionDialogTitle = computed(() => {
+  if (!pendingAction.value) return ''
+
+  return pendingAction.value.type === 'deactivate'
+    ? `${pendingAction.value.cardName} 카드를 비활성화할까요?`
+    : `${pendingAction.value.cardName} 카드 연결을 해제할까요?`
+})
+const actionDialogDescription = computed(() =>
+  pendingAction.value?.type === 'deactivate'
+    ? '비활성화한 카드는 혜택과 실적 계산에서 제외돼요. 언제든 다시 활성화할 수 있어요.'
+    : '연결을 해제하면 저장된 카드 정보가 삭제돼요. 다시 사용하려면 카드를 연결해야 해요.',
+)
+const actionDialogConfirmLabel = computed(() =>
+  pendingAction.value?.type === 'deactivate' ? '비활성화' : '연결 해제',
+)
 
 function refreshCards() {
   if (isRefreshing.value) return
@@ -37,6 +63,38 @@ function refreshCards() {
 
 function addCard() {
   void router.push({ name: 'card-connect' })
+}
+
+function requestCardAction(type: CardManagementAction, cardId: string, cardName: string) {
+  pendingAction.value = { type, cardId, cardName }
+  isActionDialogOpen.value = true
+}
+
+function closeActionDialog() {
+  isActionDialogOpen.value = false
+  pendingAction.value = null
+}
+
+function updateActionDialogOpen(open: boolean) {
+  isActionDialogOpen.value = open
+
+  if (!open) {
+    void nextTick(() => {
+      if (!isActionDialogOpen.value) pendingAction.value = null
+    })
+  }
+}
+
+function confirmCardAction() {
+  if (!pendingAction.value) return
+
+  if (pendingAction.value.type === 'deactivate') {
+    cardManagementStore.setCardActive(pendingAction.value.cardId, false)
+  } else {
+    cardManagementStore.disconnectCard(pendingAction.value.cardId)
+  }
+
+  closeActionDialog()
 }
 
 onBeforeUnmount(() => {
@@ -99,7 +157,7 @@ onBeforeUnmount(() => {
                     type="button"
                     class="flex items-center justify-center gap-1.5 border-r border-divider text-body font-medium text-gray"
                     :aria-label="`${card.name} 비활성화`"
-                    @click="cardManagementStore.setCardActive(card.id, false)"
+                    @click="requestCardAction('deactivate', card.id, card.name)"
                   >
                     <EyeOff class="size-4" aria-hidden="true" />
                     비활성화
@@ -108,7 +166,7 @@ onBeforeUnmount(() => {
                     type="button"
                     class="flex items-center justify-center gap-1.5 text-body font-medium text-rose-500"
                     :aria-label="`${card.name} 연결 해제`"
-                    @click="cardManagementStore.disconnectCard(card.id)"
+                    @click="requestCardAction('disconnect', card.id, card.name)"
                   >
                     <Trash2 class="size-4" aria-hidden="true" />
                     연결 해제
@@ -163,7 +221,7 @@ onBeforeUnmount(() => {
                     type="button"
                     class="flex items-center justify-center gap-1.5 text-body font-medium text-rose-500"
                     :aria-label="`${card.name} 연결 해제`"
-                    @click="cardManagementStore.disconnectCard(card.id)"
+                    @click="requestCardAction('disconnect', card.id, card.name)"
                   >
                     <Trash2 class="size-4" aria-hidden="true" />
                     연결 해제
@@ -189,5 +247,17 @@ onBeforeUnmount(() => {
     </div>
 
     <BottomBar :active-path="activeBottomBarPath" />
+
+    <ConfirmDialog
+      v-if="pendingAction"
+      :open="isActionDialogOpen"
+      :title="actionDialogTitle"
+      :description="actionDialogDescription"
+      :confirm-label="actionDialogConfirmLabel"
+      :destructive="pendingAction.type === 'disconnect'"
+      @update:open="updateActionDialogOpen"
+      @cancel="closeActionDialog"
+      @confirm="confirmCardAction"
+    />
   </div>
 </template>
