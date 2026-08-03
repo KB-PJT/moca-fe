@@ -17,6 +17,13 @@ vi.mock('@tanstack/vue-query', () => ({
       lastSyncedAt: '방금 전',
     }),
   }),
+  useQueryClient: () => ({
+    setQueryData: vi.fn<() => void>(),
+  }),
+  useMutation: () => ({
+    mutateAsync: vi.fn<() => Promise<void>>(),
+    isPending: ref(false),
+  }),
 }))
 
 vi.mock('@/domains/auth/stores/auth', () => ({
