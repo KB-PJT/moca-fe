@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ChevronRight, Coffee, ShoppingBag, ShoppingCart, Star, Utensils, X } from '@lucide/vue'
-import MocaButton from '@/shared/components/MocaButton.vue'
-import {
-  formatAchievementRate,
-  formatAmountWithUnit,
-  formatDistance,
-  formatPercent,
-} from '@/shared/utils/format'
+import { Coffee, ShoppingBag, ShoppingCart, Star, Utensils, X } from '@lucide/vue'
+import { formatAmountWithUnit, formatDistance, formatPercent } from '@/shared/utils/format'
 import type { Merchant } from '@/domains/map/api/merchants.mock'
 import { cardRecommendationByPlaceId } from '@/domains/map/api/cardRecommendation.mock'
+import { myCardRankingByPlaceId } from '@/domains/map/api/myCardRanking.mock'
 
 interface Props {
   merchant: Merchant
@@ -25,9 +20,19 @@ const categoryIcon: Record<Merchant['category'], typeof Utensils> = {
   마트: ShoppingCart,
 }
 
+// 랭킹 순서대로 카드 비주얼 색을 다르게 준다 (실제 카드 디자인 데이터는 없음).
+// MOCA 팔레트(brown 계열)에서만 골라서 브랜드 톤과 어긋나지 않게 한다.
+const rankCardVisualClass = ['bg-brown', 'bg-brown-light', 'bg-charcoal']
+
 const cardRecommendation = computed(
   () => cardRecommendationByPlaceId[props.merchant.placeId] ?? null,
 )
+const myCardRanking = computed(() => myCardRankingByPlaceId[props.merchant.placeId] ?? [])
+
+function achievementPercent(current: number, required: number) {
+  if (required <= 0) return 100
+  return Math.min(100, (current / required) * 100)
+}
 </script>
 
 <template>
@@ -58,25 +63,23 @@ const cardRecommendation = computed(
       </div>
     </div>
 
-    <div v-if="cardRecommendation" class="mt-4">
-      <p class="text-body text-primary flex items-center gap-1">
-        <Star class="size-4" />
-        MOCA 추천 카드 {{ cardRecommendation.rank }}순위
+    <template v-if="cardRecommendation">
+      <p class="text-caption text-primary mt-4 flex items-center gap-1">
+        <Star class="size-3.5" />
+        MOCA 추천 카드
       </p>
 
-      <div class="bg-accent mt-2 space-y-3 rounded-md p-4">
+      <div class="bg-accent mt-2 space-y-2 rounded-md p-3">
         <div class="flex items-center gap-3">
-          <div class="h-20 w-14 shrink-0 rounded-lg bg-linear-to-br from-teal-400 to-emerald-600" />
+          <div class="bg-brown h-10 w-7 shrink-0 rounded-md" />
 
           <div class="min-w-0 flex-1">
-            <p class="text-subheading text-charcoal line-clamp-2">
-              {{ cardRecommendation.cardName }}
-            </p>
+            <p class="text-body text-charcoal truncate">{{ cardRecommendation.cardName }}</p>
             <p class="text-caption text-gray truncate">{{ cardRecommendation.reason }}</p>
           </div>
 
           <div class="shrink-0 text-right">
-            <p class="text-heading text-primary whitespace-nowrap">
+            <p class="text-subheading text-primary whitespace-nowrap">
               {{ formatPercent(cardRecommendation.discountRate) }} 할인
             </p>
             <p class="text-caption text-gray whitespace-nowrap">
@@ -85,49 +88,70 @@ const cardRecommendation = computed(
           </div>
         </div>
 
-        <div>
-          <div class="flex items-center justify-between">
-            <span class="text-caption text-gray">
-              {{ formatAmountWithUnit(cardRecommendation.performanceCurrentAmount) }} /
-              {{ formatAmountWithUnit(cardRecommendation.performanceRequiredAmount) }}
-            </span>
-            <span class="text-caption text-primary shrink-0">
-              {{
-                formatAchievementRate(
+        <div class="bg-divider h-1.5 overflow-hidden rounded-full">
+          <div
+            class="bg-primary h-full rounded-full"
+            :style="{
+              width:
+                achievementPercent(
                   cardRecommendation.performanceCurrentAmount,
                   cardRecommendation.performanceRequiredAmount,
-                )
-              }}
-            </span>
-          </div>
-          <div class="bg-divider mt-1 h-1.5 overflow-hidden rounded-full">
+                ) + '%',
+            }"
+          />
+        </div>
+      </div>
+    </template>
+
+    <p v-else class="text-caption text-gray mt-4">이 가맹점에서 받을 수 있는 혜택이 아직 없어요.</p>
+
+    <div v-if="myCardRanking.length" class="mt-4">
+      <p class="text-body text-charcoal">내 카드 혜택 순위</p>
+
+      <div class="mt-2 space-y-3">
+        <div
+          v-for="(item, index) in myCardRanking"
+          :key="item.rank"
+          class="flex items-center gap-3"
+        >
+          <div class="flex shrink-0 items-center gap-1">
+            <span class="text-caption text-primary w-6 shrink-0 font-bold">#{{ item.rank }}</span>
+
             <div
-              class="bg-primary h-full rounded-full"
-              :style="{
-                width:
-                  Math.min(
-                    100,
-                    (cardRecommendation.performanceCurrentAmount /
-                      cardRecommendation.performanceRequiredAmount) *
-                      100,
-                  ) + '%',
-              }"
+              class="h-9 w-6 shrink-0 rounded-md"
+              :class="rankCardVisualClass[index % rankCardVisualClass.length]"
             />
           </div>
-        </div>
 
-        <MocaButton
-          block
-          class="bg-card text-primary hover:text-white flex items-center justify-center gap-1 shadow-none"
-        >
-          혜택 자세히 보기
-          <ChevronRight class="size-4" />
-        </MocaButton>
+          <div class="min-w-0 flex-1">
+            <p class="text-caption text-charcoal truncate">{{ item.cardName }}</p>
+            <div class="bg-divider mt-1 h-1 overflow-hidden rounded-full">
+              <div
+                class="bg-primary h-full rounded-full"
+                :style="{
+                  width:
+                    achievementPercent(
+                      item.performanceCurrentAmount,
+                      item.performanceRequiredAmount,
+                    ) + '%',
+                }"
+              />
+            </div>
+          </div>
+
+          <div class="flex w-14 shrink-0 justify-center">
+            <span
+              v-if="!item.performanceMet"
+              class="text-label bg-accent text-primary rounded-full px-2 py-0.5 whitespace-nowrap"
+            >
+              미충족
+            </span>
+            <span v-else class="text-caption text-charcoal whitespace-nowrap">
+              {{ item.benefitLabel }}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
-
-    <p v-if="!cardRecommendation" class="text-caption text-gray mt-4">
-      이 가맹점에서 받을 수 있는 혜택이 아직 없어요.
-    </p>
   </div>
 </template>
