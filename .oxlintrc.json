@@ -7,5 +7,5 @@
   "categories": {
     "correctness": "error"
   },
-  "ignorePatterns": ["src/shared/ui/**"]
+  "ignorePatterns": ["src/shared/ui/**", "dev-dist/**"]
 }
