@@ -13,6 +13,8 @@ export default defineConfig({
     vueDevTools(),
     tailwindcss(),
     VitePWA({
+      // 로컬 개발 서버에서도 manifest를 제공해 홈 화면 앱의 전체 경로 scope를 유지한다.
+      devOptions: { enabled: true },
       // 새 버전을 바로 적용하지 않고 사용자에게 업데이트 여부를 먼저 확인한다.
       registerType: 'prompt',
       // 서비스 워커는 PwaUpdatePrompt에서 직접 등록한다.
