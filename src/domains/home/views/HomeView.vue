@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
-import EmptyState from '@/shared/components/EmptyState.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
+import CardBenefitAmounts from '@/domains/home/components/CardBenefitAmounts.vue'
+import CardPerformance from '@/domains/home/components/CardPerformance.vue'
+import OwnedCardCarousel from '@/domains/home/components/OwnedCardCarousel.vue'
+import OwnedCardSection from '@/domains/home/components/OwnedCardSection.vue'
+import SelectedCardInfo from '@/domains/home/components/SelectedCardInfo.vue'
+import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
 
-const router = useRouter()
-
-function connectCard() {
-  void router.push({ name: 'card-connect' })
-}
+const activeCardIndex = ref(0)
+const activeCard = computed(() => MOCK_HOME_OWNED_CARDS[activeCardIndex.value] ?? null)
 </script>
 
 <template>
-  <PageLayout hide-app-bar has-bottom-bar>
-    <MainHeader title="MOCA" />
+  <PageLayout hide-app-bar has-bottom-bar :horizontal-padding="false">
+    <div class="px-5">
+      <MainHeader title="MOCA" />
+    </div>
 
     <SectionCard title="이번 달 혜택">
       <template #action>
@@ -26,14 +30,12 @@ function connectCard() {
       <p class="text-body text-gray">2025.06.28 · 카드 결제</p>
     </SectionCard>
 
-    <SectionCard title="내 카드" flush>
-      <EmptyState
-        title="아직 등록된 카드가 없어요"
-        description="카드를 연결하면 혜택과 실적을 볼 수 있어요"
-        action-label="카드 연결하기"
-        @action="connectCard"
-      />
-    </SectionCard>
+    <OwnedCardSection :card-count="MOCK_HOME_OWNED_CARDS.length" :active-index="activeCardIndex">
+      <OwnedCardCarousel v-model:active-index="activeCardIndex" :cards="MOCK_HOME_OWNED_CARDS" />
+      <SelectedCardInfo v-if="activeCard" :card="activeCard" />
+      <CardBenefitAmounts v-if="activeCard" :card="activeCard" />
+      <CardPerformance v-if="activeCard" :card="activeCard" />
+    </OwnedCardSection>
 
     <SectionCard title="버튼 예시">
       <div class="flex flex-col gap-2">
