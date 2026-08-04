@@ -10,14 +10,13 @@ interface Props {
 }
 
 defineProps<Props>()
-const emit = defineEmits<{ close: [] }>()
 </script>
 
 <template>
   <div>
     <div class="bg-divider mx-auto mb-3 h-1 w-10 rounded-full" />
 
-    <MerchantInfoHeader :merchant="merchant" @close="emit('close')" />
+    <MerchantInfoHeader :merchant="merchant" />
 
     <MerchantCardRecommendation :merchant="merchant" :expanded="expanded" />
   </div>
