@@ -13,6 +13,10 @@ export interface Merchant {
     cardId: number
     cardName: string
     estimatedBenefit: number
+    // MAP-001 실제 응답에는 없는 UI 목업 전용 필드. estimatedBenefit을 계산한 기준 결제 금액("N원 기준" 표시용).
+    baselineAmount: number
+    // MAP-001 실제 응답에는 없는 UI 목업 전용 필드. myCardRanking.mock의 benefitLabel과 같은 표기 컨벤션("N% 할인/적립").
+    benefitLabel: string
   }
   // MAP-001 실제 응답에는 없는 UI 목업 전용 필드. 실제 영업시간 API가 생기면 교체.
   isOpen: boolean
@@ -28,7 +32,13 @@ export const merchants: Merchant[] = [
     latitude: 37.5487,
     longitude: 127.0741,
     hasBenefit: true,
-    bestBenefit: { cardId: 21, cardName: '신한카드 Deep Dream', estimatedBenefit: 3000 },
+    bestBenefit: {
+      cardId: 21,
+      cardName: '신한카드 Deep Dream',
+      estimatedBenefit: 3000,
+      baselineAmount: 30000,
+      benefitLabel: '10% 할인',
+    },
     isOpen: false,
   },
   {
@@ -40,7 +50,13 @@ export const merchants: Merchant[] = [
     latitude: 37.5495,
     longitude: 127.0735,
     hasBenefit: true,
-    bestBenefit: { cardId: 15, cardName: 'KB My WE:SH', estimatedBenefit: 690 },
+    bestBenefit: {
+      cardId: 15,
+      cardName: 'KB My WE:SH',
+      estimatedBenefit: 690,
+      baselineAmount: 6900,
+      benefitLabel: '10% 할인',
+    },
     isOpen: true,
   },
   {
@@ -63,7 +79,13 @@ export const merchants: Merchant[] = [
     latitude: 37.546,
     longitude: 127.0725,
     hasBenefit: true,
-    bestBenefit: { cardId: 33, cardName: '현대카드 M', estimatedBenefit: 1500 },
+    bestBenefit: {
+      cardId: 33,
+      cardName: '현대카드 M',
+      estimatedBenefit: 2150,
+      baselineAmount: 43000,
+      benefitLabel: '5% 적립',
+    },
     isOpen: true,
   },
   // 아래 3개는 클러스터링 테스트용으로 placeId 1 근처에 몰아넣은 목데이터
@@ -87,7 +109,13 @@ export const merchants: Merchant[] = [
     latitude: 37.5486,
     longitude: 127.074,
     hasBenefit: true,
-    bestBenefit: { cardId: 42, cardName: '삼성카드 taptap O', estimatedBenefit: 1050 },
+    bestBenefit: {
+      cardId: 42,
+      cardName: '삼성카드 taptap O',
+      estimatedBenefit: 1050,
+      baselineAmount: 7000,
+      benefitLabel: '15% 할인',
+    },
     isOpen: true,
   },
   {
@@ -99,7 +127,13 @@ export const merchants: Merchant[] = [
     latitude: 37.5489,
     longitude: 127.074,
     hasBenefit: true,
-    bestBenefit: { cardId: 58, cardName: '롯데카드 LOCA', estimatedBenefit: 500 },
+    bestBenefit: {
+      cardId: 58,
+      cardName: '롯데카드 LOCA',
+      estimatedBenefit: 500,
+      baselineAmount: 10000,
+      benefitLabel: '5% 적립',
+    },
     isOpen: true,
   },
 ]
