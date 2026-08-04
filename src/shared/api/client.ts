@@ -20,7 +20,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const accessToken = useAuthStore().accessToken
 
-  if (accessToken) {
+  if (accessToken && config.url !== '/api/v1/auth/refresh') {
     config.headers.Authorization = `Bearer ${accessToken}`
   }
 
@@ -47,6 +47,16 @@ function refreshAccessToken(): Promise<string> {
     })
 
   return refreshPromise
+}
+
+export async function restoreMocaSession(): Promise<boolean> {
+  try {
+    await refreshAccessToken()
+    return true
+  } catch {
+    useAuthStore().clearSession()
+    return false
+  }
 }
 
 function isAuthRequest(url: string | undefined): boolean {

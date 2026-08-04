@@ -14,6 +14,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { logoutFromMoca } from '@/domains/auth/api/auth'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import ListItem from '@/shared/components/ListItem.vue'
@@ -102,10 +103,14 @@ async function handleLocationPermissionChange(enabled: boolean) {
   await updateLocationPermission(enabled)
 }
 
-function handleLogout() {
-  authStore.clearSession()
-  isLogoutDialogOpen.value = false
-  void router.push({ name: 'login' })
+async function handleLogout() {
+  try {
+    await logoutFromMoca()
+  } finally {
+    authStore.clearSession()
+    isLogoutDialogOpen.value = false
+    await router.replace({ name: 'login' })
+  }
 }
 </script>
 

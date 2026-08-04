@@ -1,3 +1,5 @@
+import apiClient from '@/shared/api/client'
+
 interface MocaLoginResponse {
   data: {
     accessToken: string
@@ -19,4 +21,8 @@ export async function loginToMoca(code: string, codeVerifier: string): Promise<M
   }
 
   return response.json() as Promise<MocaLoginResponse>
+}
+
+export async function logoutFromMoca(): Promise<void> {
+  await apiClient.post('/api/v1/auth/logout')
 }
