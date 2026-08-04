@@ -121,6 +121,11 @@ const router = createRouter({
           name: 'notification-settings',
           component: () => import('@/domains/notification/views/NotificationSettingsView.vue'),
         },
+        {
+          path: 'mypage/faq',
+          name: 'faq',
+          component: () => import('@/domains/mypage/views/FaqView.vue'),
+        },
       ],
     },
   ],

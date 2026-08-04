@@ -69,6 +69,10 @@ function navigateToNotificationSettings() {
   void router.push({ name: 'notification-settings' })
 }
 
+function navigateToFaq() {
+  void router.push({ name: 'faq' })
+}
+
 function requestBrowserLocationPermission() {
   return new Promise<boolean>((resolve) => {
     if (!navigator.geolocation) {
@@ -214,7 +218,7 @@ function handleLogout() {
       flush
       class="overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
     >
-      <ListItem title="자주 묻는 질문" clickable>
+      <ListItem title="자주 묻는 질문" clickable @click="navigateToFaq">
         <template #left>
           <span
             class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
