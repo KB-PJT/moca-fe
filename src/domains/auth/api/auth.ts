@@ -13,7 +13,11 @@ export async function loginToMoca(code: string, codeVerifier: string): Promise<M
       'Content-Type': 'application/json',
     },
     credentials: 'include',
-    body: JSON.stringify({ code, codeVerifier }),
+    body: JSON.stringify({
+      code,
+      codeVerifier,
+      redirectUri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+    }),
   })
 
   if (!response.ok) {

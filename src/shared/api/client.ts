@@ -59,6 +59,16 @@ export async function restoreMocaSession(): Promise<boolean> {
   }
 }
 
+let initialSessionRestorePromise: Promise<boolean> | undefined
+
+export function restoreInitialMocaSession(): Promise<boolean> {
+  if (!initialSessionRestorePromise) {
+    initialSessionRestorePromise = restoreMocaSession()
+  }
+
+  return initialSessionRestorePromise
+}
+
 function isAuthRequest(url: string | undefined): boolean {
   return Boolean(url?.startsWith('/api/v1/auth/'))
 }

@@ -36,7 +36,12 @@ onMounted(async () => {
     authStore.setAccessToken(result.data.accessToken)
     clearGoogleLoginSession()
 
-    await router.replace({ name: 'home' })
+    const savedRedirect = sessionStorage.getItem('post_login_redirect')
+    sessionStorage.removeItem('post_login_redirect')
+    const redirectPath =
+      savedRedirect?.startsWith('/') && !savedRedirect.startsWith('//') ? savedRedirect : '/home'
+
+    await router.replace(redirectPath)
   } catch (error) {
     clearGoogleLoginSession()
     errorMessage.value = error instanceof Error ? error.message : '로그인에 실패했습니다.'
