@@ -23,11 +23,19 @@ const issuerId = computed(() => {
 })
 const issuer = computed(() => (issuerId.value ? CARD_ISSUERS[issuerId.value] : null))
 const selectedCount = computed(() => directCardConnectionStore.selectedCards.length)
+const selectableCount = computed(() => directCardConnectionStore.selectableCards.length)
+const hasIncompleteOptions = computed(
+  () => selectedCount.value > 0 && !directCardConnectionStore.hasCompleteOptionSelections,
+)
 const allSelectionState = computed<boolean | 'indeterminate'>(() => {
   if (selectedCount.value === 0) return false
-  if (selectedCount.value === directCardConnectionStore.discoveredCards.length) return true
+  if (selectedCount.value === selectableCount.value) return true
   return 'indeterminate'
 })
+
+function isCardSelectable(cardId: string) {
+  return directCardConnectionStore.selectableCards.some((card) => card.id === cardId)
+}
 
 function returnToIssuerForm() {
   directCardConnectionStore.reset()
@@ -105,9 +113,7 @@ onMounted(() => {
               @update:model-value="directCardConnectionStore.setAllSelected($event === true)"
             />
             <span class="flex-1 text-body font-semibold text-charcoal">전체 선택</span>
-            <span class="text-caption text-gray">
-              {{ directCardConnectionStore.discoveredCards.length }}개 카드
-            </span>
+            <span class="text-caption text-gray">{{ selectableCount }}개 선택 가능</span>
           </label>
 
           <ul aria-label="조회된 보유카드">
@@ -116,7 +122,12 @@ onMounted(() => {
               :key="card.id"
               class="border-b border-divider last:border-b-0"
             >
-              <label class="flex min-h-18 cursor-pointer items-center gap-3 px-4 py-3">
+              <label
+                class="flex min-h-18 items-center gap-3 px-4 py-3"
+                :class="
+                  isCardSelectable(card.id) ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                "
+              >
                 <CardImage
                   :src="directCardConnectionStore.includeCardImages ? card.imageUrl : null"
                   :alt="`${card.name} 카드 이미지`"
@@ -127,9 +138,16 @@ onMounted(() => {
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-body font-semibold text-charcoal">{{ card.name }}</p>
                   <p class="mt-0.5 text-caption text-gray">{{ formatCardNumber(card.last4) }}</p>
+                  <p v-if="card.matched === false" class="mt-1 text-micro text-error">
+                    MOCA에서 지원하지 않는 카드예요
+                  </p>
+                  <p v-else-if="card.supported === false" class="mt-1 text-micro text-gray">
+                    혜택 추천이 제한될 수 있어요
+                  </p>
                 </div>
                 <Checkbox
                   :model-value="directCardConnectionStore.selectedCardIds.includes(card.id)"
+                  :disabled="!isCardSelectable(card.id)"
                   :aria-label="`${card.name} 선택`"
                   class="size-5 rounded-full"
                   @update:model-value="
@@ -137,6 +155,56 @@ onMounted(() => {
                   "
                 />
               </label>
+
+              <div
+                v-if="
+                  directCardConnectionStore.selectedCardIds.includes(card.id) &&
+                  card.optionGroups?.length
+                "
+                class="border-t border-divider bg-background px-4 py-4"
+              >
+                <p class="text-caption font-medium text-charcoal">카드 옵션을 선택해 주세요</p>
+                <fieldset
+                  v-for="group in card.optionGroups"
+                  :key="group.optionGroupId"
+                  class="mt-4 first:mt-3"
+                >
+                  <legend class="text-body font-semibold text-charcoal">
+                    {{ group.groupName }}
+                  </legend>
+                  <div class="mt-2 grid grid-cols-2 gap-2">
+                    <label
+                      v-for="choice in group.choices"
+                      :key="choice.optionChoiceId"
+                      class="cursor-pointer"
+                    >
+                      <input
+                        type="radio"
+                        class="peer sr-only"
+                        :name="`${card.id}-${group.optionGroupId}`"
+                        :value="choice.optionChoiceId"
+                        :checked="
+                          directCardConnectionStore.optionSelections[card.id]?.[
+                            group.optionGroupId
+                          ] === choice.optionChoiceId
+                        "
+                        @change="
+                          directCardConnectionStore.setOptionSelection(
+                            card.id,
+                            group.optionGroupId,
+                            choice.optionChoiceId,
+                          )
+                        "
+                      />
+                      <span
+                        class="flex min-h-10 items-center justify-center rounded-md border border-border bg-card px-3 py-2 text-center text-caption text-gray transition-colors peer-checked:border-primary peer-checked:bg-primary/8 peer-checked:font-semibold peer-checked:text-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30"
+                      >
+                        {{ choice.choiceName }}
+                      </span>
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
             </li>
           </ul>
         </div>
@@ -151,9 +219,12 @@ onMounted(() => {
 
     <template v-if="issuer" #footer>
       <div class="flex flex-col items-center">
+        <p v-if="hasIncompleteOptions" class="mb-2 text-caption text-error" role="alert">
+          선택한 카드의 옵션을 모두 골라 주세요
+        </p>
         <MocaButton
           block
-          :disabled="selectedCount === 0"
+          :disabled="selectedCount === 0 || hasIncompleteOptions"
           class="h-14 text-subheading!"
           @click="addSelectedCards"
         >

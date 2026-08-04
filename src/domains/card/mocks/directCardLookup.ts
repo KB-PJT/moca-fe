@@ -6,12 +6,35 @@ interface MockDirectCardLookup {
   cards: DiscoveredCard[]
 }
 
-const CARD_FIXTURES: Record<
-  CardIssuerId,
-  Array<Pick<DiscoveredCard, 'id' | 'name' | 'last4' | 'imageUrl'>>
-> = {
+const CARD_FIXTURES: Record<CardIssuerId, Array<Omit<DiscoveredCard, 'issuer'>>> = {
   'kb-kookmin': [
-    { id: 'direct-kb-1', name: 'KB My WE:SH', last4: '4321' },
+    {
+      id: 'direct-kb-1',
+      userCardId: 'direct-kb-1',
+      name: 'KB My WE:SH',
+      last4: '4321',
+      matched: true,
+      supported: true,
+      optionGroups: [
+        {
+          optionGroupId: 'kb-wish-benefit-group',
+          groupKey: 'benefit-package',
+          groupName: '혜택 패키지',
+          choices: [
+            {
+              optionChoiceId: 'kb-wish-benefit-shopping',
+              choiceKey: 'shopping',
+              choiceName: '쇼핑형',
+            },
+            {
+              optionChoiceId: 'kb-wish-benefit-living',
+              choiceKey: 'living',
+              choiceName: '생활형',
+            },
+          ],
+        },
+      ],
+    },
     { id: 'direct-kb-2', name: 'KB 청춘대로 티타늄', last4: '9988' },
     { id: 'direct-kb-3', name: 'KB 국민 알뜰', last4: '1122' },
   ],

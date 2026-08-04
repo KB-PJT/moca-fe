@@ -98,4 +98,84 @@ describe('CardIssuerCardSelectView', () => {
     )
     expect(router.currentRoute.value.name).toBe('card-issuer-connect-complete')
   })
+
+  it('선택형 카드의 옵션을 모두 고른 뒤에만 불러오기 버튼을 활성화한다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const directStore = useDirectCardConnectionStore()
+    directStore.beginLookup('kb-kookmin', true)
+    directStore.completeLookup([
+      {
+        id: 'option-card',
+        userCardId: 'option-card',
+        issuer: 'kb-kookmin',
+        name: 'KB 선택형 카드',
+        last4: '1111',
+        matched: true,
+        optionGroups: [
+          {
+            optionGroupId: 'benefit-group',
+            groupKey: 'benefit',
+            groupName: '혜택 패키지',
+            choices: [
+              {
+                optionChoiceId: 'shopping-choice',
+                choiceKey: 'shopping',
+                choiceName: '쇼핑 중심',
+              },
+              {
+                optionChoiceId: 'living-choice',
+                choiceKey: 'living',
+                choiceName: '생활 중심',
+              },
+            ],
+          },
+        ],
+      },
+    ])
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/cards/connect/select/:issuerId/cards',
+          name: 'card-issuer-card-select',
+          component: CardIssuerCardSelectView,
+        },
+        {
+          path: '/cards/connect/select/:issuerId/complete',
+          name: 'card-issuer-connect-complete',
+          component: { template: '<div />' },
+        },
+        {
+          path: '/cards/connect/select/:issuerId',
+          name: 'card-issuer-connect',
+          component: { template: '<div />' },
+        },
+        {
+          path: '/cards/connect/select',
+          name: 'card-issuer-select',
+          component: { template: '<div />' },
+        },
+      ],
+    })
+    await router.push({ name: 'card-issuer-card-select', params: { issuerId: 'kb-kookmin' } })
+    await router.isReady()
+
+    const wrapper = mount(CardIssuerCardSelectView, {
+      global: { plugins: [pinia, router], stubs: globalStubs },
+    })
+
+    expect(wrapper.text()).toContain('혜택 패키지')
+    expect(wrapper.text()).toContain('선택한 카드의 옵션을 모두 골라 주세요')
+    expect(wrapper.get('footer button').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('input[value="shopping-choice"]').setValue()
+
+    expect(directStore.optionSelections).toEqual({
+      'option-card': { 'benefit-group': 'shopping-choice' },
+    })
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.get('footer button').attributes('disabled')).toBeUndefined()
+  })
 })
