@@ -106,7 +106,7 @@ function toggleFaq(id: number) {
       </div>
 
       <div
-        class="scrollbar-hide mt-4 flex gap-2 overflow-x-auto px-5 pb-1"
+        class="scrollbar-hide mx-5 mt-4 flex gap-2 overflow-x-auto pb-1"
         role="tablist"
         aria-label="FAQ 카테고리"
       >
