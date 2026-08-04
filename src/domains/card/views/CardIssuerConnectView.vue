@@ -132,10 +132,8 @@ function connectIssuer() {
     includeCardImages: includeCardImages.value,
   })
 
-  // TODO(API): 공통 API client를 통해 HTTPS로만 전송하고 민감 필드가 요청·오류 로그에
-  // 기록되지 않도록 redaction 정책을 적용한다. 저장이 필요하다면 서버/KMS 정책으로 처리하며
-  // 프론트 번들에 대칭 암호화 키를 포함하지 않는다.
-  // 실제 API 요청 및 응답 타입은 계약 확정 후 별도 구현한다.
+  // TODO(#46, AUTH): MOCA access token 발급·갱신이 연결되면 buildCreateCardLinkRequest로
+  // 요청을 만들고 createCardLink를 호출한다. 자격정보는 store·브라우저 저장소·로그에 남기지 않는다.
   directCardConnectionStore.beginLookup(issuerId.value, includeCardImages.value)
   void router
     .push({

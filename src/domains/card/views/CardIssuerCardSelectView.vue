@@ -50,6 +50,8 @@ function returnToIssuerForm() {
 function addSelectedCards() {
   if (!issuerId.value || selectedCount.value === 0) return
 
+  // TODO(#46, AUTH): 인증 연동 후 buildActivateCardLinkCardsRequest와 linkId로
+  // PATCH /card-links/{linkId}/cards를 호출하고, 성공한 카드만 추가한 뒤 완료 화면으로 이동한다.
   ownedCardsStore.addOwnedCards(
     directCardConnectionStore.selectedCards.map(
       ({ id, issuer: cardIssuer, name, last4, imageUrl }) => ({

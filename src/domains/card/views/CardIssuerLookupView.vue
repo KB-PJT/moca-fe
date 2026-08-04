@@ -38,6 +38,8 @@ function startLookup() {
     return
   }
 
+  // TODO(#46, AUTH): 인증 연동 후 mock/timer를 제거하고 POST /card-links의 lookupStatus를
+  // 구독해 성공 시 카드 선택 화면으로, 실패 시 lookupError 안내 화면으로 분기한다.
   directCardConnectionStore.beginLookup(issuerId.value, directCardConnectionStore.includeCardImages)
   const mockLookup = getMockDirectCardLookup(issuerId.value)
 
