@@ -3,6 +3,10 @@ import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import CardManageView from '@/domains/card/views/CardManageView.vue'
+import {
+  getMockManagedCardOrder,
+  resetMockManagedCardOrder,
+} from '@/domains/card/api/cardManagement.mock'
 
 const push = vi.fn<(location: { name: string }) => void>()
 const routeQuery: Record<string, string | string[] | undefined> = {}
@@ -57,6 +61,7 @@ function mountView() {
 describe('CardManageView', () => {
   beforeEach(() => {
     push.mockClear()
+    resetMockManagedCardOrder()
     for (const key of Object.keys(routeQuery)) delete routeQuery[key]
   })
 
@@ -135,6 +140,75 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('등록된 카드 3개')
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
     expect(wrapper.text()).toContain('새로고침')
+  })
+
+  it('활성 카드 순서를 변경하고 mock API에 저장한다', async () => {
+    vi.useFakeTimers()
+    const wrapper = mountView()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '순서 변경')
+      ?.trigger('click')
+
+    const sourceCard = wrapper.get('li[data-card-id="managed-shinhan-deep-dream"]')
+    const targetCard = wrapper.get('li[data-card-id="managed-kb-wesh"]')
+    const dragStartEvent = new Event('dragstart', { bubbles: true, cancelable: true })
+    Object.defineProperty(dragStartEvent, 'dataTransfer', {
+      value: {
+        effectAllowed: 'none',
+        setData: vi.fn<(format: string, data: string) => void>(),
+      },
+    })
+    sourceCard.element.dispatchEvent(dragStartEvent)
+    targetCard.element.dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }))
+    await nextTick()
+
+    expect(
+      wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
+    ).toEqual(['managed-shinhan-deep-dream', 'managed-kb-wesh', 'managed-hyundai-zero'])
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '저장')
+      ?.trigger('click')
+    expect(wrapper.text()).toContain('저장 중')
+
+    await vi.advanceTimersByTimeAsync(300)
+
+    expect(getMockManagedCardOrder()).toEqual([
+      'managed-shinhan-deep-dream',
+      'managed-kb-wesh',
+      'managed-hyundai-zero',
+    ])
+    expect(wrapper.text()).not.toContain('카드 순서를 저장했어요.')
+
+    await wrapper.get('button[aria-label="카드 목록 새로고침"]').trigger('click')
+    await vi.advanceTimersByTimeAsync(700)
+
+    expect(
+      wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
+    ).toEqual(['managed-shinhan-deep-dream', 'managed-kb-wesh', 'managed-hyundai-zero'])
+  })
+
+  it('카드 순서 변경을 취소하면 기존 순서로 복원한다', async () => {
+    const wrapper = mountView()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '순서 변경')
+      ?.trigger('click')
+    await wrapper
+      .get('button[aria-label="신한 Deep Dream 순서 이동"]')
+      .trigger('keydown', { key: 'ArrowUp' })
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '취소')
+      ?.trigger('click')
+
+    expect(
+      wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
+    ).toEqual(['managed-kb-wesh', 'managed-shinhan-deep-dream', 'managed-hyundai-zero'])
   })
 
   it('카드 추가하기를 누르면 카드 연결 화면으로 이동한다', async () => {
