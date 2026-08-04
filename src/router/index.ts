@@ -16,6 +16,11 @@ const router = createRouter({
       component: () => import('@/domains/auth/views/LoginView.vue'),
     },
     {
+      path: '/auth/callback',
+      name: 'google-callback',
+      component: () => import('@/domains/auth/views/GoogleCallbackView.vue'),
+    },
+    {
       path: '/onboarding',
       name: 'onboarding',
       component: () => import('@/domains/auth/views/OnboardingView.vue'),

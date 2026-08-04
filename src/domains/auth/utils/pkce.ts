@@ -3,6 +3,15 @@ const PKCE_CHARACTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 const GOOGLE_CODE_VERIFIER_KEY = 'google_code_verifier'
 const GOOGLE_OAUTH_STATE_KEY = 'google_oauth_state'
 
+export function getGoogleCodeVerifier(): string | null {
+  return sessionStorage.getItem(GOOGLE_CODE_VERIFIER_KEY)
+}
+
+export function clearGoogleLoginSession(): void {
+  sessionStorage.removeItem(GOOGLE_CODE_VERIFIER_KEY)
+  sessionStorage.removeItem(GOOGLE_OAUTH_STATE_KEY)
+}
+
 function createCodeVerifier(length = 64): string {
   const randomValues = new Uint8Array(length)
   crypto.getRandomValues(randomValues)
