@@ -27,7 +27,7 @@ function formatAmount(amount: number) {
 </script>
 
 <template>
-  <section class="border-b border-divider px-7 py-4" aria-labelledby="card-performance-title">
+  <section class="border-b border-divider px-5 py-4" aria-labelledby="card-performance-title">
     <div class="flex items-center justify-between gap-3">
       <h3 id="card-performance-title" data-performance-rate class="text-caption font-semibold">
         실적 달성 현황({{ progressRate }}%)

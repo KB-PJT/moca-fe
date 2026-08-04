@@ -10,9 +10,14 @@ import OwnedCardCarousel from '@/domains/home/components/OwnedCardCarousel.vue'
 import OwnedCardSection from '@/domains/home/components/OwnedCardSection.vue'
 import SelectedCardInfo from '@/domains/home/components/SelectedCardInfo.vue'
 import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
+import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 
 const activeCardIndex = ref(0)
 const activeCard = computed(() => MOCK_HOME_OWNED_CARDS[activeCardIndex.value] ?? null)
+const cardMemoStore = useCardMemoStore()
+const activeCardMemo = computed(() =>
+  activeCard.value ? cardMemoStore.getMemo(activeCard.value.id) : '',
+)
 </script>
 
 <template>
@@ -31,7 +36,11 @@ const activeCard = computed(() => MOCK_HOME_OWNED_CARDS[activeCardIndex.value] ?
     </SectionCard>
 
     <OwnedCardSection :card-count="MOCK_HOME_OWNED_CARDS.length" :active-index="activeCardIndex">
-      <OwnedCardCarousel v-model:active-index="activeCardIndex" :cards="MOCK_HOME_OWNED_CARDS" />
+      <OwnedCardCarousel
+        v-model:active-index="activeCardIndex"
+        :cards="MOCK_HOME_OWNED_CARDS"
+        :active-memo="activeCardMemo"
+      />
       <SelectedCardInfo v-if="activeCard" :card="activeCard" />
       <CardBenefitAmounts v-if="activeCard" :card="activeCard" />
       <CardPerformance v-if="activeCard" :card="activeCard" />

@@ -16,7 +16,7 @@ function formatAmount(amount: number) {
 
 <template>
   <dl class="grid min-h-24 grid-cols-2 border-b border-divider">
-    <div class="flex flex-col justify-center border-r border-divider px-7">
+    <div class="flex flex-col justify-center border-r border-divider px-5">
       <dt class="text-caption text-gray">이번 달 받은 혜택</dt>
       <dd data-received-benefit class="mt-1 text-title text-primary">
         {{ formatAmount(card.receivedBenefitAmount) }}
@@ -24,7 +24,7 @@ function formatAmount(amount: number) {
       <p class="text-caption text-gray">상당</p>
     </div>
 
-    <div class="flex flex-col justify-center px-7">
+    <div class="flex flex-col justify-center px-5">
       <dt class="text-caption text-gray">더 받을 수 있는 금액</dt>
       <dd data-available-benefit class="mt-1 text-title text-charcoal underline underline-offset-2">
         {{ formatAmount(card.availableBenefitAmount) }}

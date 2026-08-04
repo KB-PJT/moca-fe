@@ -10,10 +10,12 @@ const CARD_GAP = 28
 interface Props {
   cards: HomeOwnedCard[]
   activeIndex?: number
+  activeMemo?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   activeIndex: 0,
+  activeMemo: '',
 })
 
 const emit = defineEmits<{
@@ -43,6 +45,7 @@ function updateActiveIndex() {
 
 function startMouseDrag(event: PointerEvent) {
   if (event.pointerType !== 'mouse' || event.button !== 0 || !viewport.value) return
+  if ((event.target as HTMLElement).closest('a, button')) return
 
   isMouseDragging = true
   dragStartX = event.clientX
@@ -111,16 +114,20 @@ function finishMouseDrag(event: PointerEvent) {
           leave-from-class="translate-y-0 opacity-100"
           leave-to-class="translate-y-2 opacity-0"
         >
-          <div
+          <RouterLink
             v-if="index === activeIndex"
+            :to="{ name: 'card-detail', params: { id: card.id } }"
             class="absolute -left-2.5 bottom-0 flex min-h-16 w-55 items-center justify-between gap-2 rounded-sm bg-[#F7E9DF]/95 px-4 py-3 shadow-card backdrop-blur-sm"
+            :aria-label="`${card.name} 메모 확인하기`"
           >
-            <p class="min-w-0 text-caption font-semibold text-charcoal">
-              {{ card.featuredBenefit.title }}<br />
-              <span class="font-medium">({{ card.featuredBenefit.description }})</span>
+            <p
+              data-card-memo
+              class="min-w-0 whitespace-pre-line text-caption font-semibold text-charcoal"
+            >
+              {{ activeMemo }}
             </p>
             <ChevronRight class="size-4 shrink-0 text-brown" aria-hidden="true" />
-          </div>
+          </RouterLink>
         </Transition>
       </li>
     </ul>

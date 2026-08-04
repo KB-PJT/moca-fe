@@ -17,9 +17,8 @@ export interface CardDetailData {
   imageUrl: string | null
   description: string
   updatedAt: string
-  memo: string
   benefits: CardDetailBenefit[]
-  notices: string[]
+  noticeHtml: string
 }
 
 const DEFAULT_BENEFITS: CardDetailBenefit[] = [
@@ -38,6 +37,7 @@ const DEFAULT_BENEFITS: CardDetailBenefit[] = [
     category: '편의점',
     title: '5% 할인',
     condition: '건당 1만원 이상 결제 시',
+    description: 'GS25·CU 등 편의점 가맹점에서 건당 1만원 이상 결제 시 5% 할인',
   },
   {
     id: 'transit',
@@ -45,6 +45,7 @@ const DEFAULT_BENEFITS: CardDetailBenefit[] = [
     category: '대중교통',
     title: '10% 할인',
     condition: '전월 실적 40만원 이상',
+    description: '버스·지하철 이용 금액의 10% 할인 · 전월 실적 40만원 이상 시 적용',
   },
   {
     id: 'subscription',
@@ -52,14 +53,18 @@ const DEFAULT_BENEFITS: CardDetailBenefit[] = [
     category: '구독',
     title: '5% 할인',
     condition: '월 최대 3,000원',
+    description: '넷플릭스·유튜브 프리미엄 등 정기 구독 결제 시 5% 할인',
   },
 ]
 
-const DEFAULT_NOTICES = [
-  '할인서비스는 환급할인으로 제공됩니다.',
-  '체크카드 환급할인은 이용전표가 매입처리 완료된 후 할인금액을 카드 출금계좌로 환급하는 방식입니다.',
-  '본인 회원 기준으로 월간 할인 한도가 제공되며, 할인 한도는 매월 1일부터 말일까지 이용한 금액을 기준으로 적용됩니다.',
-]
+const DEFAULT_NOTICE_HTML = `
+  <h3>할인서비스 적용 안내</h3>
+  <ul>
+    <li>할인서비스는 환급할인으로 제공됩니다.</li>
+    <li>체크카드 환급할인은 이용전표가 매입처리 완료된 후 할인금액을 카드 출금계좌로 환급하는 방식입니다.</li>
+    <li>본인 회원 기준으로 월간 할인 한도가 제공되며, 할인 한도는 매월 1일부터 말일까지 이용한 금액을 기준으로 적용됩니다.</li>
+  </ul>
+`
 
 export const MOCK_CARD_DETAILS: CardDetailData[] = [
   {
@@ -70,9 +75,8 @@ export const MOCK_CARD_DETAILS: CardDetailData[] = [
     imageUrl: null,
     description: '커피·편의점·대중교통 혜택에 특화된 일상형 카드',
     updatedAt: '오늘 09:32',
-    memo: '배달 귀요미 카드',
     benefits: DEFAULT_BENEFITS,
-    notices: DEFAULT_NOTICES,
+    noticeHtml: DEFAULT_NOTICE_HTML,
   },
   {
     id: 'home-kb-taptap',
@@ -82,9 +86,8 @@ export const MOCK_CARD_DETAILS: CardDetailData[] = [
     imageUrl: null,
     description: '커피와 간편결제 혜택을 자주 이용하는 생활형 카드',
     updatedAt: '오늘 09:28',
-    memo: '커피 결제용 카드',
     benefits: DEFAULT_BENEFITS,
-    notices: DEFAULT_NOTICES,
+    noticeHtml: DEFAULT_NOTICE_HTML,
   },
   {
     id: 'home-shinhan-mrlife',
@@ -94,9 +97,8 @@ export const MOCK_CARD_DETAILS: CardDetailData[] = [
     imageUrl: null,
     description: '공과금과 생활비 할인에 특화된 생활 밀착형 카드',
     updatedAt: '오늘 09:20',
-    memo: '생활비 전용 카드',
     benefits: DEFAULT_BENEFITS,
-    notices: DEFAULT_NOTICES,
+    noticeHtml: DEFAULT_NOTICE_HTML,
   },
   {
     id: 'home-hyundai-zero',
@@ -106,9 +108,8 @@ export const MOCK_CARD_DETAILS: CardDetailData[] = [
     imageUrl: null,
     description: '조건 없이 기본 할인을 받을 수 있는 실속형 카드',
     updatedAt: '오늘 09:15',
-    memo: '어디서나 쓰는 카드',
     benefits: DEFAULT_BENEFITS,
-    notices: DEFAULT_NOTICES,
+    noticeHtml: DEFAULT_NOTICE_HTML,
   },
 ]
 
