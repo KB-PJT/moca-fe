@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { MOCK_MONTHLY_BENEFIT_SUMMARIES } from '@/domains/benefit-report/api/benefitReport.mock'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import BenefitSummaryCard from '@/domains/benefit-report/components/BenefitSummaryCard.vue'
+import CategoryTop3List from '@/domains/benefit-report/components/CategoryTop3List.vue'
 
 const activeTab = ref<'benefit' | 'performance'>('benefit')
 const monthIndex = ref(MOCK_MONTHLY_BENEFIT_SUMMARIES.length - 1)
@@ -80,13 +81,13 @@ function goToNextMonth() {
       </button>
     </div>
 
-    <div class="mt-4">
+    <div v-if="activeTab === 'benefit'" class="mt-4 space-y-4">
       <BenefitSummaryCard
-        v-if="activeTab === 'benefit'"
         :summary="currentSummary"
         :previous-total-amount="previousSummary?.totalAmount ?? null"
       />
-      <p v-else class="py-20 text-center text-caption text-gray">실적 리포트는 준비 중이에요.</p>
+      <CategoryTop3List :items="currentSummary.categoryTop3" />
     </div>
+    <p v-else class="mt-4 py-20 text-center text-caption text-gray">실적 리포트는 준비 중이에요.</p>
   </PageLayout>
 </template>
