@@ -1,9 +1,8 @@
 import type { Merchant } from '@/domains/map/api/merchants.mock'
 
-// 카카오맵 자체 POI 아이콘이 대부분 주황/브라운 톤이라, 마커는 빨간색으로 구분 (기존 --color-error 토큰과 동일)
 const DOT_COLOR = '#ef4444'
+const CURRENT_LOCATION_COLOR = '#3b82f6'
 
-// @lucide/vue의 utensils / coffee / shopping-bag / shopping-cart 아이콘 path 그대로 사용 (24x24 기준)
 const categoryIcon: Record<Merchant['category'], string> = {
   음식점:
     '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
@@ -13,7 +12,6 @@ const categoryIcon: Record<Merchant['category'], string> = {
   마트: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
 }
 
-// 선택 안 된 마커: 작은 점
 export function dotMarkerImage() {
   const size = 12
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
@@ -25,7 +23,18 @@ export function dotMarkerImage() {
   })
 }
 
-// 선택된 마커: 말풍선(핀) 모양 + 카테고리 아이콘
+export function currentLocationMarkerImage() {
+  const size = 20
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 1}" fill="${CURRENT_LOCATION_COLOR}" fill-opacity="0.2" />
+    <circle cx="${size / 2}" cy="${size / 2}" r="5" fill="${CURRENT_LOCATION_COLOR}" stroke="white" stroke-width="2" />
+  </svg>`
+  const src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+  return new window.kakao.maps.MarkerImage(src, new window.kakao.maps.Size(size, size), {
+    offset: new window.kakao.maps.Point(size / 2, size / 2),
+  })
+}
+
 export function pinMarkerImage(category: Merchant['category']) {
   const icon = categoryIcon[category]
   const width = 32
