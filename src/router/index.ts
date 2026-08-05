@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/domains/auth/stores/auth'
+import { restoreInitialMocaSession } from '@/shared/api/client'
 
 // 지도/상세 라우트가 같은 컴포넌트 인스턴스를 재사용하도록 import를 하나로 공유한다.
 const MapView = () => import('@/domains/map/views/MapView.vue')
@@ -14,6 +16,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/domains/auth/views/LoginView.vue'),
+      meta: { guestOnly: true },
+    },
+    {
+      path: '/auth/callback',
+      name: 'google-callback',
+      component: () => import('@/domains/auth/views/GoogleCallbackView.vue'),
     },
     {
       path: '/onboarding',
@@ -22,6 +30,7 @@ const router = createRouter({
     },
     {
       path: '/cards',
+      meta: { requiresAuth: true },
       children: [
         {
           path: 'connect',
@@ -83,6 +92,7 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/shared/components/TabLayout.vue'),
+      meta: { requiresAuth: true },
       children: [
         {
           path: 'home',
@@ -129,6 +139,31 @@ const router = createRouter({
       ],
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
+  const guestOnly = to.matched.some((route) => route.meta.guestOnly)
+
+  if (requiresAuth || guestOnly) {
+    await restoreInitialMocaSession()
+  }
+
+  const { accessToken } = useAuthStore()
+
+  if (requiresAuth && !accessToken) {
+    sessionStorage.setItem('post_login_redirect', to.fullPath)
+
+    return {
+      name: 'login',
+    }
+  }
+
+  if (guestOnly && accessToken) {
+    return { name: 'home' }
+  }
+
+  return true
 })
 
 export default router

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import googleLogoUrl from '@/domains/auth/assets/google-logo.svg'
+import { startGoogleLogin } from '@/domains/auth/utils/pkce'
 import MocaButton from '@/shared/components/MocaButton.vue'
 
-const emit = defineEmits<{
-  googleLogin: []
-}>()
+function handleGoogleLogin() {
+  void startGoogleLogin()
+}
 </script>
 
 <template>
@@ -35,7 +36,7 @@ const emit = defineEmits<{
         variant="ghost"
         block
         class="h-14 justify-start rounded-md border bg-white px-5 text-subheading text-charcoal shadow-none hover:bg-screen"
-        @click="emit('googleLogin')"
+        @click="handleGoogleLogin"
       >
         <img :src="googleLogoUrl" alt="" class="size-5 shrink-0" />
         <span class="flex-1 text-center">구글로 시작하기</span>

@@ -7,16 +7,16 @@ export interface AuthUser {
   provider: 'google'
 }
 
-const MOCK_AUTH_USER: AuthUser = {
-  nickname: '지민',
-  email: 'jimin@gmail.com',
-  provider: 'google',
-}
-
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<AuthUser | null>(MOCK_AUTH_USER)
+  const accessToken = ref<string | null>(null)
+  const user = ref<AuthUser | null>(null)
+
+  function setAccessToken(token: string) {
+    accessToken.value = token
+  }
 
   function clearSession() {
+    accessToken.value = null
     user.value = null
   }
 
@@ -26,7 +26,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
+    accessToken,
     user,
+    setAccessToken,
     clearSession,
     updateNickname,
   }
