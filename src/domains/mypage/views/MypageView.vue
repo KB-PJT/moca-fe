@@ -36,6 +36,7 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const authStore = useAuthStore()
 const isLogoutDialogOpen = ref(false)
+const isLocationOffConfirmOpen = ref(false)
 const locationPermissionError = ref('')
 
 const { data: summary } = useQuery({
@@ -97,9 +98,17 @@ async function handleLocationPermissionChange(enabled: boolean) {
       locationPermissionError.value = '브라우저 설정에서 위치 권한을 허용해주세요.'
       return
     }
+
+    await updateLocationPermission(true)
+    return
   }
 
-  await updateLocationPermission(enabled)
+  isLocationOffConfirmOpen.value = true
+}
+
+async function confirmTurnOffLocation() {
+  isLocationOffConfirmOpen.value = false
+  await updateLocationPermission(false)
 }
 
 function handleLogout() {
@@ -290,6 +299,24 @@ function handleLogout() {
           <MocaButton variant="secondary" block>취소</MocaButton>
         </DialogClose>
         <MocaButton block @click="handleLogout">로그아웃</MocaButton>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <Dialog v-model:open="isLocationOffConfirmOpen">
+    <DialogContent :show-close-button="false" class="w-[calc(100%-2rem)] max-w-85 sm:max-w-85">
+      <DialogHeader>
+        <DialogTitle>위치 기반 서비스를 끄시겠어요?</DialogTitle>
+        <DialogDescription>
+          위치 기반 서비스를 끄면 주변 혜택 가맹점 추천을<br />
+          더 이상 받을 수 없어요.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter class="grid grid-cols-2">
+        <DialogClose as-child>
+          <MocaButton variant="secondary" block>취소</MocaButton>
+        </DialogClose>
+        <MocaButton block @click="confirmTurnOffLocation">끄기</MocaButton>
       </DialogFooter>
     </DialogContent>
   </Dialog>

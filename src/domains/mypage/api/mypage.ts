@@ -19,7 +19,7 @@ export const MOCK_MYPAGE_SUMMARY_EMPTY: MyPageSummary = {
 export async function fetchMyPageSummary(): Promise<MyPageSummary> {
   // TODO: 백엔드 연동 시 실제 마이페이지 요약 API 호출로 교체
   await new Promise((resolve) => setTimeout(resolve, 300))
-  return MOCK_MYPAGE_SUMMARY
+  return { ...MOCK_MYPAGE_SUMMARY }
 }
 
 export async function updateLocationPermissionGranted(granted: boolean): Promise<MyPageSummary> {
