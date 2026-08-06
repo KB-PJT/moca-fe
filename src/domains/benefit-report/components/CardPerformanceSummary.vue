@@ -1,35 +1,31 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import type { ApexOptions } from 'apexcharts'
-import VueApexCharts from 'vue3-apexcharts'
+import { computed } from 'vue'
+import {
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip,
+} from 'chart.js'
+import { Line } from 'vue-chartjs'
 import type { CardPerformance } from '@/domains/benefit-report/api/benefitReport.mock'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  LineController,
+  Legend,
+  Tooltip,
+)
 
 const props = defineProps<{
   cards: CardPerformance[]
 }>()
-
-// ApexCharts가 탭 전환(v-if) 직후 부모 너비가 자리잡기 전에 측정해
-// 좁은 값으로 굳어버리는 문제가 있어, 컨테이너 크기가 바뀔 때마다
-// window resize 이벤트를 쏴서 ApexCharts가 다시 측정하도록 한다.
-const wrapperEl = ref<HTMLElement | null>(null)
-let resizeObserver: ResizeObserver | null = null
-
-onMounted(async () => {
-  await nextTick()
-
-  resizeObserver = new ResizeObserver(() => {
-    window.dispatchEvent(new Event('resize'))
-  })
-
-  if (wrapperEl.value) {
-    resizeObserver.observe(wrapperEl.value)
-  }
-})
-
-onBeforeUnmount(() => {
-  resizeObserver?.disconnect()
-  resizeObserver = null
-})
 
 const FONT_SANS =
   "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif"
@@ -57,110 +53,83 @@ const completedCount = computed(
   () => props.cards.filter((card) => achievementRate(card) >= 100).length,
 )
 
-const series = computed(() => [
-  {
-    name: '이번 달',
-    data: props.cards.map((card) => achievementRate(card)),
-  },
-  {
-    name: '지난달',
-    data: props.cards.map((card) => previousAchievementRate(card)),
-  },
-])
-
-const currentMonthMarkers = computed(() =>
-  props.cards.map((card, index) => ({
-    seriesIndex: 0,
-    dataPointIndex: index,
-    fillColor: card.accentColor,
-    strokeColor: '#ffffff',
-    size: 5,
-  })),
-)
-
-const chartOptions = computed<ApexOptions>(() => ({
-  chart: {
-    type: 'line',
-    width: '100%',
-    background: 'transparent',
-    fontFamily: FONT_SANS,
-    toolbar: { show: false },
-    zoom: { enabled: false },
-    offsetX: 0,
-    offsetY: 0,
-    parentHeightOffset: 0,
-    animations: {
-      enabled: true,
-      easing: 'easeinout',
-      speed: 300,
+const chartData = computed(() => ({
+  labels: props.cards.map((card) => splitLabel(card.cardName)),
+  datasets: [
+    {
+      label: '이번 달',
+      data: props.cards.map((card) => achievementRate(card)),
+      borderColor: '#ff8836',
+      backgroundColor: '#ff8836',
+      borderWidth: 3,
+      tension: 0.4,
+      pointRadius: 5,
+      pointHoverRadius: 6,
+      pointBackgroundColor: props.cards.map((card) => card.accentColor),
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2,
     },
-  },
-  legend: {
-    show: false,
-  },
-  colors: ['#ff8836', '#cdc2b4'],
-  stroke: {
-    curve: 'smooth',
-    width: [3, 1.5],
-    dashArray: [0, 5],
-  },
-  markers: {
-    size: [5, 3],
-    strokeWidth: 2,
-    strokeColors: '#ffffff',
-    discrete: currentMonthMarkers.value,
-    hover: { size: 6 },
-  },
-  dataLabels: {
-    enabled: false,
-  },
-  xaxis: {
-    type: 'category',
-    categories: props.cards.map((card) => splitLabel(card.cardName)),
-    tickPlacement: 'on',
-    tooltip: { enabled: false },
-    crosshairs: { show: false },
-    labels: {
-      rotate: 0,
-      rotateAlways: false,
-      style: {
-        fontSize: '12px',
-        fontFamily: FONT_SANS,
-        colors: '#8a8178',
-      },
+    {
+      label: '지난달',
+      data: props.cards.map((card) => previousAchievementRate(card)),
+      borderColor: '#cdc2b4',
+      backgroundColor: '#cdc2b4',
+      borderWidth: 1.5,
+      borderDash: [5, 5],
+      tension: 0.4,
+      pointRadius: 3,
+      pointHoverRadius: 4,
+      pointBackgroundColor: '#cdc2b4',
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2,
     },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  yaxis: {
-    show: true,
-    min: 0,
-    max: 100,
-    tickAmount: 5,
-    labels: {
-      offsetX: -16,
-      formatter: (value: number) => `${value}%`,
-      style: {
-        fontSize: '11px',
-        fontFamily: FONT_SANS,
-        colors: '#8a8178',
-      },
-    },
-    axisBorder: { show: false },
-    axisTicks: { show: false },
-  },
-  grid: {
-    show: true,
-    borderColor: 'rgba(74, 66, 56, 0.08)',
-    strokeDashArray: 4,
-    yaxis: { lines: { show: true } },
-    xaxis: { lines: { show: false } },
-    padding: { top: 8, right: 0, bottom: 0, left: 0 },
-  },
-  tooltip: {
-    enabled: false,
-  },
+  ],
 }))
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  clip: false as const,
+  layout: {
+    padding: {
+      top: 10,
+    },
+  },
+  animation: {
+    duration: 400,
+    easing: 'easeInOutQuad' as const,
+  },
+  plugins: {
+    legend: { display: false },
+    tooltip: { enabled: false },
+  },
+  scales: {
+    x: {
+      offset: true,
+      grid: { display: false },
+      border: { display: false },
+      ticks: {
+        color: '#8a8178',
+        font: { size: 12, family: FONT_SANS },
+      },
+    },
+    y: {
+      min: 0,
+      max: 100,
+      border: { display: false },
+      ticks: {
+        stepSize: 20,
+        color: '#8a8178',
+        font: { size: 11, family: FONT_SANS },
+        callback: (value: string | number) => `${value}%`,
+      },
+      grid: {
+        color: 'rgba(74, 66, 56, 0.08)',
+        borderDash: [4, 4],
+      },
+    },
+  },
+}
 </script>
 
 <template>
@@ -185,14 +154,8 @@ const chartOptions = computed<ApexOptions>(() => ({
       </span>
     </div>
 
-    <div ref="wrapperEl" class="w-full">
-      <VueApexCharts
-        type="line"
-        width="100%"
-        height="240"
-        :options="chartOptions"
-        :series="series"
-      />
+    <div class="mt-1 h-60 w-full">
+      <Line :data="chartData" :options="chartOptions" />
     </div>
   </div>
 </template>
