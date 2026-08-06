@@ -3,6 +3,13 @@ import apiClient from '@/shared/api/client'
 interface MocaLoginResponse {
   data: {
     accessToken: string
+    member: {
+      cardSortMode: string
+      email: string
+      nickname: string
+      userId: string
+      userType: string
+    }
   }
 }
 

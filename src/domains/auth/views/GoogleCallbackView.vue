@@ -34,6 +34,11 @@ onMounted(async () => {
     const result = await loginToMoca(code, codeVerifier)
 
     authStore.setAccessToken(result.data.accessToken)
+    authStore.setUser({
+      nickname: result.data.member.nickname,
+      email: result.data.member.email,
+      provider: 'google',
+    })
     clearGoogleLoginSession()
 
     const savedRedirect = sessionStorage.getItem('post_login_redirect')
