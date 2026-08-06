@@ -14,7 +14,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       // 로컬 개발 서버에서도 manifest를 제공해 홈 화면 앱의 전체 경로 scope를 유지한다.
-      devOptions: { enabled: true },
+      // dev 서버는 정적 빌드 산출물이 없어 precache 대상이 비어있다는 경고가 매번 떠서 꺼둠.
+      // PWA 설치 테스트가 필요하면 임시로 true로 바꿔서 확인.
+      devOptions: { enabled: false },
       // 새 버전을 바로 적용하지 않고 사용자에게 업데이트 여부를 먼저 확인한다.
       registerType: 'prompt',
       // 서비스 워커는 PwaUpdatePrompt에서 직접 등록한다.

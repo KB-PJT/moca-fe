@@ -10,6 +10,7 @@ interface Props {
   transparent?: boolean
   hasBottomBar?: boolean
   horizontalPadding?: boolean
+  hideScrollbar?: boolean
   bg?: 'background' | 'screen' | 'card'
 }
 
@@ -19,6 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
   transparent: false,
   hasBottomBar: false,
   horizontalPadding: true,
+  hideScrollbar: false,
   bg: 'background',
 })
 
@@ -63,7 +65,10 @@ const footerPaddingClass = computed(() =>
       </template>
     </AppBar>
 
-    <main class="min-h-0 flex-1 overflow-y-auto py-6" :class="props.horizontalPadding && 'px-5'">
+    <main
+      class="min-h-0 flex-1 overflow-y-auto py-6"
+      :class="[props.horizontalPadding && 'px-5', props.hideScrollbar && 'scrollbar-hide']"
+    >
       <slot />
     </main>
 
