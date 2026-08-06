@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type {
+  CardLinkCardResponse,
   CardLinkResponse,
   CardOptionChoiceResponse,
   CardOptionGroupResponse,
@@ -86,15 +87,23 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
   }
 
   function completeCardLink(response: CardLinkResponse) {
+    completeCardLinkCards(response.linkId, response.institutionCode, response.cards)
+  }
+
+  function completeCardLinkCards(
+    targetLinkId: string,
+    institutionCode: string,
+    cards: CardLinkCardResponse[],
+  ) {
     if (!issuerId.value) return
 
-    linkId.value = response.linkId
+    linkId.value = targetLinkId
     completeLookup(
-      response.cards.map((card, index) => ({
+      cards.map((card, index) => ({
         id:
           card.userCardId ??
           card.cardId ??
-          `${response.institutionCode}-${index}-${card.cardNo ?? card.cardName}`,
+          `${institutionCode}-${index}-${card.cardNo ?? card.cardName}`,
         userCardId: card.userCardId,
         cardId: card.cardId,
         issuer: issuerId.value as CardIssuerId,
@@ -176,6 +185,7 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     beginLookup,
     completeLookup,
     completeCardLink,
+    completeCardLinkCards,
     failLookup,
     setCardSelected,
     setAllSelected,

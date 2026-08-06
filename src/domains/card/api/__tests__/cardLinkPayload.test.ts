@@ -127,6 +127,25 @@ describe('cardLink payload', () => {
     })
   })
 
+  it('현대카드 요청에 생년월일을 포함한다', () => {
+    expect(
+      buildCreateCardLinkRequest('hyundai', {
+        homepageId: 'moca-user',
+        homepagePassword: 'secret',
+        cardNumber: '1234123412341234',
+        cardPassword: '1234',
+        birthDate: '19950101',
+      }),
+    ).toEqual({
+      institutionCode: '0302',
+      id: 'moca-user',
+      password: 'secret',
+      cardNo: '1234123412341234',
+      cardPassword: '1234',
+      birthDate: '19950101',
+    })
+  })
+
   it('선택 카드와 옵션을 활성화 요청으로 변환한다', () => {
     const request = buildActivateCardLinkCardsRequest(
       [

@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   activateCardLinkCards,
   createCardLink,
+  syncCardLinkCards,
   type ActivateCardLinkCardsResponse,
   type CardLinkResponse,
 } from '@/domains/card/api/cardLinks'
 import { CARD_ISSUERS } from '@/domains/card/constants/cardIssuers'
 
 const apiClientMocks = vi.hoisted(() => ({
-  post: vi.fn<(url: string, data: unknown) => Promise<unknown>>(),
+  post: vi.fn<(url: string, data?: unknown, config?: unknown) => Promise<unknown>>(),
   patch: vi.fn<(url: string, data: unknown) => Promise<unknown>>(),
 }))
 
@@ -59,6 +60,18 @@ describe('cardLinks API', () => {
 
     await expect(createCardLink(request)).resolves.toEqual(responseData)
     expect(apiClientMocks.post).toHaveBeenCalledWith('/card-links', request)
+  })
+
+  it('기존 연동의 보유카드를 자격정보 없이 재조회한다', async () => {
+    const responseData = {
+      results: [{ linkId: 'link-id', institutionCode: '0302', success: true, cards: [] }],
+    }
+    apiClientMocks.post.mockResolvedValue({ data: { success: true, data: responseData } })
+
+    await expect(syncCardLinkCards('0302')).resolves.toEqual(responseData)
+    expect(apiClientMocks.post).toHaveBeenCalledWith('/card-links/cards/sync', undefined, {
+      params: { institutionCode: '0302' },
+    })
   })
 
   it('선택 카드와 옵션을 linkId에 해당하는 활성화 API로 전송한다', async () => {

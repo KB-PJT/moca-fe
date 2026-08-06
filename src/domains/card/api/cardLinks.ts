@@ -48,6 +48,22 @@ interface CardLinkApiResponse {
   data: CardLinkResponse
 }
 
+export interface SyncOwnedCardsResult {
+  linkId: string
+  institutionCode: string
+  success: boolean
+  cards: CardLinkCardResponse[]
+}
+
+export interface SyncOwnedCardsResponse {
+  results: SyncOwnedCardsResult[]
+}
+
+interface SyncOwnedCardsApiResponse {
+  success: boolean
+  data: SyncOwnedCardsResponse
+}
+
 export interface CardOptionSelectionRequest {
   optionGroupId: string
   optionChoiceId: string
@@ -86,6 +102,15 @@ export interface CardLinkErrorResponse {
 
 export async function createCardLink(request: CreateCardLinkRequest): Promise<CardLinkResponse> {
   const response = await apiClient.post<CardLinkApiResponse>('/card-links', request)
+  return response.data.data
+}
+
+export async function syncCardLinkCards(institutionCode: string): Promise<SyncOwnedCardsResponse> {
+  const response = await apiClient.post<SyncOwnedCardsApiResponse>(
+    '/card-links/cards/sync',
+    undefined,
+    { params: { institutionCode } },
+  )
   return response.data.data
 }
 

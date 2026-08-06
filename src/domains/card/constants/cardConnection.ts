@@ -101,7 +101,7 @@ export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig>
   },
   hyundai: {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
-    additionalFields: [CARD_NUMBER_FIELD, HYUNDAI_CARD_PASSWORD_FIELD],
+    additionalFields: [CARD_NUMBER_FIELD, HYUNDAI_CARD_PASSWORD_FIELD, BIRTH_DATE_FIELD],
     additionalInputMode: 'always',
   },
   woori: {
