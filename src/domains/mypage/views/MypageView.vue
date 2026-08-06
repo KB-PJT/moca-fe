@@ -12,7 +12,7 @@ import {
   RefreshCw,
 } from '@lucide/vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { logoutFromMoca } from '@/domains/auth/api/auth'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
@@ -39,6 +39,26 @@ const authStore = useAuthStore()
 const isLogoutDialogOpen = ref(false)
 const isLocationOffConfirmOpen = ref(false)
 const locationPermissionError = ref('')
+const isInquiryToastVisible = ref(false)
+let inquiryToastTimer: ReturnType<typeof setTimeout> | undefined
+
+onMounted(() => {
+  if (!window.history.state?.inquirySubmitted) return
+
+  isInquiryToastVisible.value = true
+
+  const nextState = { ...window.history.state }
+  delete nextState.inquirySubmitted
+  window.history.replaceState(nextState, '')
+
+  inquiryToastTimer = setTimeout(() => {
+    isInquiryToastVisible.value = false
+  }, 2000)
+})
+
+onBeforeUnmount(() => {
+  if (inquiryToastTimer) clearTimeout(inquiryToastTimer)
+})
 
 const { data: summary } = useQuery({
   queryKey: ['mypage', 'summary'],
@@ -73,6 +93,10 @@ function navigateToNotificationSettings() {
 
 function navigateToFaq() {
   void router.push({ name: 'faq' })
+}
+
+function navigateToInquiry() {
+  void router.push({ name: 'mypage-inquiry' })
 }
 
 function requestBrowserLocationPermission() {
@@ -124,6 +148,21 @@ async function handleLogout() {
 </script>
 
 <template>
+  <Transition
+    enter-active-class="transition duration-200 ease-out"
+    enter-from-class="-translate-y-2 opacity-0"
+    leave-active-class="transition duration-150 ease-in"
+    leave-to-class="-translate-y-2 opacity-0"
+  >
+    <div
+      v-if="isInquiryToastVisible"
+      role="status"
+      class="absolute top-[max(1rem,var(--safe-area-top))] right-5 left-5 z-50 rounded-md border bg-background px-4 py-3 text-center text-body font-semibold text-muted-foreground shadow-lg"
+    >
+      문의가 접수되었습니다.
+    </div>
+  </Transition>
+
   <PageLayout hide-app-bar has-bottom-bar>
     <MainHeader title="마이" />
 
@@ -243,7 +282,7 @@ async function handleLogout() {
         <template #right><ChevronRight class="size-4 text-gray" /></template>
       </ListItem>
 
-      <ListItem title="문의하기" clickable>
+      <ListItem title="문의하기" clickable @click="navigateToInquiry">
         <template #left>
           <span
             class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"

@@ -136,6 +136,11 @@ const router = createRouter({
           name: 'faq',
           component: () => import('@/domains/mypage/views/FaqView.vue'),
         },
+        {
+          path: 'mypage/inquiry',
+          name: 'mypage-inquiry',
+          component: () => import('@/domains/mypage/views/InquiryView.vue'),
+        },
       ],
     },
   ],
