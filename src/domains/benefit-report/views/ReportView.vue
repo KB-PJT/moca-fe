@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
-import { MOCK_MONTHLY_BENEFIT_SUMMARIES } from '@/domains/benefit-report/api/benefitReport.mock'
+import {
+  MOCK_CARD_PERFORMANCES,
+  MOCK_MONTHLY_BENEFIT_SUMMARIES,
+} from '@/domains/benefit-report/api/benefitReport.mock'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
 import BenefitSummaryCard from '@/domains/benefit-report/components/BenefitSummaryCard.vue'
 import CategoryTop3List from '@/domains/benefit-report/components/CategoryTop3List.vue'
 import MissedBenefitsSection from '@/domains/benefit-report/components/MissedBenefitsSection.vue'
+import CardPerformanceSummary from '@/domains/benefit-report/components/CardPerformanceSummary.vue'
+import CardPerformanceList from '@/domains/benefit-report/components/CardPerformanceList.vue'
 
 const activeTab = ref<'benefit' | 'performance'>('benefit')
 const monthIndex = ref(MOCK_MONTHLY_BENEFIT_SUMMARIES.length - 1)
@@ -93,6 +98,14 @@ function goToNextMonth() {
       <CategoryTop3List :items="currentSummary.categoryTop3" />
       <MissedBenefitsSection />
     </div>
-    <p v-else class="mt-4 py-20 text-center text-caption text-gray">실적 리포트는 준비 중이에요.</p>
+    <div v-else class="mt-4 space-y-7">
+      <CardPerformanceSummary :cards="MOCK_CARD_PERFORMANCES" />
+      <div>
+        <p class="text-subheading font-bold text-charcoal">카드별 실적 달성 현황</p>
+        <div class="mt-3">
+          <CardPerformanceList :cards="MOCK_CARD_PERFORMANCES" />
+        </div>
+      </div>
+    </div>
   </PageLayout>
 </template>
