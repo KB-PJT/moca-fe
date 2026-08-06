@@ -36,7 +36,8 @@ describe('CardIssuerCardSelectView', () => {
         id: 'selected-card-1',
         issuer: 'kb-kookmin',
         name: 'KB 카드 1',
-        last4: '1111',
+        last4: '4710',
+        cardNo: '4***********710*',
       },
       {
         id: 'selected-card-2',
@@ -80,6 +81,8 @@ describe('CardIssuerCardSelectView', () => {
     })
 
     expect(wrapper.text()).toContain('2개 카드를 찾았어요')
+    expect(wrapper.text()).toContain('4***********710*')
+    expect(wrapper.text()).not.toContain('•••• 4710')
     expect(wrapper.get('footer button').text()).toContain('선택한 카드 2개')
 
     await wrapper.get('button[aria-label="전체 카드 선택"]').trigger('click')

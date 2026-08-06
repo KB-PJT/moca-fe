@@ -139,7 +139,9 @@ onMounted(() => {
                 />
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-body font-semibold text-charcoal">{{ card.name }}</p>
-                  <p class="mt-0.5 text-caption text-gray">{{ formatCardNumber(card.last4) }}</p>
+                  <p class="mt-0.5 text-caption text-gray">
+                    {{ card.cardNo ?? formatCardNumber(card.last4) }}
+                  </p>
                   <p v-if="card.matched === false" class="mt-1 text-micro text-error">
                     MOCA에서 지원하지 않는 카드예요
                   </p>
