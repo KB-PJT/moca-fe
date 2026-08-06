@@ -2,6 +2,7 @@ import { mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import HomeView from '@/domains/home/views/HomeView.vue'
+import { useAuthStore } from '@/domains/auth/stores/auth'
 import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 
 describe('HomeView', () => {
@@ -15,10 +16,7 @@ describe('HomeView', () => {
         plugins: [pinia],
         stubs: {
           PageLayout: { template: '<main><slot /></main>' },
-          MainHeader: { template: '<header />' },
-          SectionCard: { template: '<section><slot name="action" /><slot /></section>' },
           RouterLink: RouterLinkStub,
-          MocaButton: { template: '<button><slot /></button>' },
         },
       },
     })
@@ -57,6 +55,31 @@ describe('HomeView', () => {
       params: { id: 'home-kb-wesh' },
     })
     expect(wrapper.get('[data-card-memo]').text()).toContain('스타벅스, 폴바셋 10% 할인')
+  })
+
+  it('사용자 인사와 놓치고 있는 혜택을 표시하고 리포트로 연결한다', () => {
+    const pinia = createPinia()
+    const authStore = useAuthStore(pinia)
+    authStore.setUser({ nickname: '지민', email: 'jimin@example.com', provider: 'google' })
+
+    const wrapper = mountView(pinia)
+    const reportLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text() === '보러가기')
+
+    expect(wrapper.text()).toContain('안녕하세요, 지민님')
+    expect(wrapper.text()).toContain('이번 달 혜택 8,200원을 놓치고 있어요!')
+    expect(reportLink?.props('to')).toEqual({ name: 'report' })
+    expect(wrapper.get('button').text()).toBe('전체보기')
+  })
+
+  it('최근 전체 혜택 내역을 표시한다', () => {
+    const wrapper = mountView()
+
+    expect(wrapper.text()).toContain('최근 전체 혜택 내역')
+    expect(wrapper.text()).toContain('스타벅스')
+    expect(wrapper.text()).toContain('-1,500원')
+    expect(wrapper.text()).toContain('넷플릭스')
   })
 
   it('카드를 넘기면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
