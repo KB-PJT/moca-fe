@@ -2,7 +2,6 @@ import apiClient from '@/shared/api/client'
 
 export interface MyPageSummary {
   connectedCardCount: number
-  lastSyncedAt: string
   locationPermissionGranted: boolean
 }
 
@@ -22,13 +21,11 @@ export async function updateNickname(nickname: string): Promise<string> {
 
 export const MOCK_MYPAGE_SUMMARY: MyPageSummary = {
   connectedCardCount: 3,
-  lastSyncedAt: '오늘 10:24',
   locationPermissionGranted: true,
 }
 
 export const MOCK_MYPAGE_SUMMARY_EMPTY: MyPageSummary = {
   connectedCardCount: 0,
-  lastSyncedAt: '',
   locationPermissionGranted: false,
 }
 

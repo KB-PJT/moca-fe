@@ -14,7 +14,6 @@ vi.mock('@tanstack/vue-query', () => ({
     data: ref({
       connectedCardCount: 4,
       locationPermissionGranted: true,
-      lastSyncedAt: '방금 전',
     }),
   }),
   useQueryClient: () => ({
