@@ -9,7 +9,6 @@ import {
   Megaphone,
   MessageSquare,
   Pencil,
-  RefreshCw,
 } from '@lucide/vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -189,18 +188,9 @@ async function handleLogout() {
         </button>
       </div>
       <span class="mt-1 block text-caption font-semibold text-gray"> Google 계정으로 이용 중 </span>
-      <span class="mt-2 flex items-center gap-3 text-label">
-        <span class="flex items-center gap-1 text-primary">
-          <CreditCard class="size-3" />
-          연결 카드 {{ summary?.connectedCardCount ?? 0 }}개
-        </span>
-        <span class="ml-auto flex items-center gap-3">
-          <span aria-hidden="true" class="text-disabled">·</span>
-          <span class="flex items-center gap-1 text-gray">
-            <RefreshCw class="size-3" />
-            {{ summary?.lastSyncedAt || '동기화 전' }} 동기화
-          </span>
-        </span>
+      <span class="mt-2 flex items-center gap-1 text-label text-primary">
+        <CreditCard class="size-3" />
+        연결 카드 {{ summary?.connectedCardCount ?? 0 }}개
       </span>
     </section>
 
