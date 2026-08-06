@@ -92,7 +92,7 @@ const chartOptions = computed<ApexOptions>(() => ({
     animations: {
       enabled: true,
       easing: 'easeinout',
-      speed: 500,
+      speed: 300,
     },
   },
   legend: {
