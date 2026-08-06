@@ -4,12 +4,15 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import googleLogo from '@/domains/auth/assets/google-logo.svg'
 import { useAuthStore } from '@/domains/auth/stores/auth'
+import { updateNickname } from '@/domains/mypage/api/mypage'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const nickname = ref(authStore.user?.nickname ?? '')
+const isSaving = ref(false)
+const saveError = ref('')
 const MAX_NICKNAME_LENGTH = 50
 
 const email = computed(() => authStore.user?.email ?? '')
@@ -18,16 +21,27 @@ const nicknameLength = computed(() => Array.from(nickname.value).length)
 const isNicknameTooLong = computed(() => nicknameLength.value > MAX_NICKNAME_LENGTH)
 const isSaveDisabled = computed(
   () =>
+    isSaving.value ||
     !normalizedNickname.value ||
     isNicknameTooLong.value ||
     normalizedNickname.value === authStore.user?.nickname,
 )
 
-function saveProfile() {
+async function saveProfile() {
   if (!normalizedNickname.value || isNicknameTooLong.value || isSaveDisabled.value) return
 
-  authStore.updateNickname(normalizedNickname.value)
-  void router.push({ name: 'mypage' })
+  isSaving.value = true
+  saveError.value = ''
+
+  try {
+    const updatedNickname = await updateNickname(normalizedNickname.value)
+    authStore.updateNickname(updatedNickname)
+    await router.push({ name: 'mypage' })
+  } catch {
+    saveError.value = '닉네임을 저장하지 못했어요. 잠시 후 다시 시도해주세요.'
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -55,7 +69,7 @@ function saveProfile() {
         />
         <div id="nickname-help" class="mt-1.5 flex min-h-4 items-start justify-between gap-3 px-1">
           <span class="text-caption text-error">
-            {{ isNicknameTooLong ? '닉네임은 최대 50자까지 입력할 수 있어요.' : '' }}
+            {{ isNicknameTooLong ? '닉네임은 최대 50자까지 입력할 수 있어요.' : saveError }}
           </span>
           <span
             class="text-caption ml-auto shrink-0"
@@ -98,7 +112,7 @@ function saveProfile() {
         :disabled="isSaveDisabled"
         class="h-13 rounded-md font-bold"
       >
-        저장하기
+        {{ isSaving ? '저장 중...' : '저장하기' }}
       </MocaButton>
     </template>
   </PageLayout>
