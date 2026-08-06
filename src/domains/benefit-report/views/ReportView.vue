@@ -3,8 +3,10 @@ import { computed, ref } from 'vue'
 import { ChevronLeft, ChevronRight } from '@lucide/vue'
 import { MOCK_MONTHLY_BENEFIT_SUMMARIES } from '@/domains/benefit-report/api/benefitReport.mock'
 import PageLayout from '@/shared/components/PageLayout.vue'
+import MainHeader from '@/shared/components/MainHeader.vue'
 import BenefitSummaryCard from '@/domains/benefit-report/components/BenefitSummaryCard.vue'
 import CategoryTop3List from '@/domains/benefit-report/components/CategoryTop3List.vue'
+import MissedBenefitsSection from '@/domains/benefit-report/components/MissedBenefitsSection.vue'
 
 const activeTab = ref<'benefit' | 'performance'>('benefit')
 const monthIndex = ref(MOCK_MONTHLY_BENEFIT_SUMMARIES.length - 1)
@@ -34,8 +36,10 @@ function goToNextMonth() {
 </script>
 
 <template>
-  <PageLayout hide-app-bar has-bottom-bar>
-    <div class="-mt-6 flex min-h-(--app-bar-height) items-center justify-between pt-2">
+  <PageLayout hide-app-bar has-bottom-bar hide-scrollbar>
+    <MainHeader title="MOCA" />
+
+    <div class="flex items-center justify-between">
       <div>
         <h1 class="text-heading text-charcoal">{{ pageTitle }}</h1>
         <p class="text-caption text-gray">매일 AM 02:00 동기화</p>
@@ -81,12 +85,13 @@ function goToNextMonth() {
       </button>
     </div>
 
-    <div v-if="activeTab === 'benefit'" class="mt-4 space-y-4">
+    <div v-if="activeTab === 'benefit'" class="mt-4 space-y-7">
       <BenefitSummaryCard
         :summary="currentSummary"
         :previous-total-amount="previousSummary?.totalAmount ?? null"
       />
       <CategoryTop3List :items="currentSummary.categoryTop3" />
+      <MissedBenefitsSection />
     </div>
     <p v-else class="mt-4 py-20 text-center text-caption text-gray">실적 리포트는 준비 중이에요.</p>
   </PageLayout>

@@ -31,6 +31,44 @@ export const PODIUM_RANK_COLORS: Record<1 | 2 | 3, string> = {
   3: '#d6b98c', // --color-brown-light
 }
 
+export type MissedBenefitUnit = 'won' | 'point'
+
+export interface MissedBenefitCondition {
+  label: string
+  unit: MissedBenefitUnit
+  currentAmount: number
+  targetAmount: number
+}
+
+export interface MissedBenefitCard {
+  cardId: string
+  cardName: string
+  accentColor: string
+  conditions: MissedBenefitCondition[]
+}
+
+export const MOCK_MISSED_BENEFIT_CARDS: MissedBenefitCard[] = [
+  {
+    cardId: 'shinhan-deep-dream',
+    cardName: '신한 Deep Dream',
+    accentColor: '#3f6d5e',
+    conditions: [
+      { label: '카페 할인', unit: 'won', currentAmount: 3000, targetAmount: 5000 },
+      { label: '배달 할인', unit: 'won', currentAmount: 1000, targetAmount: 5000 },
+      { label: '포인트 적립', unit: 'point', currentAmount: 800, targetAmount: 3000 },
+    ],
+  },
+  {
+    cardId: 'kb-wesh',
+    cardName: 'KB My WE:SH',
+    accentColor: '#ff9c70',
+    conditions: [
+      { label: '편의점 할인', unit: 'won', currentAmount: 4000, targetAmount: 5000 },
+      { label: '포인트 적립', unit: 'point', currentAmount: 1500, targetAmount: 2000 },
+    ],
+  },
+]
+
 export const MOCK_MONTHLY_BENEFIT_SUMMARIES: MonthlyBenefitSummary[] = [
   {
     periodYm: '2026-06',
