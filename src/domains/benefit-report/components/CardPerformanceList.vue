@@ -67,11 +67,12 @@ function formatCompactAmount(amount: number): string {
 </script>
 
 <template>
-  <div class="space-y-3">
+  <TransitionGroup tag="div" name="card-stagger" appear class="space-y-3">
     <div
-      v-for="card in cards"
+      v-for="(card, index) in cards"
       :key="card.cardId"
       class="rounded-lg border border-divider bg-card p-3 shadow-card"
+      :style="{ transitionDelay: `${index * 70}ms` }"
     >
       <div class="flex items-center gap-3">
         <CardImage :src="card.cardImageUrl" :alt="`${card.cardName} 카드 이미지`" small />
@@ -138,12 +139,24 @@ function formatCompactAmount(amount: number): string {
         </span>
       </div>
     </div>
-  </div>
+  </TransitionGroup>
 </template>
 
 <style scoped>
+.card-stagger-enter-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.card-stagger-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .gauge-fill {
+  .gauge-fill,
+  .card-stagger-enter-active {
     transition: none !important;
   }
 }
