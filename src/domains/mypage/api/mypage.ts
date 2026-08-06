@@ -1,7 +1,23 @@
+import apiClient from '@/shared/api/client'
+
 export interface MyPageSummary {
   connectedCardCount: number
   lastSyncedAt: string
   locationPermissionGranted: boolean
+}
+
+interface UpdateNicknameResponse {
+  data: {
+    nickname: string
+  }
+}
+
+export async function updateNickname(nickname: string): Promise<string> {
+  const response = await apiClient.patch<UpdateNicknameResponse>('/api/v1/me/nickname', {
+    nickname,
+  })
+
+  return response.data.data.nickname
 }
 
 export const MOCK_MYPAGE_SUMMARY: MyPageSummary = {
