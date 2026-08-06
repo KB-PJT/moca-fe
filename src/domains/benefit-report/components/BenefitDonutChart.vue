@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ApexOptions } from 'apexcharts'
-import VueApexCharts from 'vue3-apexcharts'
+import { ArcElement, Chart as ChartJS, DoughnutController, Legend, Tooltip } from 'chart.js'
+import { Doughnut } from 'vue-chartjs'
 import {
   BENEFIT_TYPE_COLORS,
   type BenefitBreakdownItem,
 } from '@/domains/benefit-report/api/benefitReport.mock'
+
+ChartJS.register(ArcElement, DoughnutController, Legend, Tooltip)
 
 const props = withDefaults(
   defineProps<{
@@ -17,53 +19,31 @@ const props = withDefaults(
   },
 )
 
-const FONT_SANS =
-  "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif"
-
-const series = computed(() => props.breakdown.map((item) => item.amount))
-
-const chartOptions = computed<ApexOptions>(() => ({
-  chart: {
-    fontFamily: FONT_SANS,
-    animations: {
-      enabled: true,
-      easing: 'easeinout',
-      speed: 300,
-    },
-  },
+const chartData = computed(() => ({
   labels: props.breakdown.map((item) => item.label),
-  colors: props.breakdown.map((item) => BENEFIT_TYPE_COLORS[item.type]),
-  dataLabels: {
-    enabled: false,
-  },
-  stroke: {
-    width: 0,
-  },
-  legend: {
-    show: false,
-  },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: '68%',
-        labels: {
-          show: false,
-        },
-      },
+  datasets: [
+    {
+      data: props.breakdown.map((item) => item.amount),
+      backgroundColor: props.breakdown.map((item) => BENEFIT_TYPE_COLORS[item.type]),
+      borderWidth: 0,
     },
-  },
-  tooltip: {
-    enabled: false,
-  },
+  ],
 }))
+
+const chartOptions = {
+  responsive: false,
+  cutout: '68%',
+  animation: {
+    duration: 400,
+    easing: 'easeInOutQuad' as const,
+  },
+  plugins: {
+    legend: { display: false },
+    tooltip: { enabled: false },
+  },
+}
 </script>
 
 <template>
-  <VueApexCharts
-    type="donut"
-    :width="size"
-    :height="size"
-    :options="chartOptions"
-    :series="series"
-  />
+  <Doughnut :data="chartData" :options="chartOptions" :width="size" :height="size" />
 </template>
