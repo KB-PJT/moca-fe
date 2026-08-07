@@ -146,6 +146,11 @@ const router = createRouter({
           name: 'mypage-inquiry',
           component: () => import('@/domains/mypage/views/InquiryView.vue'),
         },
+        {
+          path: 'mypage/delete-account',
+          name: 'mypage-delete-account',
+          component: () => import('@/domains/mypage/views/DeleteAccountView.vue'),
+        },
       ],
     },
   ],

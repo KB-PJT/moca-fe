@@ -98,6 +98,10 @@ function navigateToInquiry() {
   void router.push({ name: 'mypage-inquiry' })
 }
 
+function navigateToDeleteAccount() {
+  void router.push({ name: 'mypage-delete-account' })
+}
+
 function requestBrowserLocationPermission() {
   return new Promise<boolean>((resolve) => {
     if (!navigator.geolocation) {
@@ -313,7 +317,11 @@ async function handleLogout() {
     </SectionCard>
 
     <div class="pb-4 text-center">
-      <button type="button" class="text-caption text-error underline underline-offset-4">
+      <button
+        type="button"
+        class="text-caption text-error underline underline-offset-4"
+        @click="navigateToDeleteAccount"
+      >
         회원 탈퇴
       </button>
     </div>
