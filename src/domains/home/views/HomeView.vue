@@ -23,7 +23,9 @@ const activeCard = computed(() => MOCK_HOME_OWNED_CARDS[activeCardIndex.value] ?
 const authStore = useAuthStore()
 const cardMemoStore = useCardMemoStore()
 const nickname = computed(() => authStore.user?.nickname ?? '사용자')
-const missedBenefitAmount = computed(() => activeCard.value?.availableBenefitAmount ?? 0)
+const missedBenefitAmount = computed(() =>
+  MOCK_HOME_OWNED_CARDS.reduce((total, card) => total + card.availableBenefitAmount, 0),
+)
 const activeCardMemo = computed(() =>
   activeCard.value ? cardMemoStore.getMemo(activeCard.value.id) : '',
 )
