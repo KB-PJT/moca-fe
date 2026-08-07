@@ -32,6 +32,8 @@ const selectedReason = ref<string>()
 const hasAgreed = ref(false)
 const isSubmitting = ref(false)
 const submitError = ref('')
+const isAccountDeleted = ref(false)
+const loginHref = router.resolve({ name: 'login' }).href
 
 const isSubmitDisabled = computed(() => !hasAgreed.value || isSubmitting.value)
 
@@ -47,10 +49,19 @@ async function submitDeleteAccount() {
 
   try {
     await deleteMocaAccount(selectedReason.value)
-    authStore.clearSession()
-    await router.replace({ name: 'login' })
   } catch {
     submitError.value = '회원 탈퇴를 완료하지 못했어요. 잠시 후 다시 시도해주세요.'
+    isSubmitting.value = false
+    return
+  }
+
+  authStore.clearSession()
+  isAccountDeleted.value = true
+
+  try {
+    await router.replace({ name: 'login' })
+  } catch {
+    // 라우터 이동에 실패하더라도 탈퇴는 이미 완료되었으므로 복구 링크를 유지한다.
   } finally {
     isSubmitting.value = false
   }
@@ -59,7 +70,12 @@ async function submitDeleteAccount() {
 
 <template>
   <PageLayout title="회원 탈퇴" :horizontal-padding="false">
-    <form id="delete-account-form" class="px-5" @submit.prevent="submitDeleteAccount">
+    <form
+      v-if="!isAccountDeleted"
+      id="delete-account-form"
+      class="px-5"
+      @submit.prevent="submitDeleteAccount"
+    >
       <section
         aria-labelledby="deleted-information-title"
         class="rounded-lg bg-error/7 px-5 py-5 text-error"
@@ -88,8 +104,7 @@ async function submitDeleteAccount() {
             v-for="reason in DELETE_ACCOUNT_REASONS"
             :key="reason"
             type="button"
-            role="radio"
-            :aria-checked="selectedReason === reason"
+            :aria-pressed="selectedReason === reason"
             class="flex min-h-14 w-full cursor-pointer items-center gap-3 border-b border-divider/70 px-5 text-left last:border-b-0"
             @click="toggleReason(reason)"
           >
@@ -120,8 +135,16 @@ async function submitDeleteAccount() {
       </p>
     </form>
 
+    <section v-else role="status" class="flex h-full flex-col items-center justify-center px-5">
+      <h2 class="text-heading text-charcoal">회원 탈퇴가 완료되었어요.</h2>
+      <p class="mt-2 text-center text-body text-gray">
+        로그인 화면으로 자동 이동하지 않았다면<br />아래 버튼을 눌러주세요.
+      </p>
+    </section>
+
     <template #footer>
       <MocaButton
+        v-if="!isAccountDeleted"
         form="delete-account-form"
         type="submit"
         block
@@ -131,6 +154,13 @@ async function submitDeleteAccount() {
       >
         {{ isSubmitting ? '탈퇴 처리 중...' : '회원 탈퇴하기' }}
       </MocaButton>
+      <a
+        v-else
+        :href="loginHref"
+        class="flex h-13 w-full items-center justify-center rounded-md bg-primary font-bold text-primary-foreground hover:bg-primary-hover"
+      >
+        로그인 화면으로 이동
+      </a>
     </template>
   </PageLayout>
 </template>
