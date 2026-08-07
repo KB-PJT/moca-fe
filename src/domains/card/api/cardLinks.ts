@@ -90,6 +90,16 @@ interface ActivateCardLinkCardsApiResponse {
   data: ActivateCardLinkCardsResponse
 }
 
+export interface SubmitCardCredentialsRequest {
+  cardNo: string
+  cardPassword?: string
+}
+
+interface SubmitCardCredentialsApiResponse {
+  success: boolean
+  data: CardLinkCardResponse
+}
+
 export interface CardLinkErrorResponse {
   success: false
   data: null
@@ -101,13 +111,13 @@ export interface CardLinkErrorResponse {
 }
 
 export async function createCardLink(request: CreateCardLinkRequest): Promise<CardLinkResponse> {
-  const response = await apiClient.post<CardLinkApiResponse>('/card-links', request)
+  const response = await apiClient.post<CardLinkApiResponse>('/api/v1/card-links', request)
   return response.data.data
 }
 
 export async function syncCardLinkCards(institutionCode: string): Promise<SyncOwnedCardsResponse> {
   const response = await apiClient.post<SyncOwnedCardsApiResponse>(
-    '/card-links/cards/sync',
+    '/api/v1/card-links/cards/sync',
     undefined,
     { params: { institutionCode } },
   )
@@ -119,7 +129,18 @@ export async function activateCardLinkCards(
   request: ActivateCardLinkCardsRequest,
 ): Promise<ActivateCardLinkCardsResponse> {
   const response = await apiClient.patch<ActivateCardLinkCardsApiResponse>(
-    `/card-links/${encodeURIComponent(linkId)}/cards`,
+    `/api/v1/card-links/${encodeURIComponent(linkId)}/cards`,
+    request,
+  )
+  return response.data.data
+}
+
+export async function submitCardCredentials(
+  userCardId: string,
+  request: SubmitCardCredentialsRequest,
+): Promise<CardLinkCardResponse> {
+  const response = await apiClient.patch<SubmitCardCredentialsApiResponse>(
+    `/api/v1/card-links/cards/${encodeURIComponent(userCardId)}/credentials`,
     request,
   )
   return response.data.data

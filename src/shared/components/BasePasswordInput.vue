@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from 'vue'
 import { computed, ref, useId } from 'vue'
 import { Eye, EyeOff } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
@@ -11,9 +12,10 @@ interface Props {
   required?: boolean
   maxlength?: number
   placeholder?: string
+  inputClass?: HTMLAttributes['class']
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   required: false,
 })
 
@@ -46,7 +48,7 @@ function toggleVisible() {
         :maxlength="maxlength"
         :placeholder="placeholder"
         autocomplete="off"
-        :class="cn('pr-10', error && 'border-error')"
+        :class="cn('pr-10', props.inputClass, error && 'border-error')"
         @update:model-value="(value) => emit('update:modelValue', String(value))"
       />
       <button

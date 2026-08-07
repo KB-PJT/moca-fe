@@ -20,7 +20,6 @@ import {
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import MocaButton from '@/shared/components/MocaButton.vue'
-import { Switch } from '@/shared/ui/switch'
 
 const route = useRoute()
 const router = useRouter()
@@ -39,7 +38,6 @@ function createEmptyValues(): Record<CardConnectionFieldKey, string> {
 const formValues = ref(createEmptyValues())
 const validationErrors = ref<Partial<Record<CardConnectionFieldKey, string>>>({})
 const visiblePasswords = ref<Partial<Record<CardConnectionFieldKey, boolean>>>({})
-const includeCardImages = ref(true)
 const isSubmitting = ref(false)
 const connectionState = ref<'checking' | 'unlinked' | 'failed'>('checking')
 
@@ -70,7 +68,6 @@ function resetForm() {
   formValues.value = createEmptyValues()
   validationErrors.value = {}
   visiblePasswords.value = {}
-  includeCardImages.value = true
   isSubmitting.value = false
 }
 
@@ -132,7 +129,7 @@ async function connectIssuer() {
   ) as Partial<Record<CardConnectionFieldKey, string>>
   const request = buildCreateCardLinkRequest(targetIssuerId, values)
 
-  directCardConnectionStore.beginLookup(targetIssuerId, includeCardImages.value)
+  directCardConnectionStore.beginLookup(targetIssuerId)
 
   try {
     await router.push({
@@ -174,7 +171,7 @@ async function syncExistingLink(targetIssuerId: typeof issuerId.value) {
       throw new Error('CARD_LINK_SYNC_FAILED')
     }
 
-    directCardConnectionStore.beginLookup(targetIssuerId, includeCardImages.value)
+    directCardConnectionStore.beginLookup(targetIssuerId)
     await router.push({
       name: 'card-issuer-connect-progress',
       params: { issuerId: targetIssuerId },
@@ -221,6 +218,7 @@ function toLookupError(error: unknown) {
 }
 
 function returnToIssuerSelection() {
+  directCardConnectionStore.reset()
   void router.replace({ name: 'card-issuer-select' })
 }
 
@@ -236,7 +234,7 @@ onBeforeUnmount(resetForm)
 </script>
 
 <template>
-  <CardPageLayout title="카드 등록" bg="background">
+  <CardPageLayout title="카드 등록" bg="background" @back="returnToIssuerSelection">
     <template v-if="issuer && connectionConfig">
       <section class="-mx-5 -mt-6 flex items-center gap-3 border-b border-divider px-5 py-4">
         <CardIssuerIcon :issuer="issuer.id" variant="fill" />
@@ -318,20 +316,6 @@ onBeforeUnmount(resetForm)
                 </p>
               </div>
             </div>
-          </section>
-
-          <section
-            class="mt-4 flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 shadow-tile"
-          >
-            <div>
-              <h2 class="text-body font-semibold text-charcoal">카드 이미지 함께 불러오기</h2>
-              <p class="mt-1 text-caption text-gray">카드사에서 이미지가 제공되면 함께 등록해요</p>
-            </div>
-            <Switch
-              v-model="includeCardImages"
-              class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
-              aria-label="카드 이미지 함께 불러오기"
-            />
           </section>
         </form>
       </template>

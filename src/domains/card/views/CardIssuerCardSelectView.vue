@@ -1,7 +1,19 @@
 <script setup lang="ts">
 import { CreditCard, ShieldCheck } from '@lucide/vue'
-import { computed, onMounted } from 'vue'
+import axios from 'axios'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  activateCardLinkCards,
+  submitCardCredentials,
+  type CardLinkErrorResponse,
+  type SubmitCardCredentialsRequest,
+} from '@/domains/card/api/cardLinks'
+import {
+  buildActivateCardLinkCardsRequest,
+  CardLinkPayloadValidationError,
+} from '@/domains/card/api/cardLinkPayload'
+import CardCredentialDialog from '@/domains/card/components/CardCredentialDialog.vue'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
@@ -15,6 +27,11 @@ const route = useRoute()
 const router = useRouter()
 const directCardConnectionStore = useDirectCardConnectionStore()
 const ownedCardsStore = useOwnedCardsStore()
+const isSubmitting = ref(false)
+const activationError = ref('')
+const credentialCardIds = ref<string[]>([])
+const credentialErrors = ref<Record<string, string>>({})
+const isSubmittingCredentials = ref(false)
 
 const issuerId = computed(() => {
   const routeIssuerId = route.params.issuerId
@@ -24,6 +41,13 @@ const issuerId = computed(() => {
 const issuer = computed(() => (issuerId.value ? CARD_ISSUERS[issuerId.value] : null))
 const selectedCount = computed(() => directCardConnectionStore.selectedCards.length)
 const selectableCount = computed(() => directCardConnectionStore.selectableCards.length)
+const credentialTargetCard = computed(() => {
+  const userCardId = credentialCardIds.value[0]
+  return userCardId
+    ? (directCardConnectionStore.selectedCards.find((card) => card.userCardId === userCardId) ??
+        null)
+    : null
+})
 const hasIncompleteOptions = computed(
   () => selectedCount.value > 0 && !directCardConnectionStore.hasCompleteOptionSelections,
 )
@@ -37,6 +61,10 @@ function isCardSelectable(cardId: string) {
   return directCardConnectionStore.selectableCards.some((card) => card.id === cardId)
 }
 
+function isCardSelected(cardId: string) {
+  return isCardSelectable(cardId) && directCardConnectionStore.selectedCardIds.includes(cardId)
+}
+
 function returnToIssuerForm() {
   directCardConnectionStore.reset()
 
@@ -47,26 +75,127 @@ function returnToIssuerForm() {
   }
 }
 
-function addSelectedCards() {
-  if (!issuerId.value || selectedCount.value === 0) return
+async function addSelectedCards() {
+  if (
+    !issuerId.value ||
+    !directCardConnectionStore.linkId ||
+    selectedCount.value === 0 ||
+    hasIncompleteOptions.value ||
+    isSubmitting.value
+  )
+    return
 
-  // TODO(#46, AUTH): 인증 연동 후 buildActivateCardLinkCardsRequest와 linkId로
-  // PATCH /card-links/{linkId}/cards를 호출하고, 성공한 카드만 추가한 뒤 완료 화면으로 이동한다.
-  ownedCardsStore.addOwnedCards(
-    directCardConnectionStore.selectedCards.map(
-      ({ id, issuer: cardIssuer, name, last4, imageUrl }) => ({
+  activationError.value = ''
+  isSubmitting.value = true
+
+  try {
+    const request = buildActivateCardLinkCardsRequest(
+      directCardConnectionStore.selectedCards,
+      directCardConnectionStore.optionSelections,
+    )
+    const response = await activateCardLinkCards(directCardConnectionStore.linkId, request)
+    const activatedIds = new Set(response.activatedUserCardIds)
+    const activatedCards = directCardConnectionStore.selectedCards.filter(
+      (card) => card.userCardId && activatedIds.has(card.userCardId),
+    )
+
+    if (activatedCards.length === 0) {
+      activationError.value = '활성화된 카드가 없습니다. 다시 시도해 주세요.'
+      return
+    }
+
+    directCardConnectionStore.selectedCardIds = activatedCards.map((card) => card.id)
+    ownedCardsStore.addOwnedCards(
+      activatedCards.map(({ id, issuer: cardIssuer, name, last4, imageUrl }) => ({
         id,
         issuer: cardIssuer,
         name,
         last4,
         imageUrl,
-      }),
+      })),
+    )
+    await router.push({
+      name: 'card-issuer-connect-complete',
+      params: { issuerId: issuerId.value },
+    })
+  } catch (error) {
+    if (!prepareCredentialSubmission(error)) {
+      activationError.value = toActivationErrorMessage(error)
+    }
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+function prepareCredentialSubmission(error: unknown) {
+  if (!axios.isAxiosError<CardLinkErrorResponse>(error)) return false
+
+  const apiError = error.response?.data?.error
+  if (apiError?.code !== 'CARD_CREDENTIAL_REQUIRED') return false
+
+  const userCardIds = apiError.fields?.userCardId
+    ?.split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  if (!userCardIds?.length) return false
+
+  const selectedUserCardIds = new Set(
+    directCardConnectionStore.selectedCards.flatMap((card) =>
+      card.userCardId ? [card.userCardId] : [],
     ),
   )
-  void router.push({
-    name: 'card-issuer-connect-complete',
-    params: { issuerId: issuerId.value },
-  })
+  credentialCardIds.value = [...new Set(userCardIds)].filter((id) => selectedUserCardIds.has(id))
+  credentialErrors.value = {}
+  activationError.value = ''
+  return credentialCardIds.value.length > 0
+}
+
+async function submitTargetCardCredentials(request: SubmitCardCredentialsRequest) {
+  const target = credentialTargetCard.value
+  if (!target?.userCardId || isSubmittingCredentials.value) return
+
+  credentialErrors.value = {}
+  isSubmittingCredentials.value = true
+  let shouldRetryActivation = false
+
+  try {
+    const response = await submitCardCredentials(target.userCardId, request)
+    directCardConnectionStore.updateCardLinkCard(response)
+    credentialCardIds.value = credentialCardIds.value.filter((id) => id !== target.userCardId)
+    shouldRetryActivation = credentialCardIds.value.length === 0
+  } catch (error) {
+    credentialErrors.value = toCredentialErrors(error)
+  } finally {
+    isSubmittingCredentials.value = false
+  }
+
+  if (shouldRetryActivation) await addSelectedCards()
+}
+
+function closeCredentialDialog() {
+  if (isSubmittingCredentials.value) return
+  credentialCardIds.value = []
+  credentialErrors.value = {}
+}
+
+function toCredentialErrors(error: unknown) {
+  if (axios.isAxiosError<CardLinkErrorResponse>(error)) {
+    const apiError = error.response?.data?.error
+    if (apiError?.fields && Object.keys(apiError.fields).length > 0) return apiError.fields
+    if (apiError?.message) return { form: apiError.message }
+  }
+
+  return { form: '카드 정보 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }
+}
+
+function toActivationErrorMessage(error: unknown) {
+  if (error instanceof CardLinkPayloadValidationError) return error.message
+
+  if (axios.isAxiosError<CardLinkErrorResponse>(error)) {
+    return error.response?.data?.error.message ?? '카드 활성화 요청에 실패했습니다.'
+  }
+
+  return '카드 활성화 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
 }
 
 onMounted(() => {
@@ -131,7 +260,7 @@ onMounted(() => {
                 "
               >
                 <CardImage
-                  :src="directCardConnectionStore.includeCardImages ? card.imageUrl : null"
+                  :src="card.imageUrl"
                   :alt="`${card.name} 카드 이미지`"
                   small
                   orientation="horizontal"
@@ -150,7 +279,7 @@ onMounted(() => {
                   </p>
                 </div>
                 <Checkbox
-                  :model-value="directCardConnectionStore.selectedCardIds.includes(card.id)"
+                  :model-value="isCardSelected(card.id)"
                   :disabled="!isCardSelectable(card.id)"
                   :aria-label="`${card.name} 선택`"
                   class="size-5 rounded-full"
@@ -161,10 +290,7 @@ onMounted(() => {
               </label>
 
               <div
-                v-if="
-                  directCardConnectionStore.selectedCardIds.includes(card.id) &&
-                  card.optionGroups?.length
-                "
+                v-if="isCardSelected(card.id) && card.optionGroups?.length"
                 class="border-t border-divider bg-background px-4 py-4"
               >
                 <p class="text-caption font-medium text-charcoal">카드 옵션을 선택해 주세요</p>
@@ -226,9 +352,13 @@ onMounted(() => {
         <p v-if="hasIncompleteOptions" class="mb-2 text-caption text-error" role="alert">
           선택한 카드의 옵션을 모두 골라 주세요
         </p>
+        <p v-else-if="activationError" class="mb-2 text-caption text-error" role="alert">
+          {{ activationError }}
+        </p>
         <MocaButton
           block
-          :disabled="selectedCount === 0 || hasIncompleteOptions"
+          :disabled="selectedCount === 0 || hasIncompleteOptions || isSubmitting"
+          :loading="isSubmitting"
           class="h-14 text-subheading!"
           @click="addSelectedCards"
         >
@@ -240,5 +370,17 @@ onMounted(() => {
         </p>
       </div>
     </template>
+
+    <CardCredentialDialog
+      v-if="credentialTargetCard"
+      :key="credentialTargetCard.userCardId ?? credentialTargetCard.id"
+      :open="true"
+      :card-name="credentialTargetCard.name"
+      :card-no="credentialTargetCard.cardNo"
+      :errors="credentialErrors"
+      :loading="isSubmittingCredentials"
+      @update:open="(open) => !open && closeCredentialDialog()"
+      @submit="submitTargetCardCredentials"
+    />
   </CardPageLayout>
 </template>

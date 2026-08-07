@@ -14,7 +14,7 @@ describe('useDirectCardConnectionStore', () => {
       { id: 'card-2', issuer: 'kb-kookmin' as const, name: '카드 2', last4: '2222' },
     ]
 
-    store.beginLookup('kb-kookmin', true)
+    store.beginLookup('kb-kookmin')
     store.completeLookup(cards)
 
     expect(store.lookupStatus).toBe('success')
@@ -34,7 +34,7 @@ describe('useDirectCardConnectionStore', () => {
   it('미매칭 카드를 선택에서 제외하고 선택형 카드의 모든 옵션을 검증한다', () => {
     const store = useDirectCardConnectionStore()
 
-    store.beginLookup('kb-kookmin', true)
+    store.beginLookup('kb-kookmin')
     store.completeLookup([
       {
         id: 'matched-card',
@@ -66,6 +66,15 @@ describe('useDirectCardConnectionStore', () => {
         last4: '2222',
         matched: false,
       },
+      {
+        id: 'unsupported-card',
+        userCardId: 'unsupported-card',
+        issuer: 'kb-kookmin',
+        name: '미지원 카드',
+        last4: '3333',
+        matched: true,
+        supported: false,
+      },
     ])
 
     expect(store.selectedCardIds).toEqual(['matched-card'])
@@ -73,6 +82,12 @@ describe('useDirectCardConnectionStore', () => {
 
     store.setCardSelected('unmatched-card', true)
     expect(store.selectedCardIds).toEqual(['matched-card'])
+
+    store.setCardSelected('unsupported-card', true)
+    expect(store.selectedCardIds).toEqual(['matched-card'])
+
+    store.selectedCardIds = ['matched-card', 'unmatched-card', 'unsupported-card']
+    expect(store.selectedCards.map((card) => card.id)).toEqual(['matched-card'])
 
     store.setOptionSelection('matched-card', 'benefit-group', 'shopping-choice')
     expect(store.optionSelections).toEqual({
@@ -84,7 +99,7 @@ describe('useDirectCardConnectionStore', () => {
   it('카드 연동 API 응답을 화면 모델로 변환하고 linkId를 보관한다', () => {
     const store = useDirectCardConnectionStore()
 
-    store.beginLookup('kb-kookmin', true)
+    store.beginLookup('kb-kookmin')
     store.completeCardLink({
       linkId: 'card-link-id',
       institutionCode: '0301',
@@ -154,7 +169,7 @@ describe('useDirectCardConnectionStore', () => {
   it('조회 오류를 저장하고 다음 조회 시작 시 초기화한다', () => {
     const store = useDirectCardConnectionStore()
 
-    store.beginLookup('kb-kookmin', true)
+    store.beginLookup('kb-kookmin')
     store.failLookup({ code: 'CARD_LINK_FAILED', message: '카드를 조회하지 못했습니다.' })
 
     expect(store.lookupStatus).toBe('failed')
@@ -163,8 +178,46 @@ describe('useDirectCardConnectionStore', () => {
       message: '카드를 조회하지 못했습니다.',
     })
 
-    store.beginLookup('hyundai', false)
+    store.beginLookup('hyundai')
     expect(store.lookupError).toBeNull()
     expect(store.linkId).toBeNull()
+  })
+
+  it('카드별 인증정보 저장 응답으로 해당 카드 정보를 갱신한다', () => {
+    const store = useDirectCardConnectionStore()
+    store.beginLookup('hyundai')
+    store.completeLookup([
+      {
+        id: 'user-card-id',
+        userCardId: 'user-card-id',
+        issuer: 'hyundai',
+        name: '기존 카드명',
+        last4: '5678',
+      },
+    ])
+
+    store.updateCardLinkCard({
+      userCardId: 'user-card-id',
+      cardId: 'card-id',
+      cardName: '현대카드',
+      cardNo: '1234********5678',
+      institutionCode: '0302',
+      issuerName: '현대카드',
+      cardType: 'CREDIT',
+      cardImageUrl: 'https://example.com/card.png',
+      matched: true,
+      supported: true,
+      optionGroups: [],
+    })
+
+    expect(store.discoveredCards[0]).toMatchObject({
+      id: 'user-card-id',
+      cardId: 'card-id',
+      name: '현대카드',
+      last4: '5678',
+      imageUrl: 'https://example.com/card.png',
+      matched: true,
+      supported: true,
+    })
   })
 })

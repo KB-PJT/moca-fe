@@ -81,7 +81,7 @@ const INVALID_PAYLOAD_CASES: InvalidPayloadCase[] = [
 ]
 
 describe('cardLink payload', () => {
-  it('KB 입력값을 카드 연동 요청 필드로 변환한다', () => {
+  it('KB 요청에서 화면에 없는 추가 인증정보를 제외한다', () => {
     expect(
       buildCreateCardLinkRequest('kb-kookmin', {
         homepageId: 'moca-user',
@@ -94,8 +94,6 @@ describe('cardLink payload', () => {
       institutionCode: '0301',
       id: 'moca-user',
       password: 'secret',
-      cardNo: '1234123412341234',
-      cardPassword: '12',
     })
   })
 

@@ -38,7 +38,6 @@ export type DirectCardLookupStatus = 'idle' | 'looking-up' | 'success' | 'failed
 export const useDirectCardConnectionStore = defineStore('directCardConnection', () => {
   const issuerId = ref<CardIssuerId | null>(null)
   const linkId = ref<string | null>(null)
-  const includeCardImages = ref(true)
   const lookupStatus = ref<DirectCardLookupStatus>('idle')
   const lookupError = ref<DirectCardLookupError | null>(null)
   const discoveredCards = ref<DiscoveredCard[]>([])
@@ -46,12 +45,14 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
   const optionSelections = ref<Record<string, Record<string, string>>>({})
 
   const selectableCards = computed(() =>
-    discoveredCards.value.filter((card) => card.matched !== false && card.userCardId !== null),
+    discoveredCards.value.filter(
+      (card) => card.matched !== false && card.supported !== false && card.userCardId !== null,
+    ),
   )
 
   const selectedCards = computed(() => {
     const selectedIds = new Set(selectedCardIds.value)
-    return discoveredCards.value.filter((card) => selectedIds.has(card.id))
+    return selectableCards.value.filter((card) => selectedIds.has(card.id))
   })
 
   const hasCompleteOptionSelections = computed(() =>
@@ -62,10 +63,9 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     ),
   )
 
-  function beginLookup(targetIssuerId: CardIssuerId, shouldIncludeCardImages: boolean) {
+  function beginLookup(targetIssuerId: CardIssuerId) {
     issuerId.value = targetIssuerId
     linkId.value = null
-    includeCardImages.value = shouldIncludeCardImages
     lookupStatus.value = 'looking-up'
     lookupError.value = null
     discoveredCards.value = []
@@ -120,6 +120,31 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     )
   }
 
+  function updateCardLinkCard(card: CardLinkCardResponse) {
+    const index = discoveredCards.value.findIndex((item) => item.userCardId === card.userCardId)
+    if (index < 0) return
+
+    const existing = discoveredCards.value[index]
+    if (!existing) return
+
+    discoveredCards.value[index] = {
+      ...existing,
+      cardId: card.cardId,
+      name: card.cardName,
+      last4: extractCardLast4(card.cardNo),
+      cardNo: card.cardNo,
+      issuerName: card.issuerName,
+      cardType: card.cardType,
+      imageUrl: card.cardImageUrl,
+      matched: card.matched,
+      supported: card.supported,
+      optionGroups: card.optionGroups.map((group) => ({
+        ...group,
+        choices: group.choices.map((choice) => ({ ...choice })),
+      })),
+    }
+  }
+
   function failLookup(error?: DirectCardLookupError) {
     linkId.value = null
     lookupStatus.value = 'failed'
@@ -162,7 +187,6 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
   function reset() {
     issuerId.value = null
     linkId.value = null
-    includeCardImages.value = true
     lookupStatus.value = 'idle'
     lookupError.value = null
     discoveredCards.value = []
@@ -173,7 +197,6 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
   return {
     issuerId,
     linkId,
-    includeCardImages,
     lookupStatus,
     lookupError,
     discoveredCards,
@@ -186,6 +209,7 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     completeLookup,
     completeCardLink,
     completeCardLinkCards,
+    updateCardLinkCard,
     failLookup,
     setCardSelected,
     setAllSelected,

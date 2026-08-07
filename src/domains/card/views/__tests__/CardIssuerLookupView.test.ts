@@ -10,7 +10,7 @@ describe('CardIssuerLookupView', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const store = useDirectCardConnectionStore()
-    store.beginLookup('kb-kookmin', true)
+    store.beginLookup('kb-kookmin')
 
     const router = createRouter({
       history: createMemoryHistory(),
@@ -72,7 +72,7 @@ describe('CardIssuerLookupView', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const store = useDirectCardConnectionStore()
-    store.beginLookup('kb-kookmin', true)
+    store.beginLookup('kb-kookmin')
     store.failLookup({ code: 'CARD_LINK_FAILED', message: '카드사 정보를 확인해 주세요.' })
 
     const router = createRouter({

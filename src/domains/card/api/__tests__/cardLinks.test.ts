@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   activateCardLinkCards,
   createCardLink,
+  submitCardCredentials,
   syncCardLinkCards,
   type ActivateCardLinkCardsResponse,
   type CardLinkResponse,
@@ -59,7 +60,7 @@ describe('cardLinks API', () => {
     }
 
     await expect(createCardLink(request)).resolves.toEqual(responseData)
-    expect(apiClientMocks.post).toHaveBeenCalledWith('/card-links', request)
+    expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/card-links', request)
   })
 
   it('기존 연동의 보유카드를 자격정보 없이 재조회한다', async () => {
@@ -69,7 +70,7 @@ describe('cardLinks API', () => {
     apiClientMocks.post.mockResolvedValue({ data: { success: true, data: responseData } })
 
     await expect(syncCardLinkCards('0302')).resolves.toEqual(responseData)
-    expect(apiClientMocks.post).toHaveBeenCalledWith('/card-links/cards/sync', undefined, {
+    expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/card-links/cards/sync', undefined, {
       params: { institutionCode: '0302' },
     })
   })
@@ -93,6 +94,35 @@ describe('cardLinks API', () => {
     }
 
     await expect(activateCardLinkCards('link/id', request)).resolves.toEqual(responseData)
-    expect(apiClientMocks.patch).toHaveBeenCalledWith('/card-links/link%2Fid/cards', request)
+    expect(apiClientMocks.patch).toHaveBeenCalledWith('/api/v1/card-links/link%2Fid/cards', request)
+  })
+
+  it('카드별 인증정보를 저장한다', async () => {
+    const responseData = {
+      userCardId: 'user-card-id',
+      cardId: 'card-id',
+      cardName: '현대카드',
+      cardNo: '1234********5678',
+      institutionCode: '0302',
+      issuerName: '현대카드',
+      cardType: 'CREDIT' as const,
+      cardImageUrl: null,
+      matched: true,
+      supported: true,
+      optionGroups: [],
+    }
+    apiClientMocks.patch.mockResolvedValue({ data: { success: true, data: responseData } })
+
+    await expect(
+      submitCardCredentials('user/card-id', {
+        cardNo: '1234567890125678',
+        cardPassword: '1234',
+      }),
+    ).resolves.toEqual(responseData)
+
+    expect(apiClientMocks.patch).toHaveBeenCalledWith(
+      '/api/v1/card-links/cards/user%2Fcard-id/credentials',
+      { cardNo: '1234567890125678', cardPassword: '1234' },
+    )
   })
 })
