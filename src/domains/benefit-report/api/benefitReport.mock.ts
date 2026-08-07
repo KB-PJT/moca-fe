@@ -43,6 +43,7 @@ export interface MissedBenefitCondition {
 export interface MissedBenefitCard {
   cardId: string
   cardName: string
+  cardImageUrl: string | null
   accentColor: string
   conditions: MissedBenefitCondition[]
 }
@@ -51,6 +52,7 @@ export const MOCK_MISSED_BENEFIT_CARDS: MissedBenefitCard[] = [
   {
     cardId: 'shinhan-deep-dream',
     cardName: '신한 Deep Dream',
+    cardImageUrl: null,
     accentColor: '#3f6d5e',
     conditions: [
       { label: '카페 할인', unit: 'won', currentAmount: 3000, targetAmount: 5000 },
@@ -61,6 +63,7 @@ export const MOCK_MISSED_BENEFIT_CARDS: MissedBenefitCard[] = [
   {
     cardId: 'kb-wesh',
     cardName: 'KB My WE:SH',
+    cardImageUrl: null,
     accentColor: '#ff9c70',
     conditions: [
       { label: '편의점 할인', unit: 'won', currentAmount: 4000, targetAmount: 5000 },
