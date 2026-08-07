@@ -62,6 +62,10 @@ export async function restoreMocaSession(): Promise<boolean> {
 let initialSessionRestorePromise: Promise<boolean> | undefined
 
 export function restoreInitialMocaSession(): Promise<boolean> {
+  if (useAuthStore().accessToken) {
+    return Promise.resolve(true)
+  }
+
   if (!initialSessionRestorePromise) {
     initialSessionRestorePromise = restoreMocaSession()
   }

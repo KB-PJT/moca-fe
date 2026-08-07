@@ -7,8 +7,19 @@ export interface AuthUser {
   provider: 'google'
 }
 
+export function resolveInitialAccessToken(mode: string, localTestAccessToken?: string) {
+  if (mode !== 'development') return null
+  return localTestAccessToken?.trim() || null
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const accessToken = ref<string | null>(null)
+  // 로컬 내장 브라우저에서는 Google OAuth가 차단될 수 있어 개발 모드에서만 고정 테스트 토큰을 쓴다.
+  // VITE_LOCAL_TEST_ACCESS_TOKEN은 gitignore 대상인 .env.local에만 두고 DEV 분기 밖에서는 참조하지 않는다.
+  const accessToken = ref<string | null>(
+    import.meta.env.DEV
+      ? resolveInitialAccessToken('development', import.meta.env.VITE_LOCAL_TEST_ACCESS_TOKEN)
+      : null,
+  )
   const user = ref<AuthUser | null>(null)
 
   function setAccessToken(token: string) {

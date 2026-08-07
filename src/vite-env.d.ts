@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_CLIENT_ID: string
   readonly VITE_GOOGLE_REDIRECT_URI: string
   readonly VITE_KAKAO_MAP_KEY: string
+  readonly VITE_LOCAL_TEST_ACCESS_TOKEN?: string
   readonly VITE_POSTHOG_KEY: string
   readonly VITE_POSTHOG_HOST: string
   readonly VITE_USE_MOCK: string
