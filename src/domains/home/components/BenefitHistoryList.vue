@@ -58,8 +58,12 @@ function formatAmount(amount: number) {
 
         <span class="shrink-0 text-right">
           <strong
-            class="block text-body font-bold"
-            :class="item.benefitType ? 'text-benefit' : 'text-gray'"
+            class="block"
+            :class="
+              item.benefitType
+                ? 'text-body font-bold text-benefit'
+                : 'text-caption font-normal text-gray'
+            "
           >
             <template v-if="item.benefitType">-{{ formatAmount(item.benefitAmount) }}</template>
             <template v-else>혜택 없음</template>
@@ -98,7 +102,7 @@ function formatAmount(amount: number) {
           <strong v-if="item.benefitType" class="block text-body font-bold text-benefit">
             -{{ formatAmount(item.benefitAmount) }}
           </strong>
-          <strong v-else class="block text-body font-semibold text-gray">혜택 없음</strong>
+          <strong v-else class="block text-caption font-normal text-gray">혜택 없음</strong>
           <span class="block text-caption font-semibold text-charcoal">
             {{ formatAmount(item.paymentAmount) }}
           </span>

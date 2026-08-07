@@ -90,12 +90,12 @@ function selectSort(order: 'latest' | 'oldest') {
 </script>
 
 <template>
-  <PageLayout title="전체 혜택 내역" has-bottom-bar :horizontal-padding="false">
+  <PageLayout title="최근 전체 내역" has-bottom-bar :horizontal-padding="false">
     <div class="-my-6">
       <div class="flex items-center justify-between gap-3 px-5 pt-2 pb-5">
-        <details ref="cardFilterDetails" class="relative min-w-0 flex-1">
+        <details ref="cardFilterDetails" class="relative w-48 shrink-0">
           <summary
-            class="flex w-full max-w-48 cursor-pointer list-none items-center gap-2 rounded-md border border-divider bg-card px-3 py-2 shadow-btn [&::-webkit-details-marker]:hidden"
+            class="flex w-full cursor-pointer list-none items-center gap-2 rounded-md border border-divider bg-card px-3 py-2 shadow-btn [&::-webkit-details-marker]:hidden"
           >
             <span
               class="size-5 shrink-0 rounded-xs"
@@ -109,13 +109,13 @@ function selectSort(order: 'latest' | 'oldest') {
           </summary>
 
           <div
-            class="absolute top-[calc(100%+0.5rem)] left-1/2 z-20 w-full min-w-72 -translate-x-1/2 overflow-hidden rounded-sm border border-divider bg-card py-1 shadow-card"
+            class="absolute top-[calc(100%+0.5rem)] left-0 z-20 w-full overflow-hidden rounded-md border border-divider bg-card py-1 shadow-card"
           >
             <button
               v-for="cardName in cardNames"
               :key="cardName"
               type="button"
-              class="block w-full truncate px-4 py-3 text-left text-body transition-colors hover:bg-screen"
+              class="block w-full truncate px-3 py-3 text-left text-caption transition-colors hover:bg-screen"
               :class="
                 cardName === selectedCardName ? 'font-semibold text-primary' : 'text-charcoal'
               "
