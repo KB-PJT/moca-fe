@@ -45,6 +45,21 @@ describe('CardDetailView', () => {
   beforeEach(() => {
     window.localStorage.clear()
     setActivePinia(createPinia())
+    useCardManagementStore().setCards({
+      lastSyncedAt: null,
+      activeCards: [
+        {
+          userCardId: 'managed-kb-wesh',
+          cardName: 'KB My WE:SH',
+          cardNo: '123456******4321',
+          issuerId: 'kb-issuer-id',
+          issuerName: 'KB국민카드',
+          cardImageUrl: null,
+          memo: null,
+        },
+      ],
+      inactiveCards: [],
+    })
     replace.mockClear()
     routeParams.id = 'home-kb-wesh'
   })

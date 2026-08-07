@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChevronRight } from '@lucide/vue'
-import type { HomeOwnedCard } from '@/domains/home/mocks/ownedCards'
+import type { HomeOwnedCard } from '@/domains/home/api/homeCards'
 import CardImage from '@/shared/components/CardImage.vue'
 
 const CARD_WIDTH = 200

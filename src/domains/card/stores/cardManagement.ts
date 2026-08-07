@@ -1,30 +1,45 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { getMockManagedCardOrder } from '@/domains/card/api/cardManagement.mock'
-import { MOCK_MANAGED_CARDS, type ManagedCard } from '@/domains/card/mocks/managedCards'
+import type { MyCardItemResponse, MyCardsResponse } from '@/domains/card/api/cardManagement'
 
-function createMockCards() {
-  const cards = MOCK_MANAGED_CARDS.map((card) => ({ ...card }))
-  const savedOrder = getMockManagedCardOrder()
-  const activeCardMap = new Map(
-    cards.filter((card) => card.isActive).map((card) => [card.id, card]),
-  )
-  const activeCards = savedOrder
-    .map((cardId) => activeCardMap.get(cardId))
-    .filter((card): card is ManagedCard => Boolean(card))
+export interface ManagedCard {
+  id: string
+  name: string
+  issuerName: string
+  last4?: string
+  imageUrl?: string | null
+  isActive: boolean
+}
 
-  for (const card of activeCardMap.values()) {
-    if (!savedOrder.includes(card.id)) activeCards.push(card)
+function getLast4(cardNo: string | null) {
+  if (!cardNo) return undefined
+  const digits = cardNo.replace(/\D/g, '')
+  return digits.length >= 4 ? digits.slice(-4) : undefined
+}
+
+function toManagedCard(card: MyCardItemResponse, isActive: boolean): ManagedCard {
+  return {
+    id: card.userCardId,
+    name: card.cardName,
+    issuerName: card.issuerName,
+    last4: getLast4(card.cardNo),
+    imageUrl: card.cardImageUrl,
+    isActive,
   }
-
-  return [...activeCards, ...cards.filter((card) => !card.isActive)]
 }
 
 export const useCardManagementStore = defineStore('cardManagement', () => {
-  const cards = ref<ManagedCard[]>(createMockCards())
+  const cards = ref<ManagedCard[]>([])
 
   const activeCards = computed(() => cards.value.filter((card) => card.isActive))
   const inactiveCards = computed(() => cards.value.filter((card) => !card.isActive))
+
+  function setCards(response: MyCardsResponse) {
+    cards.value = [
+      ...response.activeCards.map((card) => toManagedCard(card, true)),
+      ...(response.inactiveCards ?? []).map((card) => toManagedCard(card, false)),
+    ]
+  }
 
   function setCardActive(cardId: string, isActive: boolean) {
     const card = cards.value.find((item) => item.id === cardId)
@@ -78,19 +93,15 @@ export const useCardManagementStore = defineStore('cardManagement', () => {
     setActiveCardOrder(cardIds)
   }
 
-  function reset() {
-    cards.value = createMockCards()
-  }
-
   return {
     cards,
     activeCards,
     inactiveCards,
+    setCards,
     setCardActive,
     disconnectCard,
     setActiveCardOrder,
     moveActiveCard,
     moveActiveCardTo,
-    reset,
   }
 })
