@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import type { CardPerformance } from '@/domains/benefit-report/api/benefitReport.mock'
-import { formatAmountWithUnit } from '@/shared/utils/format'
+import { formatAmountWithUnit, formatCompactAmount } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
 
 type PerformanceState = 'before-tier1' | 'tier1-complete' | 'tier2-complete'
@@ -58,11 +58,6 @@ function tier1MarkerPercent(card: CardPerformance): number {
 
   const rate = (card.tier1TargetAmount / card.tier2TargetAmount) * 100
   return Math.min(100, Math.floor(rate))
-}
-
-function formatCompactAmount(amount: number): string {
-  if (amount < 10_000) return formatAmountWithUnit(amount)
-  return `${Math.round(amount / 10_000)}만원`
 }
 </script>
 
