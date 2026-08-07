@@ -60,6 +60,18 @@ export function formatPoint(value: number): string {
   return `${formatAmount(value)}P`
 }
 
+/**
+ * 실적 게이지처럼 좁은 공간에 금액을 표시할 때 쓰는 축약형.
+ * 만원 미만은 원 단위 그대로, 이상은 "만원" 단위로 반올림한다.
+ *
+ * formatCompactAmount(8000)     // "8,000원"
+ * formatCompactAmount(250000)   // "25만원"
+ */
+export function formatCompactAmount(amount: number): string {
+  if (amount < 10_000) return formatAmountWithUnit(amount)
+  return `${Math.round(amount / 10_000)}만원`
+}
+
 /* ------------------------------------------------------------------
  * 비율
  * ------------------------------------------------------------------ */
