@@ -69,7 +69,7 @@ describe('HomeView', () => {
       .find((link) => link.text() === '보러가기')
 
     expect(wrapper.text()).toContain('안녕하세요, 지민님')
-    expect(wrapper.text()).toContain('이번 달 혜택 8,200원을 놓치고 있어요!')
+    expect(wrapper.text()).toContain('이번 달 혜택 22,900원을 놓치고 있어요!')
     expect(reportLink?.props('to')).toEqual({ name: 'report' })
 
     const benefitHistoryLink = wrapper
@@ -117,6 +117,7 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-available-benefit]').text()).toBe('6,600원')
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(80%)')
     expect(wrapper.get('[data-performance-remaining]').text()).toContain('59,000원')
+    expect(wrapper.text()).toContain('이번 달 혜택 22,900원을 놓치고 있어요!')
   })
 
   it('상세 화면에서 수정한 카드 메모를 홈 카드 위에 표시한다', () => {
