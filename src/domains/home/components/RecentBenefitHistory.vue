@@ -30,7 +30,7 @@ function parseOccurredAt(occurredAt: string) {
 
 <template>
   <section class="px-5 pb-4" aria-labelledby="recent-benefit-title">
-    <div class="flex items-center justify-between py-4">
+    <div class="flex items-center justify-between pt-1 pb-4">
       <h2 id="recent-benefit-title" class="text-subheading font-semibold text-charcoal">
         최근 전체 내역
       </h2>
