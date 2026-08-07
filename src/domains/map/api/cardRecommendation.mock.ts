@@ -18,6 +18,8 @@ export interface CardRecommendation {
   minPaymentAmount: number
   performanceCurrentAmount: number
   performanceRequiredAmount: number
+  // 1구간(예: 실적탭 게이지의 "1" 마커) 목표 금액. performanceRequiredAmount가 최종(2구간) 목표.
+  performanceTier1Amount: number
   // 상세 페이지의 "추천 이유" 체크리스트. 실제로 적용된 조건만 넣는다(항상 초록 체크로 표시).
   reasons: { label: string; description: string }[]
   // 상세 페이지 하단 약관/유의사항 문구.
@@ -39,6 +41,7 @@ export const cardRecommendationByPlaceId: Record<string, CardRecommendation> = {
     minPaymentAmount: 10000,
     performanceCurrentAmount: 246000,
     performanceRequiredAmount: 300000,
+    performanceTier1Amount: 150000,
     reasons: [
       {
         label: '실적 조건 충족',
@@ -66,6 +69,7 @@ export const cardRecommendationByPlaceId: Record<string, CardRecommendation> = {
     minPaymentAmount: 10000,
     performanceCurrentAmount: 152000,
     performanceRequiredAmount: 200000,
+    performanceTier1Amount: 100000,
     reasons: [
       {
         label: '실적 조건 충족',
@@ -93,6 +97,7 @@ export const cardRecommendationByPlaceId: Record<string, CardRecommendation> = {
     minPaymentAmount: 30000,
     performanceCurrentAmount: 120000,
     performanceRequiredAmount: 300000,
+    performanceTier1Amount: 150000,
     reasons: [
       {
         label: '실적 조건 충족',
@@ -117,6 +122,7 @@ export const cardRecommendationByPlaceId: Record<string, CardRecommendation> = {
     minPaymentAmount: 5000,
     performanceCurrentAmount: 90000,
     performanceRequiredAmount: 100000,
+    performanceTier1Amount: 50000,
     reasons: [
       {
         label: '실적 조건 충족',
@@ -141,6 +147,7 @@ export const cardRecommendationByPlaceId: Record<string, CardRecommendation> = {
     minPaymentAmount: 5000,
     performanceCurrentAmount: 90000,
     performanceRequiredAmount: 150000,
+    performanceTier1Amount: 100000,
     reasons: [
       {
         label: '실적 조건 충족',

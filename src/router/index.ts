@@ -100,6 +100,11 @@ const router = createRouter({
           component: () => import('@/domains/home/views/HomeView.vue'),
         },
         {
+          path: 'home/benefits',
+          name: 'home-benefits',
+          component: () => import('@/domains/home/views/BenefitHistoryView.vue'),
+        },
+        {
           path: 'map',
           name: 'map',
           component: MapView,
@@ -140,6 +145,11 @@ const router = createRouter({
           path: 'mypage/inquiry',
           name: 'mypage-inquiry',
           component: () => import('@/domains/mypage/views/InquiryView.vue'),
+        },
+        {
+          path: 'mypage/delete-account',
+          name: 'mypage-delete-account',
+          component: () => import('@/domains/mypage/views/DeleteAccountView.vue'),
         },
       ],
     },

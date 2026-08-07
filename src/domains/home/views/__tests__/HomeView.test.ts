@@ -1,9 +1,11 @@
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import HomeView from '@/domains/home/views/HomeView.vue'
-import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
+import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
+import HomeView from '@/domains/home/views/HomeView.vue'
+import { useAuthStore } from '@/domains/auth/stores/auth'
+import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
@@ -50,10 +52,7 @@ describe('HomeView', () => {
         plugins: [pinia],
         stubs: {
           PageLayout: { template: '<main><slot /></main>' },
-          MainHeader: { template: '<header />' },
-          SectionCard: { template: '<section><slot name="action" /><slot /></section>' },
           RouterLink: RouterLinkStub,
-          MocaButton: { template: '<button><slot /></button>' },
         },
       },
     })
@@ -95,6 +94,52 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-card-memo]').text()).toContain('스타벅스, 폴바셋 10% 할인')
   })
 
+  it('사용자 인사와 놓치고 있는 혜택을 표시하고 리포트로 연결한다', async () => {
+    const pinia = createPinia()
+    const authStore = useAuthStore(pinia)
+    authStore.setUser({ nickname: '지민', email: 'jimin@example.com', provider: 'google' })
+
+    const wrapper = mountView(pinia)
+    await flushPromises()
+    const reportLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text() === '보러가기')
+
+    expect(wrapper.text()).toContain('안녕하세요, 지민님')
+    expect(wrapper.text()).toContain('이번 달 혜택 22,900원을 놓치고 있어요!')
+    expect(reportLink?.props('to')).toEqual({ name: 'report' })
+
+    const benefitHistoryLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text() === '전체보기')
+    expect(benefitHistoryLink?.props('to')).toEqual({ name: 'home-benefits' })
+  })
+
+  it('최근 카드 승인 내역 5건을 표시한다', () => {
+    const wrapper = mountView()
+
+    expect(wrapper.text()).toContain('최근 전체 내역')
+    expect(wrapper.text()).toContain('혜택 없음')
+    expect(wrapper.text()).toContain('맥도날드')
+    expect(wrapper.text()).toContain('KB국민 청춘대로 톡톡카드')
+    expect(wrapper.text()).toContain('스타벅스')
+    expect(wrapper.text()).toContain('-1,500원')
+    expect(wrapper.findAll('button[aria-label$="내역 상세 보기"]')).toHaveLength(5)
+    expect(wrapper.find('button[aria-label$="내역 상세 보기"]').attributes('aria-label')).toBe(
+      '맥도날드 내역 상세 보기',
+    )
+  })
+
+  it('최근 혜택을 선택하면 해당 혜택 상세 시트를 연다', async () => {
+    const wrapper = mountView()
+
+    await wrapper.get('button[aria-label="스타벅스 내역 상세 보기"]').trigger('click')
+
+    const detailSheet = wrapper.getComponent(BenefitDetailSheet)
+    expect(detailSheet.props('open')).toBe(true)
+    expect(detailSheet.props('item')).toMatchObject({ merchantName: '스타벅스' })
+  })
+
   it('카드를 넘기면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -110,6 +155,7 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-available-benefit]').text()).toBe('6,600원')
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(80%)')
     expect(wrapper.get('[data-performance-remaining]').text()).toContain('59,000원')
+    expect(wrapper.text()).toContain('이번 달 혜택 22,900원을 놓치고 있어요!')
   })
 
   it('상세 화면에서 수정한 카드 메모를 홈 카드 위에 표시한다', async () => {

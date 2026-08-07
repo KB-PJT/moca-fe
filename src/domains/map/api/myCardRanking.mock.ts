@@ -5,7 +5,11 @@ export interface MyCardRankItem {
   rank: number
   cardName: string
   issuer: string
+  // 실제 카드 이미지 URL. 아직 API가 안 내려주는 임시 상태라 전부 null(기본 카드 이미지로 표시).
+  imageUrl: string | null
   performanceMet: boolean
+  // 실적 게이지에 쓰는 달성률(%). 0~100.
+  performanceRate: number
   // 압축 시트 TOP3 미리보기와 상세 페이지 "내 카드 혜택 비교"에서 공통으로 쓴다.
   benefitLabel: string
   // benefitLabel의 숫자 부분(%). 결제 금액을 입력해 실제 혜택 금액을 계산할 때 쓴다.
@@ -22,7 +26,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 1,
       cardName: 'Deep Dream',
       issuer: '신한카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '10% 할인',
       discountRate: 10,
     },
@@ -30,7 +36,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 2,
       cardName: 'My WE:SH',
       issuer: 'KB국민카드',
+      imageUrl: null,
       performanceMet: false,
+      performanceRate: 76,
       benefitLabel: '5% 할인',
       discountRate: 5,
       terms:
@@ -40,7 +48,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 3,
       cardName: 'Zero Edition',
       issuer: '우리카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '0.5% 캐시백',
       discountRate: 0.5,
     },
@@ -50,7 +60,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 1,
       cardName: 'My WE:SH',
       issuer: 'KB국민카드',
+      imageUrl: null,
       performanceMet: false,
+      performanceRate: 82,
       benefitLabel: '10% 할인',
       discountRate: 10,
       terms:
@@ -60,7 +72,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 2,
       cardName: 'Deep Dream',
       issuer: '신한카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '3% 적립',
       discountRate: 3,
     },
@@ -68,7 +82,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 3,
       cardName: 'Zero Edition',
       issuer: '우리카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '0.5% 캐시백',
       discountRate: 0.5,
     },
@@ -78,7 +94,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 1,
       cardName: '현대카드 M',
       issuer: '현대카드',
+      imageUrl: null,
       performanceMet: false,
+      performanceRate: 40,
       benefitLabel: '5% 적립',
       discountRate: 5,
       terms:
@@ -88,7 +106,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 2,
       cardName: 'Zero Edition',
       issuer: '우리카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '0.5% 캐시백',
       discountRate: 0.5,
     },
@@ -96,7 +116,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 3,
       cardName: 'My WE:SH',
       issuer: 'KB국민카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '1% 적립',
       discountRate: 1,
     },
@@ -106,7 +128,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 1,
       cardName: 'taptap O',
       issuer: '삼성카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '15% 할인',
       discountRate: 15,
     },
@@ -114,7 +138,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 2,
       cardName: 'Deep Dream',
       issuer: '신한카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '5% 할인',
       discountRate: 5,
     },
@@ -122,7 +148,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 3,
       cardName: 'My WE:SH',
       issuer: 'KB국민카드',
+      imageUrl: null,
       performanceMet: false,
+      performanceRate: 90,
       benefitLabel: '3% 할인',
       discountRate: 3,
       terms:
@@ -134,7 +162,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 1,
       cardName: 'LOCA',
       issuer: '롯데카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '5% 적립',
       discountRate: 5,
     },
@@ -142,7 +172,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 2,
       cardName: 'Zero Edition',
       issuer: '우리카드',
+      imageUrl: null,
       performanceMet: true,
+      performanceRate: 100,
       benefitLabel: '0.5% 캐시백',
       discountRate: 0.5,
     },
@@ -150,7 +182,9 @@ export const myCardRankingByPlaceId: Record<string, MyCardRankItem[]> = {
       rank: 3,
       cardName: '현대카드 M',
       issuer: '현대카드',
+      imageUrl: null,
       performanceMet: false,
+      performanceRate: 54,
       benefitLabel: '2% 적립',
       discountRate: 2,
       terms:

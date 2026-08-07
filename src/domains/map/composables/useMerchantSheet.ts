@@ -71,9 +71,11 @@ export function useMerchantSheet(
     if (!touch) return
     const delta = touch.clientY - touchStartY
 
-    if (!sheet.isExpanding.value && delta > 50) {
+    if (!sheet.isExpanding.value && delta < -50) {
       startExpand(selectedMerchant.value)
-    } else if (sheet.isExpanding.value && !sheet.isCollapsing.value && delta < -50) {
+    } else if (!sheet.isExpanding.value && delta > 50) {
+      startCollapse()
+    } else if (sheet.isExpanding.value && !sheet.isCollapsing.value && delta > 50) {
       startCollapse()
     }
   }
@@ -83,6 +85,8 @@ export function useMerchantSheet(
 
     if (!sheet.isExpanding.value && event.deltaY > 30) {
       startExpand(selectedMerchant.value)
+    } else if (!sheet.isExpanding.value && event.deltaY < -30) {
+      startCollapse()
     } else if (sheet.isExpanding.value && !sheet.isCollapsing.value && event.deltaY < -30) {
       startCollapse()
     }

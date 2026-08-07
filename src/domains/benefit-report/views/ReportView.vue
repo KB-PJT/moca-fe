@@ -42,34 +42,34 @@ function goToNextMonth() {
 
 <template>
   <PageLayout hide-app-bar has-bottom-bar hide-scrollbar>
-    <MainHeader title="MOCA" />
+    <MainHeader>
+      <div class="flex w-full items-center justify-between">
+        <div>
+          <h1 class="text-heading text-charcoal">{{ pageTitle }}</h1>
+          <p class="text-caption text-gray">매일 AM 02:00 동기화</p>
+        </div>
 
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-heading text-charcoal">{{ pageTitle }}</h1>
-        <p class="text-caption text-gray">매일 AM 02:00 동기화</p>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="text-gray disabled:opacity-30"
+            :disabled="!canGoPrevMonth"
+            @click="goToPrevMonth"
+          >
+            <ChevronLeft class="size-4" />
+          </button>
+          <span class="text-body font-semibold text-primary">{{ monthLabel }}</span>
+          <button
+            type="button"
+            class="text-gray disabled:opacity-30"
+            :disabled="!canGoNextMonth"
+            @click="goToNextMonth"
+          >
+            <ChevronRight class="size-4" />
+          </button>
+        </div>
       </div>
-
-      <div class="flex items-center gap-1.5">
-        <button
-          type="button"
-          class="text-gray disabled:opacity-30"
-          :disabled="!canGoPrevMonth"
-          @click="goToPrevMonth"
-        >
-          <ChevronLeft class="size-4" />
-        </button>
-        <span class="text-body font-semibold text-primary">{{ monthLabel }}</span>
-        <button
-          type="button"
-          class="text-gray disabled:opacity-30"
-          :disabled="!canGoNextMonth"
-          @click="goToNextMonth"
-        >
-          <ChevronRight class="size-4" />
-        </button>
-      </div>
-    </div>
+    </MainHeader>
 
     <div class="mt-4 flex items-center rounded-full bg-divider p-1">
       <button
@@ -90,22 +90,46 @@ function goToNextMonth() {
       </button>
     </div>
 
-    <div v-if="activeTab === 'benefit'" class="mt-4 space-y-7">
-      <BenefitSummaryCard
-        :summary="currentSummary"
-        :previous-total-amount="previousSummary?.totalAmount ?? null"
-      />
-      <CategoryTop3List :items="currentSummary.categoryTop3" />
-      <MissedBenefitsSection />
-    </div>
-    <div v-else class="mt-4 space-y-7">
-      <CardPerformanceSummary :cards="MOCK_CARD_PERFORMANCES" />
-      <div>
-        <p class="text-subheading font-bold text-charcoal">카드별 실적 달성 현황</p>
-        <div class="mt-3">
-          <CardPerformanceList :cards="MOCK_CARD_PERFORMANCES" />
+    <Transition name="tab-fade" mode="out-in">
+      <div v-if="activeTab === 'benefit'" key="benefit" class="mt-4 space-y-7">
+        <BenefitSummaryCard
+          :summary="currentSummary"
+          :previous-total-amount="previousSummary?.totalAmount ?? null"
+        />
+        <CategoryTop3List :items="currentSummary.categoryTop3" />
+        <MissedBenefitsSection />
+      </div>
+      <div v-else key="performance" class="mt-4 space-y-7">
+        <CardPerformanceSummary :cards="MOCK_CARD_PERFORMANCES" />
+        <div>
+          <p class="text-subheading font-bold text-charcoal">카드별 실적 달성 현황</p>
+          <div class="mt-3">
+            <CardPerformanceList :cards="MOCK_CARD_PERFORMANCES" />
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </PageLayout>
 </template>
+
+<style scoped>
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tab-fade-enter-from,
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-fade-enter-active,
+  .tab-fade-leave-active {
+    transition: none;
+  }
+}
+</style>

@@ -72,6 +72,14 @@ function openListView() {
   viewMode.value = 'list'
 }
 
+function toggleViewMode() {
+  if (viewMode.value === 'list') {
+    viewMode.value = 'map'
+    return
+  }
+  openListView()
+}
+
 watch(currentLocation, (coordinates) => {
   if (!coordinates) return
   kakaoMap.recenterTo(coordinates)
@@ -90,10 +98,10 @@ watch(currentLocation, (coordinates) => {
 
     <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
-      :class="(viewMode === 'list' || !isScreenReady) && 'bg-screen'"
+      :class="viewMode === 'list' ? 'bg-card' : !isScreenReady && 'bg-screen'"
     >
-      <div class="pointer-events-auto p-4 pb-0">
-        <div class="bg-card shadow-float flex items-center gap-2 rounded-md px-3">
+      <div class="pointer-events-auto flex items-center gap-2 p-4 pb-0">
+        <div class="bg-card shadow-float flex flex-1 items-center gap-2 rounded-md px-3">
           <Search class="text-gray size-4 shrink-0" />
           <Input
             placeholder="내 주변 혜택 가맹점"
@@ -101,6 +109,16 @@ watch(currentLocation, (coordinates) => {
             @focus="onSheetClose"
           />
         </div>
+
+        <button
+          v-if="isScreenReady"
+          type="button"
+          class="text-caption bg-primary shadow-float flex shrink-0 items-center gap-1 rounded-full px-4 py-2.5 font-semibold text-white"
+          @click="toggleViewMode"
+        >
+          <component :is="viewMode === 'map' ? List : MapIcon" class="size-4" />
+          {{ viewMode === 'map' ? '목록' : '지도' }}
+        </button>
       </div>
 
       <div
@@ -125,42 +143,19 @@ watch(currentLocation, (coordinates) => {
 
       <template v-else>
         <div class="pointer-events-auto space-y-3 p-4 pt-3">
-          <div ref="controlsRef" class="flex gap-2">
-            <div class="bg-card flex shrink-0 items-center rounded-full p-1">
-              <button
-                type="button"
-                class="text-caption flex items-center gap-1 rounded-full px-3 py-1.5 whitespace-nowrap"
-                :class="viewMode === 'map' ? 'bg-primary text-white' : 'text-gray'"
-                @click="viewMode = 'map'"
-              >
-                <MapIcon class="size-4" />
-                지도
-              </button>
-              <button
-                type="button"
-                class="text-caption flex items-center gap-1 rounded-full px-3 py-1.5 whitespace-nowrap"
-                :class="viewMode === 'list' ? 'bg-primary text-white' : 'text-gray'"
-                @click="openListView"
-              >
-                <List class="size-4" />
-                목록
-              </button>
-            </div>
-
-            <div class="scrollbar-hide flex gap-2 overflow-x-auto">
-              <button
-                v-for="category in categories"
-                :key="category"
-                type="button"
-                class="text-caption shrink-0 rounded-full px-3 py-1.5 whitespace-nowrap"
-                :class="
-                  activeCategory === category ? 'bg-primary text-white' : 'bg-card text-charcoal'
-                "
-                @click="activeCategory = category"
-              >
-                {{ category }}
-              </button>
-            </div>
+          <div ref="controlsRef" class="scrollbar-hide flex gap-2 overflow-x-auto">
+            <button
+              v-for="category in categories"
+              :key="category"
+              type="button"
+              class="text-caption shrink-0 rounded-full px-3 py-1.5 whitespace-nowrap"
+              :class="
+                activeCategory === category ? 'bg-primary text-white' : 'bg-card text-charcoal'
+              "
+              @click="activeCategory = category"
+            >
+              {{ category }}
+            </button>
           </div>
         </div>
 

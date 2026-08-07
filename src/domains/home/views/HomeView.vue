@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import PageLayout from '@/shared/components/PageLayout.vue'
-import SectionCard from '@/shared/components/SectionCard.vue'
-import MocaButton from '@/shared/components/MocaButton.vue'
-import MainHeader from '@/shared/components/MainHeader.vue'
-import EmptyState from '@/shared/components/EmptyState.vue'
+import { useAuthStore } from '@/domains/auth/stores/auth'
+import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
+import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
+import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import CardBenefitAmounts from '@/domains/home/components/CardBenefitAmounts.vue'
 import CardPerformance from '@/domains/home/components/CardPerformance.vue'
+import HomeBenefitHeader from '@/domains/home/components/HomeBenefitHeader.vue'
 import OwnedCardCarousel from '@/domains/home/components/OwnedCardCarousel.vue'
 import OwnedCardSection from '@/domains/home/components/OwnedCardSection.vue'
+import RecentBenefitHistory from '@/domains/home/components/RecentBenefitHistory.vue'
 import SelectedCardInfo from '@/domains/home/components/SelectedCardInfo.vue'
-import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
-import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
+import { MOCK_RECENT_BENEFITS, type RecentBenefitItem } from '@/domains/home/mocks/recentBenefits'
+import EmptyState from '@/shared/components/EmptyState.vue'
+import MainHeader from '@/shared/components/MainHeader.vue'
+import PageLayout from '@/shared/components/PageLayout.vue'
 import { Skeleton } from '@/shared/ui/skeleton'
 
 const activeCardIndex = ref(0)
@@ -19,7 +22,14 @@ const cards = ref<HomeOwnedCard[]>([])
 const isCardsLoading = ref(true)
 const cardsError = ref('')
 const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
+const selectedBenefit = ref<RecentBenefitItem | null>(null)
+const isDetailSheetOpen = ref(false)
+const authStore = useAuthStore()
 const cardMemoStore = useCardMemoStore()
+const nickname = computed(() => authStore.user?.nickname ?? '사용자')
+const missedBenefitAmount = computed(() =>
+  cards.value.reduce((total, card) => total + card.availableBenefitAmount, 0),
+)
 const activeCardMemo = computed(() =>
   activeCard.value
     ? cardMemoStore.getMemo(activeCard.value.id) || activeCard.value.highlightBenefitTitle
@@ -48,6 +58,11 @@ async function loadHomeCards() {
 }
 
 onMounted(loadHomeCards)
+
+function openBenefitDetail(item: RecentBenefitItem) {
+  selectedBenefit.value = item
+  isDetailSheetOpen.value = true
+}
 </script>
 
 <template>
@@ -56,14 +71,7 @@ onMounted(loadHomeCards)
       <MainHeader title="MOCA" />
     </div>
 
-    <SectionCard title="이번 달 혜택">
-      <template #action>
-        <RouterLink to="/report" class="text-caption text-primary">전체보기</RouterLink>
-      </template>
-
-      <p class="text-display text-charcoal">38,200원</p>
-      <p class="text-body text-gray">2025.06.28 · 카드 결제</p>
-    </SectionCard>
+    <HomeBenefitHeader :nickname="nickname" :missed-benefit-amount="missedBenefitAmount" />
 
     <OwnedCardSection :card-count="cards.length" :active-index="activeCardIndex">
       <div v-if="isCardsLoading" data-home-cards-loading class="px-5" aria-label="보유카드 로딩 중">
@@ -94,14 +102,8 @@ onMounted(loadHomeCards)
       </template>
     </OwnedCardSection>
 
-    <SectionCard title="버튼 예시">
-      <div class="flex flex-col gap-2">
-        <MocaButton block>연결 시작하기</MocaButton>
-        <MocaButton variant="secondary" block>나중에 하기</MocaButton>
-        <MocaButton variant="ghost" block>더보기</MocaButton>
-        <MocaButton block disabled>비활성 버튼</MocaButton>
-        <MocaButton block loading>불러오는 중</MocaButton>
-      </div>
-    </SectionCard>
+    <RecentBenefitHistory :items="MOCK_RECENT_BENEFITS" @select="openBenefitDetail" />
   </PageLayout>
+
+  <BenefitDetailSheet v-model:open="isDetailSheetOpen" :item="selectedBenefit" />
 </template>
