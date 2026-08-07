@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { Merchant } from '@/domains/map/api/merchants.mock'
 import { myCardRankingByPlaceId, type MyCardRankItem } from '@/domains/map/api/myCardRanking.mock'
 import { formatAmountWithUnit } from '@/shared/utils/format'
+import CardImage from '@/shared/components/CardImage.vue'
 
 interface Props {
   merchant: Merchant
@@ -17,9 +18,6 @@ const props = withDefaults(defineProps<Props>(), {
   appliedAmount: null,
 })
 
-// 랭킹 순서대로 카드 비주얼 색을 다르게 준다 (실제 카드 디자인 데이터는 없음).
-const rankCardVisualClass = ['bg-brown', 'bg-brown-light', 'bg-charcoal']
-
 const myCardRanking = computed(() => myCardRankingByPlaceId[props.merchant.placeId] ?? [])
 
 function estimatedAmountFor(item: MyCardRankItem): number {
@@ -33,13 +31,15 @@ function estimatedAmountFor(item: MyCardRankItem): number {
     <p class="text-subheading text-charcoal">내 카드 혜택 순위</p>
 
     <div class="mt-2 space-y-3">
-      <div v-for="(item, index) in myCardRanking" :key="item.rank">
+      <div v-for="item in myCardRanking" :key="item.rank">
         <div class="flex items-center gap-3">
           <div class="flex shrink-0 items-center gap-1">
             <span class="text-caption text-primary w-6 shrink-0 font-bold">#{{ item.rank }}</span>
-            <div
-              class="h-9 w-6 shrink-0 rounded-md"
-              :class="rankCardVisualClass[index % rankCardVisualClass.length]"
+            <CardImage
+              :src="item.imageUrl"
+              :alt="`${item.cardName} 카드 이미지`"
+              :width="24"
+              :height="38"
             />
           </div>
 

@@ -6,6 +6,7 @@ import {
   type MissedBenefitCondition,
 } from '@/domains/benefit-report/api/benefitReport.mock'
 import { formatAmountWithUnit, formatPoint } from '@/shared/utils/format'
+import CardImage from '@/shared/components/CardImage.vue'
 
 const cardIndex = ref(0)
 const rootEl = ref<HTMLElement | null>(null)
@@ -92,9 +93,12 @@ function progressPercent(condition: MissedBenefitCondition) {
       </button>
 
       <div class="flex items-center gap-2">
-        <span
-          class="size-6 shrink-0 rounded-full"
-          :style="{ backgroundColor: currentCard.accentColor }"
+        <CardImage
+          :src="currentCard.cardImageUrl"
+          :alt="`${currentCard.cardName} 카드 이미지`"
+          orientation="horizontal"
+          :width="34"
+          :height="22"
         />
         <span class="text-caption font-semibold text-charcoal">{{ currentCard.cardName }}</span>
       </div>

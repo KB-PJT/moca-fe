@@ -241,16 +241,20 @@ watch(
         <div class="mt-4 space-y-3">
           <p class="text-subheading text-charcoal">추천 이유</p>
 
-          <div v-for="item in cardRecommendation.reasons" :key="item.label" class="text-center">
-            <p class="flex items-center justify-center gap-1.5">
-              <span
-                class="bg-success flex size-4 shrink-0 items-center justify-center rounded-full text-white"
-              >
-                <Check class="size-3" />
-              </span>
-              <span class="text-body text-charcoal font-bold">{{ item.label }}</span>
-            </p>
-            <p class="text-label text-gray mt-1">{{ item.description }}</p>
+          <div
+            v-for="item in cardRecommendation.reasons"
+            :key="item.label"
+            class="flex items-center gap-1.5"
+          >
+            <span
+              class="bg-success flex size-4 shrink-0 items-center justify-center rounded-full text-white"
+            >
+              <Check class="size-3" />
+            </span>
+            <div class="min-w-0">
+              <p class="text-body text-charcoal font-bold">{{ item.label }}</p>
+              <p class="text-label text-gray">{{ item.description }}</p>
+            </div>
           </div>
         </div>
 

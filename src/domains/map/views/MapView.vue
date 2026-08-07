@@ -98,7 +98,7 @@ watch(currentLocation, (coordinates) => {
 
     <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
-      :class="(viewMode === 'list' || !isScreenReady) && 'bg-screen'"
+      :class="viewMode === 'list' ? 'bg-card' : !isScreenReady && 'bg-screen'"
     >
       <div class="pointer-events-auto flex items-center gap-2 p-4 pb-0">
         <div class="bg-card shadow-float flex flex-1 items-center gap-2 rounded-md px-3">
