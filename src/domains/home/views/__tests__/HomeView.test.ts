@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import HomeView from '@/domains/home/views/HomeView.vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
+import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 
 describe('HomeView', () => {
   beforeEach(() => {
@@ -70,16 +71,36 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('안녕하세요, 지민님')
     expect(wrapper.text()).toContain('이번 달 혜택 8,200원을 놓치고 있어요!')
     expect(reportLink?.props('to')).toEqual({ name: 'report' })
-    expect(wrapper.get('button').text()).toBe('전체보기')
+
+    const benefitHistoryLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text() === '전체보기')
+    expect(benefitHistoryLink?.props('to')).toEqual({ name: 'home-benefits' })
   })
 
-  it('최근 전체 혜택 내역을 표시한다', () => {
+  it('최근 카드 승인 내역 5건을 표시한다', () => {
     const wrapper = mountView()
 
-    expect(wrapper.text()).toContain('최근 전체 혜택 내역')
+    expect(wrapper.text()).toContain('최근 전체 내역')
+    expect(wrapper.text()).toContain('혜택 없음')
+    expect(wrapper.text()).toContain('맥도날드')
+    expect(wrapper.text()).toContain('KB국민 청춘대로 톡톡카드')
     expect(wrapper.text()).toContain('스타벅스')
     expect(wrapper.text()).toContain('-1,500원')
-    expect(wrapper.text()).toContain('넷플릭스')
+    expect(wrapper.findAll('button[aria-label$="내역 상세 보기"]')).toHaveLength(5)
+    expect(wrapper.find('button[aria-label$="내역 상세 보기"]').attributes('aria-label')).toBe(
+      '맥도날드 내역 상세 보기',
+    )
+  })
+
+  it('최근 혜택을 선택하면 해당 혜택 상세 시트를 연다', async () => {
+    const wrapper = mountView()
+
+    await wrapper.get('button[aria-label="스타벅스 내역 상세 보기"]').trigger('click')
+
+    const detailSheet = wrapper.getComponent(BenefitDetailSheet)
+    expect(detailSheet.props('open')).toBe(true)
+    expect(detailSheet.props('item')).toMatchObject({ merchantName: '스타벅스' })
   })
 
   it('카드를 넘기면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
