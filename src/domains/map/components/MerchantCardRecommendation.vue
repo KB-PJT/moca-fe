@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Check, Star } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { formatAmountWithUnit, formatPercent } from '@/shared/utils/format'
 import type { Merchant } from '@/domains/map/api/merchants.mock'
-import { cardRecommendationByPlaceId } from '@/domains/map/api/cardRecommendation.mock'
-import { myCardRankingByPlaceId, type MyCardRankItem } from '@/domains/map/api/myCardRanking.mock'
+import {
+  cardRecommendationByPlaceId,
+  type CardRecommendation,
+} from '@/domains/map/api/cardRecommendation.mock'
 import MyCardRankingPreview from '@/domains/map/components/MyCardRankingPreview.vue'
+import CardImage from '@/shared/components/CardImage.vue'
 
 interface Props {
   merchant: Merchant
@@ -16,18 +19,56 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// 랭킹 순서대로 카드 비주얼 색을 다르게 준다 (실제 카드 디자인 데이터는 없음).
-// MOCA 팔레트(brown 계열)에서만 골라서 브랜드 톤과 어긋나지 않게 한다.
-const rankCardVisualClass = ['bg-brown', 'bg-brown-light', 'bg-charcoal']
-
 const cardRecommendation = computed(
   () => cardRecommendationByPlaceId[props.merchant.placeId] ?? null,
 )
-const myCardRanking = computed(() => myCardRankingByPlaceId[props.merchant.placeId] ?? [])
 
-function achievementPercent(current: number, required: number) {
-  if (required <= 0) return 100
-  return Math.min(100, (current / required) * 100)
+// 게이지가 화면에 나타날 때 0%에서 실제 값까지 차오르는 효과. 실적탭 게이지와 동일한 연출.
+const isFilled = ref(false)
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    isFilled.value = true
+  })
+})
+
+// 1구간을 달성하기 전까지는 "0 ~ 1구간" 구간만 채워서 보여주고,
+// 1구간을 달성한 뒤에는 "1구간 ~ 2구간" 구간으로 기준을 다시 잡아서 보여준다.
+// 그래서 최종 목표가 멀어도 게이지가 항상 의미 있는 진행률로 보인다.
+function isTier1Reached(rec: CardRecommendation): boolean {
+  return rec.performanceCurrentAmount >= rec.performanceTier1Amount
+}
+
+function gaugeFillPercent(rec: CardRecommendation): number {
+  if (!isTier1Reached(rec)) {
+    if (rec.performanceTier1Amount <= 0) return 100
+    return Math.min(
+      100,
+      Math.floor((rec.performanceCurrentAmount / rec.performanceTier1Amount) * 100),
+    )
+  }
+
+  const stageRange = rec.performanceRequiredAmount - rec.performanceTier1Amount
+  if (stageRange <= 0) return 100
+
+  const stageProgress = rec.performanceCurrentAmount - rec.performanceTier1Amount
+  return Math.min(100, Math.floor((stageProgress / stageRange) * 100))
+}
+
+function nextTierLabel(rec: CardRecommendation): string | null {
+  if (rec.performanceCurrentAmount >= rec.performanceRequiredAmount) return null
+  return isTier1Reached(rec) ? '2구간' : '1구간'
+}
+
+function nextTierRemainingText(rec: CardRecommendation): string | null {
+  if (rec.performanceCurrentAmount >= rec.performanceRequiredAmount) return null
+
+  const tierTarget = isTier1Reached(rec)
+    ? rec.performanceRequiredAmount
+    : rec.performanceTier1Amount
+  const remaining = tierTarget - rec.performanceCurrentAmount
+
+  return formatAmountWithUnit(remaining)
 }
 
 // "실제 할인 금액 계산해보기" — 버튼을 누르면 결제 금액 입력칸이 나타나고,
@@ -65,11 +106,6 @@ function resetAmount() {
   paymentAmountInput.value = ''
 }
 
-function estimatedAmountFor(item: MyCardRankItem) {
-  if (appliedAmount.value === null) return null
-  return Math.floor(appliedAmount.value * (item.discountRate / 100))
-}
-
 // 라우트 히스토리 이동 등으로 컴포넌트가 언마운트되지 않은 채 가맹점만 바뀌는 경우,
 // 이전 가맹점 기준으로 열려 있던 계산기 상태가 새 가맹점에 그대로 남지 않도록 초기화한다.
 watch(
@@ -78,6 +114,11 @@ watch(
     isCalculatorOpen.value = false
     paymentAmountInput.value = ''
     appliedAmount.value = null
+
+    isFilled.value = false
+    requestAnimationFrame(() => {
+      isFilled.value = true
+    })
   },
 )
 </script>
@@ -92,7 +133,11 @@ watch(
 
       <div class="bg-accent mt-2 space-y-3 rounded-md p-3">
         <div class="flex items-center gap-3">
-          <div class="bg-brown h-10 w-7 shrink-0 rounded-md" />
+          <CardImage
+            :src="cardRecommendation.imageUrl"
+            :alt="`${cardRecommendation.cardName} 카드 이미지`"
+            small
+          />
 
           <div class="min-w-0 flex-1">
             <p class="text-body text-charcoal truncate">{{ cardRecommendation.cardName }}</p>
@@ -109,22 +154,40 @@ watch(
           </div>
         </div>
 
-        <div class="bg-divider h-1.5 overflow-hidden rounded-full">
+        <div class="bg-divider relative h-3 rounded-full">
           <div
-            class="bg-primary h-full rounded-full"
-            :style="{
-              width:
-                achievementPercent(
-                  cardRecommendation.performanceCurrentAmount,
-                  cardRecommendation.performanceRequiredAmount,
-                ) + '%',
-            }"
+            class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
+            :style="{ width: `${isFilled ? gaugeFillPercent(cardRecommendation) : 0}%` }"
           />
+          <span class="text-label absolute inset-0 flex items-center justify-center text-charcoal">
+            {{ formatAmountWithUnit(cardRecommendation.performanceCurrentAmount) }}/{{
+              formatAmountWithUnit(
+                isTier1Reached(cardRecommendation)
+                  ? cardRecommendation.performanceRequiredAmount
+                  : cardRecommendation.performanceTier1Amount,
+              )
+            }}
+          </span>
+          <span
+            v-if="isTier1Reached(cardRecommendation)"
+            class="bg-primary absolute top-1/2 left-0 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold text-white"
+          >
+            1
+          </span>
+          <span
+            class="border-divider bg-card text-gray absolute top-1/2 right-0 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border text-[10px] font-bold"
+          >
+            {{ isTier1Reached(cardRecommendation) ? '2' : '1' }}
+          </span>
         </div>
 
-        <p class="text-label text-gray text-right">
-          {{ formatAmountWithUnit(cardRecommendation.performanceCurrentAmount) }} /
-          {{ formatAmountWithUnit(cardRecommendation.performanceRequiredAmount) }}
+        <p
+          v-if="nextTierLabel(cardRecommendation)"
+          class="text-caption text-charcoal text-right font-semibold"
+        >
+          {{ nextTierLabel(cardRecommendation) }} 실적까지
+          <span class="text-primary">{{ nextTierRemainingText(cardRecommendation) }}</span>
+          남았어요!
         </p>
 
         <!-- 하단 시트(압축)에는 안 보이고 상세에서만 노출. -->
@@ -178,73 +241,31 @@ watch(
         <div class="mt-4 space-y-3">
           <p class="text-subheading text-charcoal">추천 이유</p>
 
-          <div v-for="item in cardRecommendation.reasons" :key="item.label" class="flex gap-2">
-            <span
-              class="bg-success mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full text-white"
-            >
-              <Check class="size-3" />
-            </span>
-
-            <div class="min-w-0">
-              <p class="text-caption text-charcoal">{{ item.label }}</p>
-              <p class="text-label text-gray">{{ item.description }}</p>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="myCardRanking.length" class="mt-4">
-          <p class="text-subheading text-charcoal">내 카드 혜택 비교</p>
-
-          <!-- 압축 시트(MyCardRankingPreview)와 여백이 완전히 같도록, 별도 박스 없이 같은 행 구조를 쓴다.
-               divide-y로 카드 사이만 구분선을 긋는다(마지막 항목엔 안 그어짐). -->
-          <div class="divide-divider mt-2 divide-y">
-            <div v-for="(item, index) in myCardRanking" :key="item.rank" class="py-3 first:pt-0">
-              <div class="flex items-center gap-3">
-                <div class="flex shrink-0 items-center gap-1">
-                  <span class="text-caption text-primary w-6 shrink-0 font-bold"
-                    >#{{ item.rank }}</span
-                  >
-                  <div
-                    class="h-9 w-6 shrink-0 rounded-md"
-                    :class="rankCardVisualClass[index % rankCardVisualClass.length]"
-                  />
-                </div>
-
-                <div class="min-w-0 flex-1">
-                  <p class="text-caption text-charcoal truncate">{{ item.cardName }}</p>
-                  <p class="text-label text-gray truncate">{{ item.issuer }}</p>
-                </div>
-
-                <div class="shrink-0 text-right">
-                  <p class="text-caption text-charcoal whitespace-nowrap">
-                    {{
-                      appliedAmount !== null
-                        ? formatAmountWithUnit(estimatedAmountFor(item)!)
-                        : item.benefitLabel
-                    }}
-                  </p>
-                  <span
-                    v-if="!item.performanceMet"
-                    class="text-label bg-accent text-primary mt-1 inline-block rounded-full px-2 py-0.5 whitespace-nowrap"
-                  >
-                    조건 미충족
-                  </span>
-                </div>
-              </div>
-
-              <!-- 미충족 카드 밑에 왜 미충족인지 바로 알 수 있게 이 카드의 적용 조건을 눈에 띄는 회색 박스로 붙인다. -->
-              <p
-                v-if="!item.performanceMet && item.terms"
-                class="text-label text-gray bg-screen mt-3 rounded-md p-3"
+          <div v-for="item in cardRecommendation.reasons" :key="item.label" class="text-center">
+            <p class="flex items-center justify-center gap-1.5">
+              <span
+                class="bg-success flex size-4 shrink-0 items-center justify-center rounded-full text-white"
               >
-                {{ item.terms }}
-              </p>
-            </div>
+                <Check class="size-3" />
+              </span>
+              <span class="text-body text-charcoal font-bold">{{ item.label }}</span>
+            </p>
+            <p class="text-label text-gray mt-1">{{ item.description }}</p>
           </div>
         </div>
+
+        <MyCardRankingPreview :merchant="merchant" detailed :applied-amount="appliedAmount" />
       </template>
     </template>
 
     <p v-else class="text-caption text-gray mt-4">이 가맹점에서 받을 수 있는 혜택이 아직 없어요.</p>
   </div>
 </template>
+
+<style scoped>
+@media (prefers-reduced-motion: reduce) {
+  .gauge-fill {
+    transition: none !important;
+  }
+}
+</style>
