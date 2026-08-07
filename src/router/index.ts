@@ -100,6 +100,11 @@ const router = createRouter({
           component: () => import('@/domains/home/views/HomeView.vue'),
         },
         {
+          path: 'home/benefits',
+          name: 'home-benefits',
+          component: () => import('@/domains/home/views/BenefitHistoryView.vue'),
+        },
+        {
           path: 'map',
           name: 'map',
           component: MapView,
