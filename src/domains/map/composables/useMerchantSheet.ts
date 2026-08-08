@@ -75,7 +75,14 @@ export function useMerchantSheet(
       startExpand(selectedMerchant.value)
     } else if (!sheet.isExpanding.value && delta > 50) {
       startCollapse()
-    } else if (sheet.isExpanding.value && !sheet.isCollapsing.value && delta > 50) {
+    } else if (
+      sheet.isExpanding.value &&
+      !sheet.isCollapsing.value &&
+      delta > 50 &&
+      (sheetRef.value?.scrollTop ?? 0) <= 0
+    ) {
+      // 콘텐츠가 스크롤된 상태에서 아래로 드래그하면 스크롤 동작으로 봐야 하므로,
+      // 맨 위(scrollTop 0)까지 올라와 있을 때만 "당겨서 닫기"로 인식한다.
       startCollapse()
     }
   }
