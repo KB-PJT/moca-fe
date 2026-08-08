@@ -45,6 +45,21 @@ describe('CardDetailView', () => {
   beforeEach(() => {
     window.localStorage.clear()
     setActivePinia(createPinia())
+    useCardManagementStore().setCards({
+      lastSyncedAt: null,
+      activeCards: [
+        {
+          userCardId: 'managed-kb-wesh',
+          cardName: 'KB My WE:SH',
+          cardNo: '123456******4321',
+          issuerId: 'kb-issuer-id',
+          issuerName: 'KB국민카드',
+          cardImageUrl: null,
+          memo: null,
+        },
+      ],
+      inactiveCards: [],
+    })
     replace.mockClear()
     routeParams.id = 'home-kb-wesh'
   })
@@ -106,6 +121,7 @@ describe('CardDetailView', () => {
   it('카드 메뉴에서 비활성화하면 관리 상태에 반영하고 관리 화면으로 이동한다', async () => {
     const wrapper = mount(CardDetailView, { global: { stubs: globalStubs } })
     const cardManagementStore = useCardManagementStore()
+    const preserveCardsOnNextLoad = vi.spyOn(cardManagementStore, 'preserveCardsOnNextLoad')
 
     await wrapper.get('button[aria-label="카드 메뉴"]').trigger('click')
     expect(wrapper.text()).toContain('비활성화')
@@ -119,6 +135,7 @@ describe('CardDetailView', () => {
     expect(cardManagementStore.cards.find((item) => item.id === 'managed-kb-wesh')?.isActive).toBe(
       false,
     )
+    expect(preserveCardsOnNextLoad).toHaveBeenCalledOnce()
     expect(replace).toHaveBeenCalledWith({
       name: 'card-manage',
       query: { from: 'home' },

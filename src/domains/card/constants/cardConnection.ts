@@ -58,18 +58,6 @@ const CARD_NUMBER_FIELD = {
   helperText: '16자리 카드번호를 입력해 주세요',
 } as const satisfies CardConnectionField
 
-const KB_CARD_PASSWORD_FIELD = {
-  key: 'cardPassword',
-  label: '카드 비밀번호 앞 2자리',
-  placeholder: '2자리 입력',
-  inputType: 'password',
-  autocomplete: 'off',
-  numeric: true,
-  maxLength: 2,
-  exactLength: 2,
-  helperText: '카드 조회 확인에만 사용해요',
-} as const satisfies CardConnectionField
-
 const HYUNDAI_CARD_PASSWORD_FIELD = {
   key: 'cardPassword',
   label: '카드 비밀번호 4자리',
@@ -96,12 +84,12 @@ const BIRTH_DATE_FIELD = {
 export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig> = {
   'kb-kookmin': {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
-    additionalFields: [CARD_NUMBER_FIELD, KB_CARD_PASSWORD_FIELD],
-    additionalInputMode: 'always',
+    additionalFields: [],
+    additionalInputMode: 'none',
   },
   hyundai: {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
-    additionalFields: [CARD_NUMBER_FIELD, HYUNDAI_CARD_PASSWORD_FIELD],
+    additionalFields: [CARD_NUMBER_FIELD, HYUNDAI_CARD_PASSWORD_FIELD, BIRTH_DATE_FIELD],
     additionalInputMode: 'always',
   },
   woori: {

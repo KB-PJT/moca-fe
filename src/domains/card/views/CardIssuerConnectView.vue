@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { CheckCircle2, LockKeyhole, ShieldCheck } from '@lucide/vue'
+import { CheckCircle2, CircleAlert, LoaderCircle, LockKeyhole, ShieldCheck } from '@lucide/vue'
+import axios from 'axios'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  createCardLink,
+  syncCardLinkCards,
+  type CardLinkErrorResponse,
+} from '@/domains/card/api/cardLinks'
+import { buildCreateCardLinkRequest } from '@/domains/card/api/cardLinkPayload'
 import CardConnectionFieldGroup from '@/domains/card/components/CardConnectionFieldGroup.vue'
 import CardIssuerIcon from '@/domains/card/components/CardIssuerIcon.vue'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
@@ -13,17 +20,6 @@ import {
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import MocaButton from '@/shared/components/MocaButton.vue'
-import { Switch } from '@/shared/ui/switch'
-
-interface CardConnectionSubmitPayload {
-  issuerId: keyof typeof CARD_ISSUERS
-  values: Partial<Record<CardConnectionFieldKey, string>>
-  includeCardImages: boolean
-}
-
-const emit = defineEmits<{
-  submit: [payload: CardConnectionSubmitPayload]
-}>()
 
 const route = useRoute()
 const router = useRouter()
@@ -42,8 +38,8 @@ function createEmptyValues(): Record<CardConnectionFieldKey, string> {
 const formValues = ref(createEmptyValues())
 const validationErrors = ref<Partial<Record<CardConnectionFieldKey, string>>>({})
 const visiblePasswords = ref<Partial<Record<CardConnectionFieldKey, boolean>>>({})
-const includeCardImages = ref(true)
 const isSubmitting = ref(false)
+const connectionState = ref<'checking' | 'unlinked' | 'failed'>('checking')
 
 // SECURITY(NOW): 민감정보는 이 화면의 메모리에서만 관리하며 저장소·전역 상태·로그에 남기지 않는다.
 
@@ -72,7 +68,6 @@ function resetForm() {
   formValues.value = createEmptyValues()
   validationErrors.value = {}
   visiblePasswords.value = {}
-  includeCardImages.value = true
   isSubmitting.value = false
 }
 
@@ -117,47 +112,129 @@ function togglePasswordVisibility(fieldKey: CardConnectionFieldKey) {
   }
 }
 
-function connectIssuer() {
-  if (!issuerId.value || !canConnect.value || isSubmitting.value) return
+async function connectIssuer() {
+  if (
+    !issuerId.value ||
+    connectionState.value !== 'unlinked' ||
+    !canConnect.value ||
+    isSubmitting.value
+  )
+    return
 
+  const targetIssuerId = issuerId.value
   isSubmitting.value = true
 
   const values = Object.fromEntries(
     visibleFields.value.map((field) => [field.key, formValues.value[field.key]]),
   ) as Partial<Record<CardConnectionFieldKey, string>>
+  const request = buildCreateCardLinkRequest(targetIssuerId, values)
 
-  emit('submit', {
-    issuerId: issuerId.value,
-    values,
-    includeCardImages: includeCardImages.value,
-  })
+  directCardConnectionStore.beginLookup(targetIssuerId)
 
-  // TODO(API): 공통 API client를 통해 HTTPS로만 전송하고 민감 필드가 요청·오류 로그에
-  // 기록되지 않도록 redaction 정책을 적용한다. 저장이 필요하다면 서버/KMS 정책으로 처리하며
-  // 프론트 번들에 대칭 암호화 키를 포함하지 않는다.
-  // 실제 API 요청 및 응답 타입은 계약 확정 후 별도 구현한다.
-  directCardConnectionStore.beginLookup(issuerId.value, includeCardImages.value)
-  void router
-    .push({
+  try {
+    await router.push({
       name: 'card-issuer-connect-progress',
-      params: { issuerId: issuerId.value },
+      params: { issuerId: targetIssuerId },
     })
-    .catch(() => {
-      directCardConnectionStore.reset()
-      isSubmitting.value = false
+  } catch {
+    directCardConnectionStore.reset()
+    isSubmitting.value = false
+    return
+  }
+
+  try {
+    const response = await createCardLink(request)
+    if (directCardConnectionStore.issuerId === targetIssuerId) {
+      directCardConnectionStore.completeCardLink(response)
+    }
+  } catch (error) {
+    if (directCardConnectionStore.issuerId === targetIssuerId) {
+      directCardConnectionStore.failLookup(toLookupError(error))
+    }
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function syncExistingLink(targetIssuerId: typeof issuerId.value) {
+  if (!targetIssuerId) return
+
+  connectionState.value = 'checking'
+  const institutionCode = CARD_ISSUERS[targetIssuerId].institutionCode
+
+  try {
+    const response = await syncCardLinkCards(institutionCode)
+    if (issuerId.value !== targetIssuerId) return
+
+    const result = response.results.find((item) => item.institutionCode === institutionCode)
+    if (!result?.success) {
+      throw new Error('CARD_LINK_SYNC_FAILED')
+    }
+
+    directCardConnectionStore.beginLookup(targetIssuerId)
+    await router.push({
+      name: 'card-issuer-connect-progress',
+      params: { issuerId: targetIssuerId },
     })
+
+    if (directCardConnectionStore.issuerId === targetIssuerId) {
+      directCardConnectionStore.completeCardLinkCards(
+        result.linkId,
+        result.institutionCode,
+        result.cards,
+      )
+    }
+  } catch (error) {
+    if (issuerId.value !== targetIssuerId) return
+    connectionState.value = isConnectionNotFound(error) ? 'unlinked' : 'failed'
+  }
+}
+
+function retryLinkCheck() {
+  void syncExistingLink(issuerId.value)
+}
+
+function isConnectionNotFound(error: unknown) {
+  return (
+    axios.isAxiosError<CardLinkErrorResponse>(error) &&
+    error.response?.status === 404 &&
+    error.response.data?.error.code === 'CODEF_CONNECTION_NOT_FOUND'
+  )
+}
+
+function toLookupError(error: unknown) {
+  if (axios.isAxiosError<CardLinkErrorResponse>(error)) {
+    const apiError = error.response?.data?.error
+    if (apiError) {
+      return {
+        code: apiError.code,
+        message: apiError.message,
+        fields: apiError.fields,
+      }
+    }
+  }
+
+  return { message: '카드사 연결 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }
 }
 
 function returnToIssuerSelection() {
+  directCardConnectionStore.reset()
   void router.replace({ name: 'card-issuer-select' })
 }
 
-watch(issuerId, resetForm)
+watch(
+  issuerId,
+  (targetIssuerId) => {
+    resetForm()
+    if (targetIssuerId) void syncExistingLink(targetIssuerId)
+  },
+  { immediate: true },
+)
 onBeforeUnmount(resetForm)
 </script>
 
 <template>
-  <CardPageLayout title="카드 등록" bg="background">
+  <CardPageLayout title="카드 등록" bg="background" @back="returnToIssuerSelection">
     <template v-if="issuer && connectionConfig">
       <section class="-mx-5 -mt-6 flex items-center gap-3 border-b border-divider px-5 py-4">
         <CardIssuerIcon :issuer="issuer.id" variant="fill" />
@@ -169,68 +246,79 @@ onBeforeUnmount(resetForm)
         </div>
       </section>
 
-      <!-- API 연동 완료 후 HTTPS 전송과 서버 측 민감정보 보호가 적용된 상태를 안내하는 문구 -->
-      <section class="mt-3 flex gap-2 rounded-md bg-[#fbf6f0] px-3 py-3 text-[#a67c52]">
-        <LockKeyhole class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        <p class="text-caption leading-5">
-          입력한 정보는 카드 조회 및 본인 인증에만 사용되며 암호화되어 안전하게 전송돼요
-        </p>
+      <section
+        v-if="connectionState === 'checking'"
+        class="flex min-h-72 flex-col items-center justify-center text-center"
+        aria-live="polite"
+      >
+        <LoaderCircle class="size-8 animate-spin text-brown" aria-hidden="true" />
+        <h2 class="mt-5 text-subheading text-charcoal">연동된 보유카드를 확인하고 있어요</h2>
+        <p class="mt-2 text-body text-gray">잠시만 기다려 주세요</p>
       </section>
 
-      <form id="card-issuer-connect-form" class="mt-5" @submit.prevent="connectIssuer">
-        <CardConnectionFieldGroup
-          title="카드사 로그인 정보"
-          :fields="loginFields"
-          :values="formValues"
-          :errors="validationErrors"
-          :visible-passwords="visiblePasswords"
-          @update="updateFieldValue"
-          @blur="validateField"
-          @toggle-password="togglePasswordVisibility"
-        />
+      <section
+        v-else-if="connectionState === 'failed'"
+        class="flex min-h-72 flex-col items-center justify-center text-center"
+        role="alert"
+      >
+        <div class="flex size-16 items-center justify-center rounded-full bg-error/10 text-error">
+          <CircleAlert class="size-8" aria-hidden="true" />
+        </div>
+        <h2 class="mt-5 text-subheading text-charcoal">연동 상태를 확인하지 못했어요</h2>
+        <p class="mt-2 text-body text-gray">잠시 후 다시 시도해 주세요</p>
+        <MocaButton class="mt-6 h-12 px-8" @click="retryLinkCheck">다시 시도하기</MocaButton>
+      </section>
 
-        <CardConnectionFieldGroup
-          v-if="hasAdditionalInfo"
-          title="추가 인증 정보"
-          class="mt-5"
-          :fields="additionalFields"
-          :values="formValues"
-          :errors="validationErrors"
-          :visible-passwords="visiblePasswords"
-          @update="updateFieldValue"
-          @blur="validateField"
-          @toggle-password="togglePasswordVisibility"
-        />
-
-        <section
-          v-else-if="connectionConfig.additionalInputMode === 'none'"
-          class="mt-5 rounded-md border border-success/20 bg-success/5 px-4 py-3"
-        >
-          <div class="flex gap-2 text-success">
-            <CheckCircle2 class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <div>
-              <h2 class="text-body font-semibold">추가 인증 정보 없이 조회할 수 있어요</h2>
-              <p class="mt-1 text-caption leading-5 text-gray">
-                {{ issuer.name }} 로그인 정보만으로 보유 카드를 조회할 수 있어요
-              </p>
-            </div>
-          </div>
+      <template v-else>
+        <!-- 민감정보는 이 화면의 메모리에서만 관리하고 HTTPS로 전송한다. -->
+        <section class="mt-3 flex gap-2 rounded-md bg-[#fbf6f0] px-3 py-3 text-[#a67c52]">
+          <LockKeyhole class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <p class="text-caption leading-5">
+            입력한 정보는 카드 조회 및 본인 인증에만 사용되며 암호화되어 안전하게 전송돼요
+          </p>
         </section>
 
-        <section
-          class="mt-4 flex items-center justify-between rounded-md border border-border bg-card px-4 py-3 shadow-tile"
-        >
-          <div>
-            <h2 class="text-body font-semibold text-charcoal">카드 이미지 함께 불러오기</h2>
-            <p class="mt-1 text-caption text-gray">카드사에서 이미지가 제공되면 함께 등록해요</p>
-          </div>
-          <Switch
-            v-model="includeCardImages"
-            class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
-            aria-label="카드 이미지 함께 불러오기"
+        <form id="card-issuer-connect-form" class="mt-5" @submit.prevent="connectIssuer">
+          <CardConnectionFieldGroup
+            title="카드사 로그인 정보"
+            :fields="loginFields"
+            :values="formValues"
+            :errors="validationErrors"
+            :visible-passwords="visiblePasswords"
+            @update="updateFieldValue"
+            @blur="validateField"
+            @toggle-password="togglePasswordVisibility"
           />
-        </section>
-      </form>
+
+          <CardConnectionFieldGroup
+            v-if="hasAdditionalInfo"
+            title="추가 인증 정보"
+            class="mt-5"
+            :fields="additionalFields"
+            :values="formValues"
+            :errors="validationErrors"
+            :visible-passwords="visiblePasswords"
+            @update="updateFieldValue"
+            @blur="validateField"
+            @toggle-password="togglePasswordVisibility"
+          />
+
+          <section
+            v-else-if="connectionConfig.additionalInputMode === 'none'"
+            class="mt-5 rounded-md border border-success/20 bg-success/5 px-4 py-3"
+          >
+            <div class="flex gap-2 text-success">
+              <CheckCircle2 class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <div>
+                <h2 class="text-body font-semibold">추가 인증 정보 없이 조회할 수 있어요</h2>
+                <p class="mt-1 text-caption leading-5 text-gray">
+                  {{ issuer.name }} 로그인 정보만으로 보유 카드를 조회할 수 있어요
+                </p>
+              </div>
+            </div>
+          </section>
+        </form>
+      </template>
     </template>
 
     <section v-else class="mt-20 text-center">
@@ -241,7 +329,7 @@ onBeforeUnmount(resetForm)
       </MocaButton>
     </section>
 
-    <template v-if="issuer" #footer>
+    <template v-if="issuer && connectionState === 'unlinked'" #footer>
       <div class="flex flex-col items-center">
         <MocaButton
           block

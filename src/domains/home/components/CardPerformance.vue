@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { HomeOwnedCard } from '@/domains/home/mocks/ownedCards'
+import type { HomeOwnedCard } from '@/domains/home/api/homeCards'
 
 interface Props {
   card: HomeOwnedCard

@@ -10,7 +10,7 @@ describe('CardIssuerConnectCompleteView', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const store = useDirectCardConnectionStore()
-    store.beginLookup('kb-kookmin', true)
+    store.beginLookup('kb-kookmin')
     store.completeLookup([
       { id: 'card-1', issuer: 'kb-kookmin', name: 'KB 카드 1', last4: '1111' },
       { id: 'card-2', issuer: 'kb-kookmin', name: 'KB 카드 2', last4: '2222' },

@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import CardManageView from '@/domains/card/views/CardManageView.vue'
@@ -7,6 +7,30 @@ import {
   getMockManagedCardOrder,
   resetMockManagedCardOrder,
 } from '@/domains/card/api/cardManagement.mock'
+import { MOCK_MANAGED_CARDS } from '@/domains/card/mocks/managedCards'
+import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
+
+const fetchMyCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
+
+vi.mock('@/domains/card/api/cardManagement', () => ({ fetchMyCards }))
+
+function createMyCardsResponse() {
+  const toApiCard = (card: (typeof MOCK_MANAGED_CARDS)[number]) => ({
+    userCardId: card.id,
+    cardName: card.name,
+    cardNo: card.last4 ? `123456******${card.last4}` : null,
+    issuerId: `${card.id}-issuer`,
+    issuerName: card.issuerName,
+    cardImageUrl: card.imageUrl ?? null,
+    memo: null,
+  })
+
+  return {
+    lastSyncedAt: '2026-08-07T10:30:00+09:00',
+    activeCards: MOCK_MANAGED_CARDS.filter((card) => card.isActive).map(toApiCard),
+    inactiveCards: MOCK_MANAGED_CARDS.filter((card) => !card.isActive).map(toApiCard),
+  }
+}
 
 const push = vi.fn<(location: { name: string }) => void>()
 const routeQuery: Record<string, string | string[] | undefined> = {}
@@ -49,18 +73,22 @@ const globalStubs = {
   },
 }
 
-function mountView() {
+async function mountView() {
   const pinia = createPinia()
   setActivePinia(pinia)
 
-  return mount(CardManageView, {
+  const wrapper = mount(CardManageView, {
     global: { plugins: [pinia], stubs: globalStubs },
   })
+  await flushPromises()
+  return wrapper
 }
 
 describe('CardManageView', () => {
   beforeEach(() => {
     push.mockClear()
+    fetchMyCards.mockReset()
+    fetchMyCards.mockResolvedValue(createMyCardsResponse())
     resetMockManagedCardOrder()
     for (const key of Object.keys(routeQuery)) delete routeQuery[key]
   })
@@ -70,8 +98,8 @@ describe('CardManageView', () => {
     document.body.innerHTML = ''
   })
 
-  it('활성 카드와 비활성 카드를 구분해 표시한다', () => {
-    const wrapper = mountView()
+  it('활성 카드와 비활성 카드를 구분해 표시한다', async () => {
+    const wrapper = await mountView()
 
     expect(wrapper.text()).toContain('등록된 카드 3개')
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
@@ -79,8 +107,35 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('현대 Zero Edition')
   })
 
+  it('상세 화면의 로컬 변경 후 진입하면 목록을 한 번 보존한다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const cardManagementStore = useCardManagementStore()
+    cardManagementStore.setCards(createMyCardsResponse())
+    cardManagementStore.setCardActive('managed-shinhan-deep-dream', false)
+    cardManagementStore.preserveCardsOnNextLoad()
+
+    const firstWrapper = mount(CardManageView, {
+      global: { plugins: [pinia], stubs: globalStubs },
+    })
+    await flushPromises()
+
+    expect(fetchMyCards).not.toHaveBeenCalled()
+    expect(firstWrapper.text()).toContain('등록된 카드 2개')
+    expect(firstWrapper.text()).toContain('비활성화 된 카드 2개')
+
+    firstWrapper.unmount()
+    const secondWrapper = mount(CardManageView, {
+      global: { plugins: [pinia], stubs: globalStubs },
+    })
+    await flushPromises()
+
+    expect(fetchMyCards).toHaveBeenCalledOnce()
+    expect(secondWrapper.text()).toContain('등록된 카드 3개')
+  })
+
   it('확인 후 카드를 비활성화하고 다시 활성화한다', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
 
     await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
 
@@ -99,7 +154,7 @@ describe('CardManageView', () => {
   })
 
   it('확인 후 연결 해제한 카드를 목록에서 제거한다', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
 
     await wrapper.get('button[aria-label="신한 Deep Dream 연결 해제"]').trigger('click')
 
@@ -114,7 +169,7 @@ describe('CardManageView', () => {
   })
 
   it('취소하면 카드 상태를 변경하지 않는다', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
 
     await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
     expect(wrapper.get('[data-confirm-dialog]').attributes('data-destructive')).toBe('false')
@@ -126,17 +181,20 @@ describe('CardManageView', () => {
     expect(wrapper.find('[data-confirm-dialog]').exists()).toBe(false)
   })
 
-  it('새로고침 중 상태를 표시하고 목데이터를 다시 불러온다', async () => {
-    vi.useFakeTimers()
-    const wrapper = mountView()
+  it('새로고침 중 상태를 표시하고 실 API를 다시 호출한다', async () => {
+    const wrapper = await mountView()
+    let resolveRefresh!: (value: unknown) => void
+    fetchMyCards.mockImplementationOnce(() => new Promise((resolve) => (resolveRefresh = resolve)))
 
     await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
     await wrapper.get('button[aria-label="카드 목록 새로고침"]').trigger('click')
 
     expect(wrapper.text()).toContain('새로고침 중')
 
-    await vi.advanceTimersByTimeAsync(700)
+    resolveRefresh(createMyCardsResponse())
+    await flushPromises()
 
+    expect(fetchMyCards).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('등록된 카드 3개')
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
     expect(wrapper.text()).toContain('새로고침')
@@ -144,7 +202,7 @@ describe('CardManageView', () => {
 
   it('활성 카드 순서를 변경하고 mock API에 저장한다', async () => {
     vi.useFakeTimers()
-    const wrapper = mountView()
+    const wrapper = await mountView()
 
     await wrapper
       .findAll('button')
@@ -183,8 +241,15 @@ describe('CardManageView', () => {
     ])
     expect(wrapper.text()).not.toContain('카드 순서를 저장했어요.')
 
+    const reorderedResponse = createMyCardsResponse()
+    reorderedResponse.activeCards = [
+      reorderedResponse.activeCards[1]!,
+      reorderedResponse.activeCards[0]!,
+      reorderedResponse.activeCards[2]!,
+    ]
+    fetchMyCards.mockResolvedValueOnce(reorderedResponse)
     await wrapper.get('button[aria-label="카드 목록 새로고침"]').trigger('click')
-    await vi.advanceTimersByTimeAsync(700)
+    await flushPromises()
 
     expect(
       wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
@@ -192,7 +257,7 @@ describe('CardManageView', () => {
   })
 
   it('카드 순서 변경을 취소하면 기존 순서로 복원한다', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
 
     await wrapper
       .findAll('button')
@@ -212,7 +277,7 @@ describe('CardManageView', () => {
   })
 
   it('카드 추가하기를 누르면 카드 연결 화면으로 이동한다', async () => {
-    const wrapper = mountView()
+    const wrapper = await mountView()
 
     await wrapper.get('footer button').trigger('click')
 
@@ -222,16 +287,16 @@ describe('CardManageView', () => {
   it.each([
     ['home', '/home'],
     ['mypage', '/mypage'],
-  ])('%s에서 진입하면 해당 하단 탭을 활성화한다', (from, activePath) => {
+  ])('%s에서 진입하면 해당 하단 탭을 활성화한다', async (from, activePath) => {
     routeQuery.from = from
 
-    const wrapper = mountView()
+    const wrapper = await mountView()
 
     expect(wrapper.get('nav').attributes('data-active-path')).toBe(activePath)
   })
 
-  it('직접 접근하면 하단 탭을 강제로 활성화하지 않는다', () => {
-    const wrapper = mountView()
+  it('직접 접근하면 하단 탭을 강제로 활성화하지 않는다', async () => {
+    const wrapper = await mountView()
 
     expect(wrapper.get('nav').attributes('data-active-path')).toBeUndefined()
   })
@@ -250,6 +315,7 @@ describe('CardManageView', () => {
         },
       },
     })
+    await flushPromises()
 
     await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
     await nextTick()
@@ -266,5 +332,22 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('비활성화 된 카드 2개')
 
     wrapper.unmount()
+  })
+
+  it('조회 실패 후 다시 시도할 수 있다', async () => {
+    fetchMyCards.mockRejectedValueOnce(new Error('network error'))
+
+    const wrapper = await mountView()
+
+    expect(wrapper.text()).toContain('보유카드를 불러오지 못했어요.')
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '다시 시도')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(fetchMyCards).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('등록된 카드 3개')
   })
 })
