@@ -71,6 +71,15 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
     expect(wrapper.get('[data-received-benefit]').text()).toBe('21,800원')
     expect(wrapper.get('[data-available-benefit]').text()).toBe('8,200원')
+    const receivedBenefitLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-received-benefit') !== undefined)
+    const availableBenefitLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.attributes('data-available-benefit') !== undefined)
+    expect(receivedBenefitLink?.props('to')).toEqual({ name: 'home-benefits' })
+    expect(availableBenefitLink?.props('to')).toEqual({ name: 'report' })
+    expect(wrapper.get('[data-available-benefit]').classes()).not.toContain('underline')
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(76%)')
     expect(wrapper.get('[data-performance-remaining]').text()).toContain('118,000원')
 
