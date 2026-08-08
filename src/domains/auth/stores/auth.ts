@@ -17,7 +17,10 @@ export const useAuthStore = defineStore('auth', () => {
   // VITE_LOCAL_TEST_ACCESS_TOKEN은 gitignore 대상인 .env.local에만 두고 DEV 분기 밖에서는 참조하지 않는다.
   const accessToken = ref<string | null>(
     import.meta.env.DEV
-      ? resolveInitialAccessToken('development', import.meta.env.VITE_LOCAL_TEST_ACCESS_TOKEN)
+      ? resolveInitialAccessToken(
+          import.meta.env.MODE,
+          import.meta.env.VITE_LOCAL_TEST_ACCESS_TOKEN,
+        )
       : null,
   )
   const user = ref<AuthUser | null>(null)
