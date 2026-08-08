@@ -30,6 +30,7 @@ function toManagedCard(card: MyCardItemResponse, isActive: boolean): ManagedCard
 
 export const useCardManagementStore = defineStore('cardManagement', () => {
   const cards = ref<ManagedCard[]>([])
+  let shouldPreserveCardsOnNextLoad = false
 
   const activeCards = computed(() => cards.value.filter((card) => card.isActive))
   const inactiveCards = computed(() => cards.value.filter((card) => !card.isActive))
@@ -48,6 +49,16 @@ export const useCardManagementStore = defineStore('cardManagement', () => {
 
   function disconnectCard(cardId: string) {
     cards.value = cards.value.filter((card) => card.id !== cardId)
+  }
+
+  function preserveCardsOnNextLoad() {
+    shouldPreserveCardsOnNextLoad = true
+  }
+
+  function consumePreserveCardsOnNextLoad() {
+    const shouldPreserve = shouldPreserveCardsOnNextLoad
+    shouldPreserveCardsOnNextLoad = false
+    return shouldPreserve
   }
 
   function setActiveCardOrder(cardIds: string[]) {
@@ -100,6 +111,8 @@ export const useCardManagementStore = defineStore('cardManagement', () => {
     setCards,
     setCardActive,
     disconnectCard,
+    preserveCardsOnNextLoad,
+    consumePreserveCardsOnNextLoad,
     setActiveCardOrder,
     moveActiveCard,
     moveActiveCardTo,

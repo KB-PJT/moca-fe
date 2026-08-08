@@ -234,6 +234,11 @@ onBeforeUnmount(() => {
 })
 
 onMounted(() => {
+  if (cardManagementStore.consumePreserveCardsOnNextLoad()) {
+    isCardsLoading.value = false
+    return
+  }
+
   void loadCards()
 })
 </script>

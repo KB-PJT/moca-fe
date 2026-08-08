@@ -8,6 +8,7 @@ import {
   resetMockManagedCardOrder,
 } from '@/domains/card/api/cardManagement.mock'
 import { MOCK_MANAGED_CARDS } from '@/domains/card/mocks/managedCards'
+import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 
 const fetchMyCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
@@ -104,6 +105,33 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
     expect(wrapper.text()).toContain('신한 Deep Dream')
     expect(wrapper.text()).toContain('현대 Zero Edition')
+  })
+
+  it('상세 화면의 로컬 변경 후 진입하면 목록을 한 번 보존한다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const cardManagementStore = useCardManagementStore()
+    cardManagementStore.setCards(createMyCardsResponse())
+    cardManagementStore.setCardActive('managed-shinhan-deep-dream', false)
+    cardManagementStore.preserveCardsOnNextLoad()
+
+    const firstWrapper = mount(CardManageView, {
+      global: { plugins: [pinia], stubs: globalStubs },
+    })
+    await flushPromises()
+
+    expect(fetchMyCards).not.toHaveBeenCalled()
+    expect(firstWrapper.text()).toContain('등록된 카드 2개')
+    expect(firstWrapper.text()).toContain('비활성화 된 카드 2개')
+
+    firstWrapper.unmount()
+    const secondWrapper = mount(CardManageView, {
+      global: { plugins: [pinia], stubs: globalStubs },
+    })
+    await flushPromises()
+
+    expect(fetchMyCards).toHaveBeenCalledOnce()
+    expect(secondWrapper.text()).toContain('등록된 카드 3개')
   })
 
   it('확인 후 카드를 비활성화하고 다시 활성화한다', async () => {

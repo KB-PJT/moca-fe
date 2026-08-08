@@ -165,6 +165,7 @@ function confirmCardAction() {
     cardManagementStore.disconnectCard(managedCard.value.id)
   }
 
+  cardManagementStore.preserveCardsOnNextLoad()
   closeActionDialog()
   void router.replace({ name: 'card-manage', query: { from: 'home' } })
 }
