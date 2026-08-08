@@ -52,6 +52,7 @@ onMounted(async () => {
 
     await router.replace(redirectPath)
   } catch (error) {
+    authStore.clearSession()
     clearGoogleLoginSession()
     errorMessage.value = error instanceof Error ? error.message : '로그인에 실패했습니다.'
 
