@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { loginToMoca } from '@/domains/auth/api/auth'
+import { fetchOnboardingStatus, loginToMoca } from '@/domains/auth/api/auth'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { clearGoogleLoginSession, getGoogleCodeVerifier } from '@/domains/auth/utils/pkce'
 
@@ -39,15 +39,20 @@ onMounted(async () => {
       email: result.data.member.email,
       provider: 'google',
     })
+    const isNewUser = await fetchOnboardingStatus()
     clearGoogleLoginSession()
 
     const savedRedirect = sessionStorage.getItem('post_login_redirect')
     sessionStorage.removeItem('post_login_redirect')
-    const redirectPath =
-      savedRedirect?.startsWith('/') && !savedRedirect.startsWith('//') ? savedRedirect : '/home'
+    const redirectPath = isNewUser
+      ? '/onboarding'
+      : savedRedirect?.startsWith('/') && !savedRedirect.startsWith('//')
+        ? savedRedirect
+        : '/home'
 
     await router.replace(redirectPath)
   } catch (error) {
+    authStore.clearSession()
     clearGoogleLoginSession()
     errorMessage.value = error instanceof Error ? error.message : '로그인에 실패했습니다.'
 

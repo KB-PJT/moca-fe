@@ -14,6 +14,12 @@ interface MocaLoginResponse {
   }
 }
 
+interface OnboardingStatusResponse {
+  data: {
+    newUser: boolean
+  }
+}
+
 export async function loginToMoca(code: string, codeVerifier: string): Promise<MocaLoginResponse> {
   const response = await fetch(`${API_BASE_URL}/api/v1/auth/google/login`, {
     method: 'POST',
@@ -33,6 +39,12 @@ export async function loginToMoca(code: string, codeVerifier: string): Promise<M
   }
 
   return response.json() as Promise<MocaLoginResponse>
+}
+
+export async function fetchOnboardingStatus(): Promise<boolean> {
+  const response = await apiClient.get<OnboardingStatusResponse>('/api/v1/me/onboarding-status')
+
+  return response.data.data.newUser
 }
 
 export async function logoutFromMoca(): Promise<void> {
