@@ -1,4 +1,5 @@
 import apiClient from '@/shared/api/client'
+import { API_BASE_URL } from '@/shared/api/baseUrl'
 
 interface MocaLoginResponse {
   data: {
@@ -14,7 +15,7 @@ interface MocaLoginResponse {
 }
 
 export async function loginToMoca(code: string, codeVerifier: string): Promise<MocaLoginResponse> {
-  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/auth/google/login`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/google/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
