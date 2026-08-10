@@ -59,9 +59,10 @@ const actionDialogTitle = computed(() => {
   if (!pendingAction.value) return ''
 
   return pendingAction.value.type === 'deactivate'
-    ? `${pendingAction.value.cardName} 카드를 비활성화할까요?`
-    : `${pendingAction.value.cardName} 카드 연결을 해제할까요?`
+    ? '카드를 비활성화할까요?'
+    : '카드 연결을 해제할까요?'
 })
+const actionDialogSubject = computed(() => pendingAction.value?.cardName ?? '')
 const actionDialogDescription = computed(() =>
   pendingAction.value?.type === 'deactivate'
     ? '비활성화한 카드는 혜택과 실적 계산에서 제외돼요. 언제든 다시 활성화할 수 있어요.'
@@ -590,6 +591,7 @@ onMounted(() => {
     <ConfirmDialog
       v-if="pendingAction"
       :open="isActionDialogOpen"
+      :subject="actionDialogSubject"
       :title="actionDialogTitle"
       :description="actionDialogDescription"
       :confirm-label="actionDialogConfirmLabel"

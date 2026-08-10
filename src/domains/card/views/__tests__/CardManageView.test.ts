@@ -72,6 +72,7 @@ const globalStubs = {
   ConfirmDialog: {
     props: [
       'open',
+      'subject',
       'title',
       'description',
       'confirmLabel',
@@ -83,6 +84,7 @@ const globalStubs = {
     emits: ['update:open', 'cancel', 'confirm'],
     template: `
       <div v-if="open" data-confirm-dialog :data-destructive="destructive">
+        <p>{{ subject }}</p>
         <h2>{{ title }}</h2>
         <p>{{ description }}</p>
         <p v-if="errorMessage" role="alert">{{ errorMessage }}</p>
@@ -201,7 +203,8 @@ describe('CardManageView', () => {
 
     await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
 
-    expect(wrapper.text()).toContain('신한 Deep Dream 카드를 비활성화할까요?')
+    expect(wrapper.text()).toContain('신한 Deep Dream')
+    expect(wrapper.text()).toContain('카드를 비활성화할까요?')
     expect(wrapper.text()).toContain('등록된 카드 3개')
 
     await wrapper.get('button[aria-label="비활성화 확인"]').trigger('click')
@@ -313,7 +316,8 @@ describe('CardManageView', () => {
 
     await wrapper.get('button[aria-label="신한 Deep Dream 연결 해제"]').trigger('click')
 
-    expect(wrapper.text()).toContain('신한 Deep Dream 카드 연결을 해제할까요?')
+    expect(wrapper.text()).toContain('신한 Deep Dream')
+    expect(wrapper.text()).toContain('카드 연결을 해제할까요?')
     expect(wrapper.text()).toContain('신한 Deep Dream')
     expect(wrapper.get('[data-confirm-dialog]').attributes('data-destructive')).toBe('true')
 
