@@ -52,13 +52,14 @@ const navigationCards = computed(() => {
   if (cardManagementStore.activeCards.length > 0) return cardManagementStore.activeCards
   return card.value ? [{ id: card.value.userCardId }] : []
 })
-const cardIndex = computed(() => {
-  const index = navigationCards.value.findIndex((item) => item.id === card.value?.userCardId)
-  return Math.max(index, 0)
-})
+const cardIndex = computed(() =>
+  navigationCards.value.findIndex((item) => item.id === card.value?.userCardId),
+)
 const cardName = computed(() => card.value?.cardName ?? '카드')
 const canMovePrevious = computed(() => cardIndex.value > 0)
-const canMoveNext = computed(() => cardIndex.value < navigationCards.value.length - 1)
+const canMoveNext = computed(
+  () => cardIndex.value >= 0 && cardIndex.value < navigationCards.value.length - 1,
+)
 const memo = computed(() => card.value?.memo ?? '')
 const cardMeta = computed(() => {
   if (!card.value) return ''
@@ -167,6 +168,8 @@ function goBack() {
 }
 
 function moveCard(offset: number) {
+  if (cardIndex.value < 0) return
+
   const nextCard = navigationCards.value[cardIndex.value + offset]
   if (!nextCard) return
 
@@ -314,6 +317,7 @@ function confirmCardAction() {
           <span
             v-for="(item, index) in navigationCards"
             :key="item.id"
+            data-card-indicator
             class="h-1.5 rounded-full transition-[width,background-color] duration-200"
             :class="index === cardIndex ? 'w-5 bg-primary' : 'w-1.5 bg-disabled'"
             aria-hidden="true"

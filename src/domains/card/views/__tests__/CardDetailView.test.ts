@@ -216,6 +216,25 @@ describe('CardDetailView', () => {
     expect(wrapper.get('button[aria-label="이전 카드"]').attributes('disabled')).toBeDefined()
   })
 
+  it('현재 카드가 활성 카드 목록에 없으면 카드 탐색을 비활성화한다', async () => {
+    apiMocks.fetchMyCards.mockResolvedValue({
+      ...myCardsResponse,
+      activeCards: myCardsResponse.activeCards.filter(
+        (item) => item.userCardId !== 'managed-kb-wesh',
+      ),
+    })
+
+    const wrapper = await mountCardDetail()
+
+    expect(wrapper.get('button[aria-label="이전 카드"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('button[aria-label="다음 카드"]').attributes('disabled')).toBeDefined()
+    expect(
+      wrapper
+        .findAll('[data-card-indicator]')
+        .every((indicator) => indicator.classes().includes('bg-disabled')),
+    ).toBe(true)
+  })
+
   it('혜택 행을 펼치고 접는다', async () => {
     const wrapper = await mountCardDetail()
     const convenienceButton = wrapper
