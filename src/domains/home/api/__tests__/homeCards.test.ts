@@ -58,7 +58,8 @@ describe('homeCards API', () => {
       ),
     ).toMatchObject({
       id: 'card-1',
-      name: '카페 카드',
+      name: 'KB My WE:SH',
+      memo: '카페 카드',
       imageUrl: 'https://example.com/card.png',
       highlightBenefitTitle: '카페 10% 할인',
       receivedBenefitAmount: 12_000,

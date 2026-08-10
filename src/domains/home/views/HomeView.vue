@@ -32,7 +32,9 @@ const missedBenefitAmount = computed(() =>
 )
 const activeCardMemo = computed(() =>
   activeCard.value
-    ? cardMemoStore.getMemo(activeCard.value.id) || activeCard.value.highlightBenefitTitle
+    ? cardMemoStore.getMemo(activeCard.value.id) ||
+      activeCard.value.memo ||
+      activeCard.value.highlightBenefitTitle
     : '',
 )
 

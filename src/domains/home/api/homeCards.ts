@@ -40,6 +40,7 @@ interface HomeCardsApiResponse {
 export interface HomeOwnedCard {
   id: string
   name: string
+  memo: string
   imageUrl: string | null
   accentColor: string
   highlightBenefitTitle: string
@@ -56,7 +57,8 @@ const CARD_ACCENT_COLORS = ['#ff9c70', '#5fc8e8', '#7762df', '#4c535d'] as const
 export function toHomeOwnedCard(card: HomeCardResponse, index: number): HomeOwnedCard {
   return {
     id: card.userCardId,
-    name: card.alias ?? card.cardName,
+    name: card.cardName,
+    memo: card.alias ?? '',
     imageUrl: card.cardImageUrl,
     accentColor: CARD_ACCENT_COLORS[index % CARD_ACCENT_COLORS.length] ?? '#ff9c70',
     highlightBenefitTitle: card.highlightBenefit.title ?? '',
