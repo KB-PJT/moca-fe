@@ -105,7 +105,31 @@ function resolveBenefitIcon(benefit: CardDetailBenefitResponse) {
 }
 
 function sanitizeDetailHtml(detailHtml: string) {
-  return DOMPurify.sanitize(detailHtml, { USE_PROFILES: { html: true } })
+  const sanitizedHtml = DOMPurify.sanitize(detailHtml, { USE_PROFILES: { html: true } })
+  const container = document.createElement('div')
+  container.innerHTML = sanitizedHtml
+
+  const watermarkText = 'powered by froala editor'
+  const watermarkElements = [...container.querySelectorAll<HTMLElement>('*')].filter(
+    (element) => element.textContent?.replace(/\s+/g, ' ').trim().toLowerCase() === watermarkText,
+  )
+
+  for (const element of watermarkElements) {
+    let removalTarget = element
+
+    while (
+      removalTarget.parentElement &&
+      removalTarget.parentElement !== container &&
+      removalTarget.parentElement.textContent?.replace(/\s+/g, ' ').trim().toLowerCase() ===
+        watermarkText
+    ) {
+      removalTarget = removalTarget.parentElement
+    }
+
+    removalTarget.remove()
+  }
+
+  return container.innerHTML
 }
 
 async function loadCard(userCardId: string) {

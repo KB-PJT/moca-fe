@@ -78,7 +78,7 @@ const benefits: CardDetailBenefitResponse[] = [
     summary: '월 최대 5,000원',
     detailText: '스타벅스·이디야·투썸플레이스 등 카페 가맹점 결제 시 10% 할인',
     detailHtml:
-      '<p><strong>스타벅스·이디야·투썸플레이스</strong> 등 카페 가맹점 결제 시 10% 할인</p><img src="x" onerror="alert(1)"><script>alert(1)</script>',
+      '<p><strong>스타벅스·이디야·투썸플레이스</strong> 등 카페 가맹점 결제 시 10% 할인</p><img src="x" onerror="alert(1)"><script>alert(1)</script><p><a href="https://www.froala.com/wysiwyg-editor">Powered by Froala Editor</a></p>',
   },
   {
     benefitId: 'benefit-convenience',
@@ -199,6 +199,10 @@ describe('CardDetailView', () => {
     expect(wrapper.text()).toContain('할인서비스는 환급할인으로 제공됩니다.')
     expect(wrapper.get('[data-benefit-detail-html] strong').text()).toContain('스타벅스')
     expect(wrapper.get('[data-benefit-detail-html]').html()).not.toContain('onerror')
+    expect(wrapper.get('[data-benefit-detail-html]').text()).not.toContain(
+      'Powered by Froala Editor',
+    )
+    expect(wrapper.get('[data-benefit-detail-html]').html()).not.toContain('froala.com')
     expect(wrapper.find('[data-benefit-detail-html] script').exists()).toBe(false)
     expect(wrapper.get('[data-notice-detail-html] strong').text()).toBe('환급할인')
     expect(wrapper.get('[data-notice-detail-html] a').attributes('href')).toBeUndefined()
