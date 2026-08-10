@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { ArrowUpDown, Check } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
-import type { Merchant } from '@/domains/map/api/merchants.mock'
+import type { Merchant } from '@/domains/map/api/merchants'
 import PlaceListRow from '@/domains/map/components/PlaceListRow.vue'
 
 interface Props {

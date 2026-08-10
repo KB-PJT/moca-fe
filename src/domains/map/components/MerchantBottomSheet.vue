@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Merchant } from '@/domains/map/api/merchants.mock'
+import type { Merchant } from '@/domains/map/api/merchants'
 import MerchantInfoHeader from '@/domains/map/components/MerchantInfoHeader.vue'
 import MerchantCardRecommendation from '@/domains/map/components/MerchantCardRecommendation.vue'
 

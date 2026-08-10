@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted, ref, type Ref } from 'vue'
-import type { Merchant } from '@/domains/map/api/merchants.mock'
+import type { Merchant } from '@/domains/map/api/merchants'
 import {
   currentLocationMarkerImage,
   dotMarkerImage,

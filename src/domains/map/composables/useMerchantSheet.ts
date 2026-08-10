@@ -1,6 +1,6 @@
 import { nextTick, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { Merchant } from '@/domains/map/api/merchants.mock'
+import type { Merchant } from '@/domains/map/api/merchants'
 import { useSheetTransition } from '@/domains/map/composables/useSheetTransition'
 import type { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 

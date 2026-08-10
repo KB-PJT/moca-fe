@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { List, LoaderCircle, Map as MapIcon, Search } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
-import { merchants } from '@/domains/map/api/merchants.mock'
+import {
+  fetchMerchantCategories,
+  fetchNearbyMerchants,
+  toMerchant,
+} from '@/domains/map/api/merchants'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 import { useLocationPermission } from '@/domains/map/composables/useLocationPermission'
 import { useMerchantSheet } from '@/domains/map/composables/useMerchantSheet'
-import { calculateDistanceMeters } from '@/domains/map/utils/distance'
 import LocationPermissionModal from '@/domains/map/components/LocationPermissionModal.vue'
 import MerchantBottomSheet from '@/domains/map/components/MerchantBottomSheet.vue'
 import PlaceListPanel from '@/domains/map/components/PlaceListPanel.vue'
@@ -15,8 +19,6 @@ const mapContainer = ref<HTMLElement | null>(null)
 const controlsRef = ref<HTMLElement | null>(null)
 const sheetRef = ref<HTMLElement | null>(null)
 
-const categories = ['전체', '음식점', '카페', '편의점', '마트']
-const activeCategory = ref('전체')
 const viewMode = ref<'map' | 'list'>('map')
 
 let onBackgroundClick = () => {}
@@ -35,22 +37,38 @@ const {
   handleLaterLocation,
 } = useLocationPermission(isMapReady)
 
-const merchantsWithDistance = computed(() => {
-  if (!currentLocation.value) return merchants
-
-  return merchants.map((merchant) => ({
-    ...merchant,
-    distance: calculateDistanceMeters(currentLocation.value!, {
-      latitude: merchant.latitude,
-      longitude: merchant.longitude,
-    }),
-  }))
+const { data: categories } = useQuery({
+  queryKey: ['merchants', 'categories'],
+  queryFn: fetchMerchantCategories,
 })
 
-const filteredMerchants = computed(() =>
-  activeCategory.value === '전체'
-    ? merchantsWithDistance.value
-    : merchantsWithDistance.value.filter((merchant) => merchant.category === activeCategory.value),
+const activeCategoryId = ref<string | null>(null)
+
+watch(categories, (list) => {
+  if (list?.length && !activeCategoryId.value) {
+    activeCategoryId.value = list[0]!.categoryId
+  }
+})
+
+const activeCategoryName = computed(
+  () =>
+    categories.value?.find((category) => category.categoryId === activeCategoryId.value)
+      ?.categoryName ?? '',
+)
+
+const { data: nearbyMerchants } = useQuery({
+  queryKey: ['merchants', 'nearby', activeCategoryId, currentLocation],
+  queryFn: () =>
+    fetchNearbyMerchants({
+      categoryId: activeCategoryId.value!,
+      latitude: currentLocation.value!.latitude,
+      longitude: currentLocation.value!.longitude,
+    }),
+  enabled: computed(() => Boolean(activeCategoryId.value && currentLocation.value)),
+})
+
+const filteredMerchants = computed(
+  () => nearbyMerchants.value?.map((item) => toMerchant(item, activeCategoryName.value)) ?? [],
 )
 
 const {
@@ -145,16 +163,18 @@ watch(currentLocation, (coordinates) => {
         <div class="pointer-events-auto space-y-3 p-4 pt-3">
           <div ref="controlsRef" class="scrollbar-hide flex gap-2 overflow-x-auto">
             <button
-              v-for="category in categories"
-              :key="category"
+              v-for="category in categories ?? []"
+              :key="category.categoryId"
               type="button"
               class="text-caption shrink-0 rounded-full px-3 py-1.5 whitespace-nowrap"
               :class="
-                activeCategory === category ? 'bg-primary text-white' : 'bg-card text-charcoal'
+                activeCategoryId === category.categoryId
+                  ? 'bg-primary text-white'
+                  : 'bg-card text-charcoal'
               "
-              @click="activeCategory = category"
+              @click="activeCategoryId = category.categoryId"
             >
-              {{ category }}
+              {{ category.categoryName }}
             </button>
           </div>
         </div>

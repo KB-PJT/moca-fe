@@ -1,9 +1,10 @@
-import type { Merchant } from '@/domains/map/api/merchants.mock'
-
 const DOT_COLOR = '#ef4444'
 const CURRENT_LOCATION_COLOR = '#3b82f6'
 
-const categoryIcon: Record<Merchant['category'], string> = {
+// 카테고리는 API에서 동적으로 내려오므로, 매핑에 없는 값은 DEFAULT_ICON으로 대체한다.
+const DEFAULT_ICON = '<circle cx="12" cy="12" r="8"/>'
+
+const categoryIcon: Record<string, string> = {
   음식점:
     '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
   카페: '<path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/>',
@@ -35,8 +36,8 @@ export function currentLocationMarkerImage() {
   })
 }
 
-export function pinMarkerImage(category: Merchant['category']) {
-  const icon = categoryIcon[category]
+export function pinMarkerImage(category: string) {
+  const icon = categoryIcon[category] ?? DEFAULT_ICON
   const width = 32
   const height = 40
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
