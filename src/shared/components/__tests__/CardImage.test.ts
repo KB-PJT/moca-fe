@@ -60,4 +60,42 @@ describe('CardImage', () => {
     expect(imageStyle).toContain('height: 64px')
     expect(imageStyle).toContain('transform: rotate(90deg)')
   })
+
+  it('세로 프레임에 가로 원본이 들어오면 자동으로 90도 회전한다', async () => {
+    const wrapper = mount(CardImage, {
+      props: { src: 'https://example.com/horizontal-card.png' },
+    })
+    const image = wrapper.get('img')
+    Object.defineProperties(image.element, {
+      naturalWidth: { configurable: true, value: 320 },
+      naturalHeight: { configurable: true, value: 200 },
+    })
+
+    await image.trigger('load')
+
+    expect(image.attributes('style')).toContain('width: 322px')
+    expect(image.attributes('style')).toContain('height: 200px')
+    expect(image.attributes('style')).toContain('transform: rotate(90deg)')
+  })
+
+  it('가로 프레임과 가로 원본의 방향이 같으면 회전하지 않는다', async () => {
+    const wrapper = mount(CardImage, {
+      props: {
+        src: 'https://example.com/horizontal-card.png',
+        small: true,
+        orientation: 'horizontal',
+      },
+    })
+    const image = wrapper.get('img')
+    Object.defineProperties(image.element, {
+      naturalWidth: { configurable: true, value: 320 },
+      naturalHeight: { configurable: true, value: 200 },
+    })
+
+    await image.trigger('load')
+
+    expect(image.attributes('style')).toContain('width: 100%')
+    expect(image.attributes('style')).toContain('height: 100%')
+    expect(image.attributes('style')).not.toContain('transform')
+  })
 })
