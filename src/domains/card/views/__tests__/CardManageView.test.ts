@@ -3,16 +3,30 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import CardManageView from '@/domains/card/views/CardManageView.vue'
-import {
-  getMockManagedCardOrder,
-  resetMockManagedCardOrder,
-} from '@/domains/card/api/cardManagement.mock'
 import { MOCK_MANAGED_CARDS } from '@/domains/card/mocks/managedCards'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
+import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 
-const fetchMyCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
+const apiMocks = vi.hoisted(() => ({
+  fetchMyCards: vi.fn<() => Promise<unknown>>(),
+  deactivateMyCard: vi.fn<(userCardId: string) => Promise<void>>(),
+  disconnectMyCard: vi.fn<(userCardId: string) => Promise<void>>(),
+  reorderMyCards: vi.fn<(userCardIds: string[]) => Promise<unknown>>(),
+  syncCardLinkCards: vi.fn<() => Promise<unknown>>(),
+  activateCardLinkCards: vi.fn<() => Promise<unknown>>(),
+}))
 
-vi.mock('@/domains/card/api/cardManagement', () => ({ fetchMyCards }))
+vi.mock('@/domains/card/api/cardLinks', () => ({
+  syncCardLinkCards: apiMocks.syncCardLinkCards,
+  activateCardLinkCards: apiMocks.activateCardLinkCards,
+}))
+
+vi.mock('@/domains/card/api/cardManagement', () => ({
+  fetchMyCards: apiMocks.fetchMyCards,
+  deactivateMyCard: apiMocks.deactivateMyCard,
+  disconnectMyCard: apiMocks.disconnectMyCard,
+  reorderMyCards: apiMocks.reorderMyCards,
+}))
 
 function createMyCardsResponse() {
   const toApiCard = (card: (typeof MOCK_MANAGED_CARDS)[number]) => ({
@@ -32,7 +46,7 @@ function createMyCardsResponse() {
   }
 }
 
-const push = vi.fn<(location: { name: string }) => void>()
+const push = vi.fn<(location: { name: string; params?: Record<string, string> }) => void>()
 const routeQuery: Record<string, string | string[] | undefined> = {}
 
 vi.mock('vue-router', () => ({
@@ -56,16 +70,26 @@ const globalStubs = {
     template: '<button v-bind="$attrs" @click="$emit(\'click\')"><slot /></button>',
   },
   ConfirmDialog: {
-    props: ['open', 'title', 'description', 'confirmLabel', 'cancelLabel', 'destructive'],
+    props: [
+      'open',
+      'title',
+      'description',
+      'confirmLabel',
+      'cancelLabel',
+      'destructive',
+      'loading',
+      'errorMessage',
+    ],
     emits: ['update:open', 'cancel', 'confirm'],
     template: `
       <div v-if="open" data-confirm-dialog :data-destructive="destructive">
         <h2>{{ title }}</h2>
         <p>{{ description }}</p>
-        <button @click="$emit('cancel'); $emit('update:open', false)">
+        <p v-if="errorMessage" role="alert">{{ errorMessage }}</p>
+        <button :disabled="loading" @click="$emit('cancel'); $emit('update:open', false)">
           {{ cancelLabel ?? '취소' }}
         </button>
-        <button :aria-label="confirmLabel + ' 확인'" @click="$emit('confirm')">
+        <button :aria-label="confirmLabel + ' 확인'" :disabled="loading" @click="$emit('confirm')">
           {{ confirmLabel }}
         </button>
       </div>
@@ -87,9 +111,45 @@ async function mountView() {
 describe('CardManageView', () => {
   beforeEach(() => {
     push.mockClear()
-    fetchMyCards.mockReset()
-    fetchMyCards.mockResolvedValue(createMyCardsResponse())
-    resetMockManagedCardOrder()
+    apiMocks.fetchMyCards.mockReset()
+    apiMocks.fetchMyCards.mockResolvedValue(createMyCardsResponse())
+    apiMocks.deactivateMyCard.mockReset()
+    apiMocks.deactivateMyCard.mockResolvedValue(undefined)
+    apiMocks.disconnectMyCard.mockReset()
+    apiMocks.disconnectMyCard.mockResolvedValue(undefined)
+    apiMocks.reorderMyCards.mockReset()
+    apiMocks.reorderMyCards.mockResolvedValue(createMyCardsResponse())
+    apiMocks.syncCardLinkCards.mockReset()
+    apiMocks.syncCardLinkCards.mockResolvedValue({
+      results: [
+        {
+          linkId: 'shinhan-link-id',
+          institutionCode: '0306',
+          success: true,
+          cards: [
+            {
+              userCardId: 'managed-shinhan-deep-dream',
+              cardId: 'shinhan-deep-dream',
+              cardName: '신한 Deep Dream',
+              cardNo: '123456******8847',
+              institutionCode: '0306',
+              issuerName: '신한카드',
+              cardType: 'CREDIT',
+              cardImageUrl: null,
+              matched: true,
+              supported: true,
+              optionGroups: [],
+            },
+          ],
+        },
+      ],
+    })
+    apiMocks.activateCardLinkCards.mockReset()
+    apiMocks.activateCardLinkCards.mockResolvedValue({
+      linkId: 'shinhan-link-id',
+      activatedUserCardIds: ['managed-shinhan-deep-dream'],
+      activatedCount: 1,
+    })
     for (const key of Object.keys(routeQuery)) delete routeQuery[key]
   })
 
@@ -105,6 +165,8 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
     expect(wrapper.text()).toContain('신한 Deep Dream')
     expect(wrapper.text()).toContain('현대 Zero Edition')
+    expect(wrapper.text()).toContain('신한카드 · 123456******8847')
+    expect(wrapper.text()).toContain('KB국민카드 · 123456******4321')
   })
 
   it('상세 화면의 로컬 변경 후 진입하면 목록을 한 번 보존한다', async () => {
@@ -120,7 +182,7 @@ describe('CardManageView', () => {
     })
     await flushPromises()
 
-    expect(fetchMyCards).not.toHaveBeenCalled()
+    expect(apiMocks.fetchMyCards).not.toHaveBeenCalled()
     expect(firstWrapper.text()).toContain('등록된 카드 2개')
     expect(firstWrapper.text()).toContain('비활성화 된 카드 2개')
 
@@ -130,11 +192,11 @@ describe('CardManageView', () => {
     })
     await flushPromises()
 
-    expect(fetchMyCards).toHaveBeenCalledOnce()
+    expect(apiMocks.fetchMyCards).toHaveBeenCalledOnce()
     expect(secondWrapper.text()).toContain('등록된 카드 3개')
   })
 
-  it('확인 후 카드를 비활성화하고 다시 활성화한다', async () => {
+  it('확인 후 카드를 비활성화하고 기존 카드 연결 API로 다시 활성화한다', async () => {
     const wrapper = await mountView()
 
     await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
@@ -143,12 +205,105 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('등록된 카드 3개')
 
     await wrapper.get('button[aria-label="비활성화 확인"]').trigger('click')
+    await flushPromises()
 
+    expect(apiMocks.deactivateMyCard).toHaveBeenCalledWith('managed-shinhan-deep-dream')
     expect(wrapper.text()).toContain('등록된 카드 2개')
     expect(wrapper.text()).toContain('비활성화 된 카드 2개')
 
     await wrapper.get('button[aria-label="신한 Deep Dream 활성화"]').trigger('click')
+    await flushPromises()
 
+    expect(apiMocks.syncCardLinkCards).toHaveBeenCalledWith('0306')
+    expect(apiMocks.activateCardLinkCards).toHaveBeenCalledWith('shinhan-link-id', {
+      activeUserCardIds: ['managed-shinhan-deep-dream'],
+    })
+    expect(wrapper.text()).toContain('등록된 카드 3개')
+    expect(wrapper.text()).toContain('비활성화 된 카드 1개')
+  })
+
+  it('옵션 선택이 필요한 카드는 기존 선택 화면에서 이어서 활성화한다', async () => {
+    apiMocks.syncCardLinkCards.mockResolvedValueOnce({
+      results: [
+        {
+          linkId: 'kb-link-id',
+          institutionCode: '0301',
+          success: true,
+          cards: [
+            {
+              userCardId: 'managed-kb-wesh-disabled',
+              cardId: 'kb-wesh',
+              cardName: 'KB My WE:SH',
+              cardNo: '123456******4321',
+              institutionCode: '0301',
+              issuerName: 'KB국민카드',
+              cardType: 'CREDIT',
+              cardImageUrl: null,
+              matched: true,
+              supported: true,
+              optionGroups: [
+                {
+                  optionGroupId: 'benefit-type',
+                  groupKey: 'benefitType',
+                  groupName: '혜택 유형',
+                  choices: [
+                    {
+                      optionChoiceId: 'food',
+                      choiceKey: 'food',
+                      choiceName: '음식점',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="KB My WE:SH 활성화"]').trigger('click')
+    await flushPromises()
+
+    const directCardConnectionStore = useDirectCardConnectionStore()
+    expect(apiMocks.syncCardLinkCards).toHaveBeenCalledWith('0301')
+    expect(apiMocks.activateCardLinkCards).not.toHaveBeenCalled()
+    expect(directCardConnectionStore.linkId).toBe('kb-link-id')
+    expect(directCardConnectionStore.selectedCardIds).toEqual(['managed-kb-wesh-disabled'])
+    expect(push).toHaveBeenCalledWith({
+      name: 'card-issuer-card-select',
+      params: { issuerId: 'kb-kookmin' },
+    })
+  })
+
+  it('카드 활성화 요청 중 버튼을 반복해서 눌러도 동기화를 한 번만 실행한다', async () => {
+    let resolveSync!: (value: unknown) => void
+    apiMocks.syncCardLinkCards.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSync = resolve
+      }),
+    )
+    const wrapper = await mountView()
+    const activateButton = wrapper.get('button[aria-label="KB My WE:SH 활성화"]')
+
+    await activateButton.trigger('click')
+    await activateButton.trigger('click')
+
+    expect(apiMocks.syncCardLinkCards).toHaveBeenCalledOnce()
+    expect(activateButton.attributes()).toHaveProperty('disabled')
+
+    resolveSync({ results: [] })
+    await flushPromises()
+  })
+
+  it('카드 활성화에 실패하면 비활성 상태를 유지하고 다시 시도하도록 안내한다', async () => {
+    apiMocks.syncCardLinkCards.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="KB My WE:SH 활성화"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('카드를 활성화하지 못했어요.')
     expect(wrapper.text()).toContain('등록된 카드 3개')
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
   })
@@ -163,9 +318,46 @@ describe('CardManageView', () => {
     expect(wrapper.get('[data-confirm-dialog]').attributes('data-destructive')).toBe('true')
 
     await wrapper.get('button[aria-label="연결 해제 확인"]').trigger('click')
+    await flushPromises()
 
+    expect(apiMocks.disconnectMyCard).toHaveBeenCalledWith('managed-shinhan-deep-dream')
     expect(wrapper.text()).toContain('등록된 카드 2개')
     expect(wrapper.text()).not.toContain('신한 Deep Dream')
+  })
+
+  it('카드 연결 해제에 실패하면 목록을 유지하고 다시 시도하도록 안내한다', async () => {
+    apiMocks.disconnectMyCard.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="신한 Deep Dream 연결 해제"]').trigger('click')
+    await wrapper.get('button[aria-label="연결 해제 확인"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('등록된 카드 3개')
+    expect(wrapper.text()).toContain('신한 Deep Dream')
+    expect(wrapper.get('[role="alert"]').text()).toContain('카드 연결을 해제하지 못했어요.')
+  })
+
+  it('카드 액션 요청 중 확인을 반복해도 API를 한 번만 호출한다', async () => {
+    let resolveDisconnect!: () => void
+    apiMocks.disconnectMyCard.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDisconnect = resolve
+      }),
+    )
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="신한 Deep Dream 연결 해제"]').trigger('click')
+    const confirmButton = wrapper.get('button[aria-label="연결 해제 확인"]')
+      .element as HTMLButtonElement
+    confirmButton.click()
+    confirmButton.click()
+    await nextTick()
+
+    expect(apiMocks.disconnectMyCard).toHaveBeenCalledOnce()
+
+    resolveDisconnect()
+    await flushPromises()
   })
 
   it('취소하면 카드 상태를 변경하지 않는다', async () => {
@@ -184,7 +376,9 @@ describe('CardManageView', () => {
   it('새로고침 중 상태를 표시하고 실 API를 다시 호출한다', async () => {
     const wrapper = await mountView()
     let resolveRefresh!: (value: unknown) => void
-    fetchMyCards.mockImplementationOnce(() => new Promise((resolve) => (resolveRefresh = resolve)))
+    apiMocks.fetchMyCards.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveRefresh = resolve)),
+    )
 
     await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
     await wrapper.get('button[aria-label="카드 목록 새로고침"]').trigger('click')
@@ -194,14 +388,19 @@ describe('CardManageView', () => {
     resolveRefresh(createMyCardsResponse())
     await flushPromises()
 
-    expect(fetchMyCards).toHaveBeenCalledTimes(2)
+    expect(apiMocks.fetchMyCards).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('등록된 카드 3개')
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
     expect(wrapper.text()).toContain('새로고침')
   })
 
-  it('활성 카드 순서를 변경하고 mock API에 저장한다', async () => {
-    vi.useFakeTimers()
+  it('활성 카드 전체의 변경된 순서를 API에 저장하고 응답 목록을 반영한다', async () => {
+    let resolveReorder!: (value: unknown) => void
+    apiMocks.reorderMyCards.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveReorder = resolve
+      }),
+    )
     const wrapper = await mountView()
 
     await wrapper
@@ -232,14 +431,11 @@ describe('CardManageView', () => {
       ?.trigger('click')
     expect(wrapper.text()).toContain('저장 중')
 
-    await vi.advanceTimersByTimeAsync(300)
-
-    expect(getMockManagedCardOrder()).toEqual([
+    expect(apiMocks.reorderMyCards).toHaveBeenCalledWith([
       'managed-shinhan-deep-dream',
       'managed-kb-wesh',
       'managed-hyundai-zero',
     ])
-    expect(wrapper.text()).not.toContain('카드 순서를 저장했어요.')
 
     const reorderedResponse = createMyCardsResponse()
     reorderedResponse.activeCards = [
@@ -247,13 +443,36 @@ describe('CardManageView', () => {
       reorderedResponse.activeCards[0]!,
       reorderedResponse.activeCards[2]!,
     ]
-    fetchMyCards.mockResolvedValueOnce(reorderedResponse)
-    await wrapper.get('button[aria-label="카드 목록 새로고침"]').trigger('click')
+    resolveReorder(reorderedResponse)
     await flushPromises()
 
     expect(
       wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
     ).toEqual(['managed-shinhan-deep-dream', 'managed-kb-wesh', 'managed-hyundai-zero'])
+    expect(wrapper.text()).not.toContain('저장 중')
+  })
+
+  it('카드 순서 저장에 실패하면 변경 전 순서로 복원한다', async () => {
+    apiMocks.reorderMyCards.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = await mountView()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '순서 변경')
+      ?.trigger('click')
+    await wrapper
+      .get('button[aria-label="신한 Deep Dream 순서 이동"]')
+      .trigger('keydown', { key: 'ArrowUp' })
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '저장')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('카드 순서를 저장하지 못했어요.')
+    expect(
+      wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
+    ).toEqual(['managed-kb-wesh', 'managed-shinhan-deep-dream', 'managed-hyundai-zero'])
   })
 
   it('카드 순서 변경을 취소하면 기존 순서로 복원한다', async () => {
@@ -326,16 +545,47 @@ describe('CardManageView', () => {
     expect(confirmButton).not.toBeNull()
 
     confirmButton?.click()
-    await nextTick()
+    await flushPromises()
 
+    expect(apiMocks.deactivateMyCard).toHaveBeenCalledWith('managed-shinhan-deep-dream')
     expect(wrapper.text()).toContain('등록된 카드 2개')
     expect(wrapper.text()).toContain('비활성화 된 카드 2개')
 
     wrapper.unmount()
   })
 
+  it('실제 확인 다이얼로그에서 API 요청이 실패하면 오류를 표시하고 목록을 유지한다', async () => {
+    apiMocks.deactivateMyCard.mockRejectedValueOnce(new Error('network error'))
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const wrapper = mount(CardManageView, {
+      attachTo: document.body,
+      global: {
+        plugins: [pinia],
+        stubs: {
+          PageLayout: globalStubs.PageLayout,
+          BottomBar: globalStubs.BottomBar,
+          CardImage: globalStubs.CardImage,
+        },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.get('button[aria-label="신한 Deep Dream 비활성화"]').trigger('click')
+    await nextTick()
+    document.querySelector<HTMLButtonElement>('button[aria-label="비활성화 확인"]')?.click()
+    await flushPromises()
+
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      '카드를 비활성화하지 못했어요.',
+    )
+    expect(wrapper.text()).toContain('등록된 카드 3개')
+
+    wrapper.unmount()
+  })
+
   it('조회 실패 후 다시 시도할 수 있다', async () => {
-    fetchMyCards.mockRejectedValueOnce(new Error('network error'))
+    apiMocks.fetchMyCards.mockRejectedValueOnce(new Error('network error'))
 
     const wrapper = await mountView()
 
@@ -347,7 +597,7 @@ describe('CardManageView', () => {
       ?.trigger('click')
     await flushPromises()
 
-    expect(fetchMyCards).toHaveBeenCalledTimes(2)
+    expect(apiMocks.fetchMyCards).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('등록된 카드 3개')
   })
 })

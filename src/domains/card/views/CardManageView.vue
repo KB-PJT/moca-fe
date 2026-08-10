@@ -2,9 +2,16 @@
 import { Eye, EyeOff, GripVertical, LoaderCircle, Plus, RotateCw, Trash2 } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchMyCards } from '@/domains/card/api/cardManagement'
-import { updateManagedCardOrder } from '@/domains/card/api/cardManagement.mock'
-import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
+import { activateCardLinkCards, syncCardLinkCards } from '@/domains/card/api/cardLinks'
+import {
+  deactivateMyCard,
+  disconnectMyCard,
+  fetchMyCards,
+  reorderMyCards,
+} from '@/domains/card/api/cardManagement'
+import { CARD_ISSUER_LIST } from '@/domains/card/constants/cardIssuers'
+import { type ManagedCard, useCardManagementStore } from '@/domains/card/stores/cardManagement'
+import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import BottomBar from '@/shared/components/BottomBar.vue'
 import CardImage from '@/shared/components/CardImage.vue'
 import ConfirmDialog from '@/shared/components/ConfirmDialog.vue'
@@ -24,6 +31,7 @@ interface PendingAction {
 const route = useRoute()
 const router = useRouter()
 const cardManagementStore = useCardManagementStore()
+const directCardConnectionStore = useDirectCardConnectionStore()
 const isCardsLoading = ref(true)
 const isRefreshing = ref(false)
 const cardsError = ref('')
@@ -35,6 +43,10 @@ const draggingCardId = ref<string | null>(null)
 const dragTargetCardId = ref<string | null>(null)
 const isActionDialogOpen = ref(false)
 const pendingAction = ref<PendingAction | null>(null)
+const isActionLoading = ref(false)
+const actionError = ref('')
+const activatingCardId = ref<string | null>(null)
+const activationError = ref('')
 
 const activeBottomBarPath = computed(() => {
   const from = Array.isArray(route.query.from) ? route.query.from[0] : route.query.from
@@ -104,7 +116,8 @@ async function saveCardOrder() {
 
   try {
     const cardIds = cardManagementStore.activeCards.map((card) => card.id)
-    await updateManagedCardOrder(cardIds)
+    const response = await reorderMyCards(cardIds)
+    cardManagementStore.setCards(response)
     draggingCardId.value = null
     dragTargetCardId.value = null
     orderSnapshot.value = []
@@ -198,15 +211,67 @@ function addCard() {
 
 function requestCardAction(type: CardManagementAction, cardId: string, cardName: string) {
   pendingAction.value = { type, cardId, cardName }
+  actionError.value = ''
   isActionDialogOpen.value = true
 }
 
+async function activateCard(card: ManagedCard) {
+  if (activatingCardId.value || isActionLoading.value) return
+
+  activatingCardId.value = card.id
+  activationError.value = ''
+
+  try {
+    const issuer = CARD_ISSUER_LIST.find((item) => item.name === card.issuerName)
+    const response = await syncCardLinkCards(issuer?.institutionCode)
+    const result = response.results.find(
+      (item) => item.success && item.cards.some((linkedCard) => linkedCard.userCardId === card.id),
+    )
+    const linkedCard = result?.cards.find((item) => item.userCardId === card.id)
+
+    if (!result || !linkedCard) throw new Error('CARD_LINK_NOT_FOUND')
+
+    if (linkedCard.optionGroups.length > 0) {
+      const linkedIssuer = CARD_ISSUER_LIST.find(
+        (item) => item.institutionCode === result.institutionCode,
+      )
+      if (!linkedIssuer) throw new Error('CARD_ISSUER_NOT_FOUND')
+
+      directCardConnectionStore.beginLookup(linkedIssuer.id)
+      directCardConnectionStore.completeCardLinkCards(
+        result.linkId,
+        result.institutionCode,
+        result.cards,
+      )
+      directCardConnectionStore.setAllSelected(false)
+      directCardConnectionStore.setCardSelected(card.id, true)
+      await router.push({
+        name: 'card-issuer-card-select',
+        params: { issuerId: linkedIssuer.id },
+      })
+      return
+    }
+
+    await activateCardLinkCards(result.linkId, { activeUserCardIds: [card.id] })
+    cardManagementStore.setCardActive(card.id, true)
+  } catch {
+    activationError.value = '카드를 활성화하지 못했어요. 다시 시도해 주세요.'
+  } finally {
+    activatingCardId.value = null
+  }
+}
+
 function closeActionDialog() {
+  if (isActionLoading.value) return
+
   isActionDialogOpen.value = false
   pendingAction.value = null
+  actionError.value = ''
 }
 
 function updateActionDialogOpen(open: boolean) {
+  if (!open && isActionLoading.value) return
+
   isActionDialogOpen.value = open
 
   if (!open) {
@@ -216,16 +281,33 @@ function updateActionDialogOpen(open: boolean) {
   }
 }
 
-function confirmCardAction() {
-  if (!pendingAction.value) return
+async function confirmCardAction() {
+  if (!pendingAction.value || isActionLoading.value) return
 
-  if (pendingAction.value.type === 'deactivate') {
-    cardManagementStore.setCardActive(pendingAction.value.cardId, false)
-  } else {
-    cardManagementStore.disconnectCard(pendingAction.value.cardId)
+  const action = pendingAction.value
+  isActionLoading.value = true
+  actionError.value = ''
+  let succeeded = false
+
+  try {
+    if (action.type === 'deactivate') {
+      await deactivateMyCard(action.cardId)
+      cardManagementStore.setCardActive(action.cardId, false)
+    } else {
+      await disconnectMyCard(action.cardId)
+      cardManagementStore.disconnectCard(action.cardId)
+    }
+    succeeded = true
+  } catch {
+    actionError.value =
+      action.type === 'deactivate'
+        ? '카드를 비활성화하지 못했어요. 다시 시도해 주세요.'
+        : '카드 연결을 해제하지 못했어요. 다시 시도해 주세요.'
+  } finally {
+    isActionLoading.value = false
   }
 
-  closeActionDialog()
+  if (succeeded) closeActionDialog()
 }
 
 onBeforeUnmount(() => {
@@ -392,7 +474,7 @@ onMounted(() => {
                       </div>
                       <p class="mt-1 text-caption text-gray">
                         {{ card.issuerName }} ·
-                        {{ card.last4 ? `•••• ${card.last4}` : '카드번호 미제공' }}
+                        {{ card.cardNo || '카드번호 미제공' }}
                       </p>
                     </div>
                   </div>
@@ -431,6 +513,10 @@ onMounted(() => {
               비활성화 된 카드 {{ cardManagementStore.inactiveCards.length }}개
             </h2>
 
+            <p v-if="activationError" class="mb-3 text-caption text-rose-500" role="alert">
+              {{ activationError }}
+            </p>
+
             <ul v-if="cardManagementStore.inactiveCards.length" class="space-y-3">
               <li v-for="card in cardManagementStore.inactiveCards" :key="card.id">
                 <article class="overflow-hidden rounded-md bg-screen shadow-card">
@@ -448,7 +534,7 @@ onMounted(() => {
                       <h3 class="truncate text-subheading text-charcoal">{{ card.name }}</h3>
                       <p class="mt-1 text-caption text-gray">
                         {{ card.issuerName }} ·
-                        {{ card.last4 ? `•••• ${card.last4}` : '카드번호 미제공' }}
+                        {{ card.cardNo || '카드번호 미제공' }}
                       </p>
                     </div>
                   </div>
@@ -456,12 +542,18 @@ onMounted(() => {
                   <div class="grid h-11 grid-cols-2 border-t border-divider">
                     <button
                       type="button"
-                      class="flex items-center justify-center gap-1.5 border-r border-divider text-body font-medium text-gray"
+                      class="flex items-center justify-center gap-1.5 border-r border-divider text-body font-medium text-gray disabled:cursor-not-allowed disabled:opacity-50"
                       :aria-label="`${card.name} 활성화`"
-                      @click="cardManagementStore.setCardActive(card.id, true)"
+                      :disabled="Boolean(activatingCardId)"
+                      @click="activateCard(card)"
                     >
-                      <Eye class="size-4" aria-hidden="true" />
-                      활성화
+                      <LoaderCircle
+                        v-if="activatingCardId === card.id"
+                        class="size-4 animate-spin"
+                        aria-hidden="true"
+                      />
+                      <Eye v-else class="size-4" aria-hidden="true" />
+                      {{ activatingCardId === card.id ? '활성화 중' : '활성화' }}
                     </button>
                     <button
                       type="button"
@@ -502,6 +594,8 @@ onMounted(() => {
       :description="actionDialogDescription"
       :confirm-label="actionDialogConfirmLabel"
       :destructive="pendingAction.type === 'disconnect'"
+      :loading="isActionLoading"
+      :error-message="actionError"
       @update:open="updateActionDialogOpen"
       @cancel="closeActionDialog"
       @confirm="confirmCardAction"

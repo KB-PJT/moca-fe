@@ -6,6 +6,7 @@ export interface ManagedCard {
   id: string
   name: string
   issuerName: string
+  cardNo?: string | null
   last4?: string
   imageUrl?: string | null
   isActive: boolean
@@ -22,6 +23,7 @@ function toManagedCard(card: MyCardItemResponse, isActive: boolean): ManagedCard
     id: card.userCardId,
     name: card.cardName,
     issuerName: card.issuerName,
+    cardNo: card.cardNo?.trim() || null,
     last4: getLast4(card.cardNo),
     imageUrl: card.cardImageUrl,
     isActive,

@@ -11,6 +11,8 @@ const apiMocks = vi.hoisted(() => ({
   fetchCardDetail: vi.fn<(userCardId: string) => Promise<CardDetailResponse>>(),
   fetchMyCards: vi.fn<() => Promise<MyCardsResponse>>(),
   updateCardMemo: vi.fn<(userCardId: string, memo: string | null) => Promise<MyCardItemResponse>>(),
+  deactivateMyCard: vi.fn<(userCardId: string) => Promise<void>>(),
+  disconnectMyCard: vi.fn<(userCardId: string) => Promise<void>>(),
 }))
 
 vi.mock('@/domains/card/api/cardDetail', () => ({
@@ -19,6 +21,8 @@ vi.mock('@/domains/card/api/cardDetail', () => ({
 }))
 
 vi.mock('@/domains/card/api/cardManagement', () => ({
+  deactivateMyCard: apiMocks.deactivateMyCard,
+  disconnectMyCard: apiMocks.disconnectMyCard,
   fetchMyCards: apiMocks.fetchMyCards,
 }))
 
@@ -43,14 +47,23 @@ const globalStubs = {
     template: '<img :src="src ?? undefined" :alt="alt" />',
   },
   ConfirmDialog: {
-    props: ['open', 'title', 'description', 'confirmLabel', 'destructive'],
+    props: [
+      'open',
+      'title',
+      'description',
+      'confirmLabel',
+      'destructive',
+      'loading',
+      'errorMessage',
+    ],
     emits: ['update:open', 'cancel', 'confirm'],
     template: `
       <div v-if="open" data-confirm-dialog :data-destructive="destructive">
         <h2>{{ title }}</h2>
         <p>{{ description }}</p>
-        <button @click="$emit('cancel')">취소</button>
-        <button :aria-label="confirmLabel + ' 확인'" @click="$emit('confirm')">
+        <p v-if="errorMessage" role="alert">{{ errorMessage }}</p>
+        <button :disabled="loading" @click="$emit('cancel')">취소</button>
+        <button :aria-label="confirmLabel + ' 확인'" :disabled="loading" @click="$emit('confirm')">
           {{ confirmLabel }}
         </button>
       </div>
@@ -159,6 +172,10 @@ describe('CardDetailView', () => {
     })
     apiMocks.fetchMyCards.mockReset()
     apiMocks.fetchMyCards.mockResolvedValue(myCardsResponse)
+    apiMocks.deactivateMyCard.mockReset()
+    apiMocks.deactivateMyCard.mockResolvedValue(undefined)
+    apiMocks.disconnectMyCard.mockReset()
+    apiMocks.disconnectMyCard.mockResolvedValue(undefined)
     apiMocks.updateCardMemo.mockReset()
     apiMocks.updateCardMemo.mockImplementation(async (userCardId, memo) => {
       const detail = cardDetails[userCardId]
@@ -256,7 +273,9 @@ describe('CardDetailView', () => {
     await wrapper.get('button[aria-label="카드 메뉴"]').trigger('click')
     await wrapper.get('button[aria-label="KB My WE:SH 비활성화"]').trigger('click')
     await wrapper.get('button[aria-label="비활성화 확인"]').trigger('click')
+    await flushPromises()
 
+    expect(apiMocks.deactivateMyCard).toHaveBeenCalledWith('managed-kb-wesh')
     expect(cardManagementStore.cards.find((item) => item.id === 'managed-kb-wesh')?.isActive).toBe(
       false,
     )
@@ -276,8 +295,50 @@ describe('CardDetailView', () => {
 
     expect(wrapper.get('[data-confirm-dialog]').attributes('data-destructive')).toBe('true')
     await wrapper.get('button[aria-label="연결 해제 확인"]').trigger('click')
+    await flushPromises()
 
+    expect(apiMocks.disconnectMyCard).toHaveBeenCalledWith('managed-kb-wesh')
     expect(cardManagementStore.cards.some((item) => item.id === 'managed-kb-wesh')).toBe(false)
+  })
+
+  it('카드 비활성화에 실패하면 현재 상태를 유지하고 다시 시도하도록 안내한다', async () => {
+    apiMocks.deactivateMyCard.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = await mountCardDetail()
+    const cardManagementStore = useCardManagementStore()
+
+    await wrapper.get('button[aria-label="카드 메뉴"]').trigger('click')
+    await wrapper.get('button[aria-label="KB My WE:SH 비활성화"]').trigger('click')
+    await wrapper.get('button[aria-label="비활성화 확인"]').trigger('click')
+    await flushPromises()
+
+    expect(cardManagementStore.cards.find((item) => item.id === 'managed-kb-wesh')?.isActive).toBe(
+      true,
+    )
+    expect(wrapper.get('[role="alert"]').text()).toContain('카드를 비활성화하지 못했어요.')
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('카드 액션 요청 중 확인을 반복해도 API를 한 번만 호출한다', async () => {
+    let resolveDeactivate!: () => void
+    apiMocks.deactivateMyCard.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDeactivate = resolve
+      }),
+    )
+    const wrapper = await mountCardDetail()
+
+    await wrapper.get('button[aria-label="카드 메뉴"]').trigger('click')
+    await wrapper.get('button[aria-label="KB My WE:SH 비활성화"]').trigger('click')
+    const confirmButton = wrapper.get('button[aria-label="비활성화 확인"]')
+      .element as HTMLButtonElement
+    confirmButton.click()
+    confirmButton.click()
+    await wrapper.vm.$nextTick()
+
+    expect(apiMocks.deactivateMyCard).toHaveBeenCalledOnce()
+
+    resolveDeactivate()
+    await flushPromises()
   })
 
   it('메모를 수정하면 API와 카드별 메모 상태를 갱신한다', async () => {

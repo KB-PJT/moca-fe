@@ -22,7 +22,7 @@ import {
   type CardDetailResponse,
   updateCardMemo,
 } from '@/domains/card/api/cardDetail'
-import { fetchMyCards } from '@/domains/card/api/cardManagement'
+import { deactivateMyCard, disconnectMyCard, fetchMyCards } from '@/domains/card/api/cardManagement'
 import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import AppBar from '@/shared/components/AppBar.vue'
@@ -67,10 +67,6 @@ const cardMeta = computed(() => {
   const cardNo = card.value.cardNo?.trim()
   return cardNo ? `${card.value.issuerName} · ${cardNo}` : card.value.issuerName
 })
-const managedCard = computed(() =>
-  cardManagementStore.cards.find((item) => item.id === card.value?.userCardId),
-)
-
 const isEditingMemo = ref(false)
 const isSavingMemo = ref(false)
 const memoError = ref('')
@@ -80,6 +76,8 @@ const actionMenu = ref<HTMLElement | null>(null)
 const isActionMenuOpen = ref(false)
 const isActionDialogOpen = ref(false)
 const pendingAction = ref<CardAction | null>(null)
+const isActionLoading = ref(false)
+const actionError = ref('')
 
 const actionDialogTitle = computed(() =>
   pendingAction.value === 'deactivate'
@@ -217,16 +215,22 @@ function toggleBenefit(benefitId: string) {
 
 function requestCardAction(action: CardAction) {
   pendingAction.value = action
+  actionError.value = ''
   isActionMenuOpen.value = false
   isActionDialogOpen.value = true
 }
 
 function closeActionDialog() {
+  if (isActionLoading.value) return
+
   isActionDialogOpen.value = false
   pendingAction.value = null
+  actionError.value = ''
 }
 
 function updateActionDialogOpen(open: boolean) {
+  if (!open && isActionLoading.value) return
+
   isActionDialogOpen.value = open
 
   if (!open) {
@@ -236,14 +240,34 @@ function updateActionDialogOpen(open: boolean) {
   }
 }
 
-function confirmCardAction() {
-  if (!pendingAction.value || !managedCard.value) return
+async function confirmCardAction() {
+  if (!pendingAction.value || !card.value || isActionLoading.value) return
 
-  if (pendingAction.value === 'deactivate') {
-    cardManagementStore.setCardActive(managedCard.value.id, false)
-  } else {
-    cardManagementStore.disconnectCard(managedCard.value.id)
+  const action = pendingAction.value
+  const userCardId = card.value.userCardId
+  isActionLoading.value = true
+  actionError.value = ''
+  let succeeded = false
+
+  try {
+    if (action === 'deactivate') {
+      await deactivateMyCard(userCardId)
+      cardManagementStore.setCardActive(userCardId, false)
+    } else {
+      await disconnectMyCard(userCardId)
+      cardManagementStore.disconnectCard(userCardId)
+    }
+    succeeded = true
+  } catch {
+    actionError.value =
+      action === 'deactivate'
+        ? '카드를 비활성화하지 못했어요. 다시 시도해 주세요.'
+        : '카드 연결을 해제하지 못했어요. 다시 시도해 주세요.'
+  } finally {
+    isActionLoading.value = false
   }
+
+  if (!succeeded) return
 
   cardManagementStore.preserveCardsOnNextLoad()
   closeActionDialog()
@@ -498,6 +522,8 @@ function confirmCardAction() {
       :description="actionDialogDescription"
       :confirm-label="actionDialogConfirmLabel"
       :destructive="pendingAction === 'disconnect'"
+      :loading="isActionLoading"
+      :error-message="actionError"
       @update:open="updateActionDialogOpen"
       @cancel="closeActionDialog"
       @confirm="confirmCardAction"

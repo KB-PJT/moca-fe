@@ -48,7 +48,7 @@ describe('ConfirmDialog', () => {
     expect(getButton('취소').classList).not.toContain('mt-2')
   })
 
-  it('확인 버튼을 누르면 confirm 이벤트와 닫힘 변경을 보낸다', async () => {
+  it('확인 버튼을 누르면 닫힘 상태는 호출자에게 맡기고 confirm 이벤트를 보낸다', async () => {
     const wrapper = mountDialog()
     await wrapper.vm.$nextTick()
 
@@ -56,7 +56,7 @@ describe('ConfirmDialog', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.emitted('confirm')).toHaveLength(1)
-    expect(wrapper.emitted('update:open')).toContainEqual([false])
+    expect(wrapper.emitted('update:open')).toBeUndefined()
   })
 
   it('destructive 확인 버튼에 위험 동작 스타일을 적용한다', async () => {
@@ -64,5 +64,21 @@ describe('ConfirmDialog', () => {
     await wrapper.vm.$nextTick()
 
     expect(getButton('삭제').classList).toContain('bg-error!')
+  })
+
+  it('처리 중에는 버튼을 비활성화하고 오류 메시지를 표시한다', async () => {
+    const wrapper = mountDialog()
+    await wrapper.setProps({ loading: true, errorMessage: '요청을 처리하지 못했어요.' })
+
+    expect(getButton('취소')).toHaveProperty('disabled', true)
+    expect(getButton('삭제')).toHaveProperty('disabled', true)
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      '요청을 처리하지 못했어요.',
+    )
+
+    getButton('삭제').click()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.emitted('confirm')).toBeUndefined()
   })
 })

@@ -75,6 +75,18 @@ describe('cardLinks API', () => {
     })
   })
 
+  it('카드사를 생략하면 모든 기존 연동의 보유카드를 재조회한다', async () => {
+    const responseData = {
+      results: [{ linkId: 'link-id', institutionCode: '0302', success: true, cards: [] }],
+    }
+    apiClientMocks.post.mockResolvedValue({ data: { success: true, data: responseData } })
+
+    await expect(syncCardLinkCards()).resolves.toEqual(responseData)
+    expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/card-links/cards/sync', undefined, {
+      params: undefined,
+    })
+  })
+
   it('선택 카드와 옵션을 linkId에 해당하는 활성화 API로 전송한다', async () => {
     const responseData: ActivateCardLinkCardsResponse = {
       linkId: 'link/id',
