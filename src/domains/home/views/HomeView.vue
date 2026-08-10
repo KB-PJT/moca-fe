@@ -30,11 +30,13 @@ const nickname = computed(() => authStore.user?.nickname ?? '사용자')
 const missedBenefitAmount = computed(() =>
   cards.value.reduce((total, card) => total + card.availableBenefitAmount, 0),
 )
-const activeCardMemo = computed(() =>
-  activeCard.value
-    ? cardMemoStore.getMemo(activeCard.value.id) || activeCard.value.highlightBenefitTitle
-    : '',
-)
+const activeCardMemo = computed(() => {
+  if (!activeCard.value) return ''
+
+  return cardMemoStore.hasMemo(activeCard.value.id)
+    ? cardMemoStore.getMemo(activeCard.value.id)
+    : activeCard.value.memo || activeCard.value.highlightBenefitTitle
+})
 
 async function loadHomeCards() {
   isCardsLoading.value = true

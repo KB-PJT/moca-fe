@@ -2,6 +2,7 @@ import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
+import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
 import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
 import HomeView from '@/domains/home/views/HomeView.vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
@@ -14,7 +15,7 @@ vi.mock('@/domains/home/api/homeCards', async (importOriginal) => ({
   fetchHomeCards,
 }))
 
-function createHomeCardsResponse() {
+function createHomeCardsResponse(): HomeCardsResponse {
   return {
     yearMonth: '2026-08',
     orderMode: 'AUTO' as const,
@@ -176,6 +177,41 @@ describe('HomeView', () => {
     await flushPromises()
 
     expect(wrapper.get('[data-card-memo]').text()).toBe('주말 카페 결제용 카드')
+  })
+
+  it('저장된 빈 메모를 서버 메모로 덮어쓰지 않는다', async () => {
+    const response = createHomeCardsResponse()
+    const firstCard = response.cards[0]
+    if (!firstCard) throw new Error('test card is required')
+
+    firstCard.userCardId = 'empty-memo-card-id'
+    firstCard.alias = '서버 메모'
+    response.selectedUserCardId = firstCard.userCardId
+    fetchHomeCards.mockResolvedValue(response)
+
+    const pinia = createPinia()
+    useCardMemoStore(pinia).setMemo(firstCard.userCardId, '')
+    const wrapper = mountView(pinia)
+    await flushPromises()
+
+    expect(wrapper.get('[data-card-memo]').text()).toBe('')
+  })
+
+  it('서버 메모는 카드명이 아니라 카드 위 메모 영역에 표시한다', async () => {
+    const response = createHomeCardsResponse()
+    const firstCard = response.cards[0]
+    if (!firstCard) throw new Error('test card is required')
+
+    firstCard.userCardId = 'real-user-card-id'
+    firstCard.alias = '슈퍼솔져'
+    response.selectedUserCardId = firstCard.userCardId
+    fetchHomeCards.mockResolvedValue(response)
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
+    expect(wrapper.get('[data-card-memo]').text()).toBe('슈퍼솔져')
   })
 
   it('조회 결과가 없으면 보유카드 빈 상태를 표시한다', async () => {
