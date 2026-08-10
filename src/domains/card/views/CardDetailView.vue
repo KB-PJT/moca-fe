@@ -4,25 +4,21 @@ import { useRoute, useRouter } from 'vue-router'
 import { onClickOutside } from '@vueuse/core'
 import DOMPurify from 'dompurify'
 import {
-  Bus,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Coffee,
   EllipsisVertical,
   EyeOff,
   Pencil,
-  ShoppingBag,
-  Store,
   Trash2,
 } from '@lucide/vue'
 import {
   fetchCardDetail,
-  type CardDetailBenefitResponse,
   type CardDetailResponse,
   updateCardMemo,
 } from '@/domains/card/api/cardDetail'
 import { deactivateMyCard, disconnectMyCard, fetchMyCards } from '@/domains/card/api/cardManagement'
+import { resolveCardBenefitIcon } from '@/domains/card/constants/benefitCategories'
 import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import AppBar from '@/shared/components/AppBar.vue'
@@ -96,13 +92,6 @@ const actionDialogConfirmLabel = computed(() =>
 onClickOutside(actionMenu, () => {
   isActionMenuOpen.value = false
 })
-
-function resolveBenefitIcon(benefit: CardDetailBenefitResponse) {
-  if (/카페|커피|스타벅스|디저트/.test(benefit.title)) return Coffee
-  if (/편의점/.test(benefit.title)) return Store
-  if (/교통|버스|지하철|택시/.test(benefit.title)) return Bus
-  return ShoppingBag
-}
 
 function sanitizeDetailHtml(detailHtml: string) {
   const sanitizedHtml = DOMPurify.sanitize(detailHtml, { USE_PROFILES: { html: true } })
@@ -466,7 +455,11 @@ async function confirmCardAction() {
               <span
                 class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
               >
-                <component :is="resolveBenefitIcon(benefit)" class="size-5" aria-hidden="true" />
+                <component
+                  :is="resolveCardBenefitIcon(benefit)"
+                  class="size-5"
+                  aria-hidden="true"
+                />
               </span>
               <span class="min-w-0 flex-1">
                 <span class="block text-body font-semibold text-charcoal">{{ benefit.title }}</span>
