@@ -133,7 +133,7 @@ const chartOptions = {
 </script>
 
 <template>
-  <div class="rounded-lg bg-accent px-4 py-2.5 shadow-card">
+  <div class="rounded-lg bg-accent px-4 py-2.5">
     <div class="flex items-start justify-between gap-2">
       <div>
         <p class="text-[18px] leading-6 font-bold text-charcoal">실적 달성률</p>

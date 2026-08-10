@@ -27,7 +27,7 @@ const comparisonText = computed(() => {
 </script>
 
 <template>
-  <div class="rounded-lg bg-accent p-4 shadow-card">
+  <div class="rounded-lg bg-accent p-4">
     <p class="text-caption text-gray">이번 달 받은 총혜택</p>
     <p class="mt-1 flex items-center gap-1">
       <span class="text-display text-charcoal">{{ formatAmount(summary.totalAmount) }}원</span>

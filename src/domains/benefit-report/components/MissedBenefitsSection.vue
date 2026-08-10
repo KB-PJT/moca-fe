@@ -122,7 +122,7 @@ function progressPercent(condition: MissedBenefitCondition) {
         <div
           v-for="condition in currentCard.conditions"
           :key="condition.label"
-          class="rounded-lg border border-divider bg-card p-3 shadow-card"
+          class="rounded-lg border border-divider bg-card p-3"
         >
           <div class="flex items-center justify-between">
             <span class="text-body font-bold text-charcoal">{{ condition.label }}</span>
