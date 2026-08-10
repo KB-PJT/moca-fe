@@ -25,6 +25,7 @@ export function useKakaoMap(
   const markerByPlaceId = new Map<string, any>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedMarker: any = null
+  let selectedMerchantCategory: string | null = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentLocationMarker: any = null
   let script: HTMLScriptElement | null = null
@@ -41,7 +42,7 @@ export function useKakaoMap(
     const markers = merchants.map((merchant) => {
       const marker = new window.kakao.maps.Marker({
         position: new window.kakao.maps.LatLng(merchant.latitude, merchant.longitude),
-        image: dotMarkerImage(),
+        image: dotMarkerImage(merchant.category),
       })
 
       markerByPlaceId.set(merchant.placeId, marker)
@@ -62,19 +63,23 @@ export function useKakaoMap(
     const marker = markerByPlaceId.get(merchant.placeId)
     if (!marker) return false
 
-    if (selectedMarker && selectedMarker !== marker) {
-      selectedMarker.setImage(dotMarkerImage())
+    if (selectedMarker && selectedMarker !== marker && selectedMerchantCategory) {
+      selectedMarker.setImage(dotMarkerImage(selectedMerchantCategory))
     }
 
     marker.setImage(pinMarkerImage(merchant.category))
     selectedMarker = marker
+    selectedMerchantCategory = merchant.category
     return true
   }
 
   function clearSelectedMarker() {
     if (!selectedMarker) return
-    selectedMarker.setImage(dotMarkerImage())
+    if (selectedMerchantCategory) {
+      selectedMarker.setImage(dotMarkerImage(selectedMerchantCategory))
+    }
     selectedMarker = null
+    selectedMerchantCategory = null
   }
 
   function focusMarker(merchant: Merchant) {
