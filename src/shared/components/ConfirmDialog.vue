@@ -2,7 +2,6 @@
 import MocaButton from '@/shared/components/MocaButton.vue'
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -18,12 +17,16 @@ interface Props {
   confirmLabel?: string
   cancelLabel?: string
   destructive?: boolean
+  loading?: boolean
+  errorMessage?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   confirmLabel: '확인',
   cancelLabel: '취소',
   destructive: false,
+  loading: false,
+  errorMessage: '',
 })
 
 const emit = defineEmits<{
@@ -31,31 +34,43 @@ const emit = defineEmits<{
   cancel: []
   confirm: []
 }>()
+
+function updateOpen(open: boolean) {
+  if (!open && props.loading) return
+  emit('update:open', open)
+}
+
+function confirm() {
+  if (props.loading) return
+  emit('confirm')
+}
 </script>
 
 <template>
-  <AlertDialog :open="open" @update:open="emit('update:open', $event)">
+  <AlertDialog :open="open" @update:open="updateOpen">
     <AlertDialogContent class="w-[calc(100%-2rem)] max-w-85 sm:max-w-85">
       <AlertDialogHeader>
         <AlertDialogTitle>{{ title }}</AlertDialogTitle>
         <AlertDialogDescription>{{ description }}</AlertDialogDescription>
+        <p v-if="errorMessage" class="text-caption text-error" role="alert">
+          {{ errorMessage }}
+        </p>
       </AlertDialogHeader>
       <AlertDialogFooter class="grid grid-cols-2">
         <AlertDialogCancel as-child class="mt-0">
-          <MocaButton variant="secondary" block @click="emit('cancel')">
+          <MocaButton variant="secondary" block :disabled="loading" @click="emit('cancel')">
             {{ cancelLabel }}
           </MocaButton>
         </AlertDialogCancel>
-        <AlertDialogAction as-child>
-          <MocaButton
-            block
-            :aria-label="`${confirmLabel} 확인`"
-            :class="destructive ? 'bg-error! text-white! hover:bg-error/90!' : ''"
-            @click="emit('confirm')"
-          >
-            {{ confirmLabel }}
-          </MocaButton>
-        </AlertDialogAction>
+        <MocaButton
+          block
+          :aria-label="`${confirmLabel} 확인`"
+          :loading="loading"
+          :class="destructive ? 'bg-error! text-white! hover:bg-error/90!' : ''"
+          @click="confirm"
+        >
+          {{ confirmLabel }}
+        </MocaButton>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

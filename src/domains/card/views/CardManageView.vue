@@ -2,7 +2,7 @@
 import { Eye, EyeOff, GripVertical, LoaderCircle, Plus, RotateCw, Trash2 } from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchMyCards } from '@/domains/card/api/cardManagement'
+import { deactivateMyCard, disconnectMyCard, fetchMyCards } from '@/domains/card/api/cardManagement'
 import { updateManagedCardOrder } from '@/domains/card/api/cardManagement.mock'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import BottomBar from '@/shared/components/BottomBar.vue'
@@ -35,6 +35,8 @@ const draggingCardId = ref<string | null>(null)
 const dragTargetCardId = ref<string | null>(null)
 const isActionDialogOpen = ref(false)
 const pendingAction = ref<PendingAction | null>(null)
+const isActionLoading = ref(false)
+const actionError = ref('')
 
 const activeBottomBarPath = computed(() => {
   const from = Array.isArray(route.query.from) ? route.query.from[0] : route.query.from
@@ -198,15 +200,21 @@ function addCard() {
 
 function requestCardAction(type: CardManagementAction, cardId: string, cardName: string) {
   pendingAction.value = { type, cardId, cardName }
+  actionError.value = ''
   isActionDialogOpen.value = true
 }
 
 function closeActionDialog() {
+  if (isActionLoading.value) return
+
   isActionDialogOpen.value = false
   pendingAction.value = null
+  actionError.value = ''
 }
 
 function updateActionDialogOpen(open: boolean) {
+  if (!open && isActionLoading.value) return
+
   isActionDialogOpen.value = open
 
   if (!open) {
@@ -216,16 +224,33 @@ function updateActionDialogOpen(open: boolean) {
   }
 }
 
-function confirmCardAction() {
-  if (!pendingAction.value) return
+async function confirmCardAction() {
+  if (!pendingAction.value || isActionLoading.value) return
 
-  if (pendingAction.value.type === 'deactivate') {
-    cardManagementStore.setCardActive(pendingAction.value.cardId, false)
-  } else {
-    cardManagementStore.disconnectCard(pendingAction.value.cardId)
+  const action = pendingAction.value
+  isActionLoading.value = true
+  actionError.value = ''
+  let succeeded = false
+
+  try {
+    if (action.type === 'deactivate') {
+      await deactivateMyCard(action.cardId)
+      cardManagementStore.setCardActive(action.cardId, false)
+    } else {
+      await disconnectMyCard(action.cardId)
+      cardManagementStore.disconnectCard(action.cardId)
+    }
+    succeeded = true
+  } catch {
+    actionError.value =
+      action.type === 'deactivate'
+        ? '카드를 비활성화하지 못했어요. 다시 시도해 주세요.'
+        : '카드 연결을 해제하지 못했어요. 다시 시도해 주세요.'
+  } finally {
+    isActionLoading.value = false
   }
 
-  closeActionDialog()
+  if (succeeded) closeActionDialog()
 }
 
 onBeforeUnmount(() => {
@@ -392,7 +417,7 @@ onMounted(() => {
                       </div>
                       <p class="mt-1 text-caption text-gray">
                         {{ card.issuerName }} ·
-                        {{ card.last4 ? `•••• ${card.last4}` : '카드번호 미제공' }}
+                        {{ card.cardNo || '카드번호 미제공' }}
                       </p>
                     </div>
                   </div>
@@ -448,7 +473,7 @@ onMounted(() => {
                       <h3 class="truncate text-subheading text-charcoal">{{ card.name }}</h3>
                       <p class="mt-1 text-caption text-gray">
                         {{ card.issuerName }} ·
-                        {{ card.last4 ? `•••• ${card.last4}` : '카드번호 미제공' }}
+                        {{ card.cardNo || '카드번호 미제공' }}
                       </p>
                     </div>
                   </div>
@@ -502,6 +527,8 @@ onMounted(() => {
       :description="actionDialogDescription"
       :confirm-label="actionDialogConfirmLabel"
       :destructive="pendingAction.type === 'disconnect'"
+      :loading="isActionLoading"
+      :error-message="actionError"
       @update:open="updateActionDialogOpen"
       @cancel="closeActionDialog"
       @confirm="confirmCardAction"
