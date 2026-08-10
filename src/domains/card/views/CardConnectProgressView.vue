@@ -2,7 +2,7 @@
 import { Check, LoaderCircle, X } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAccountStore } from '@/domains/auth/stores/account'
+import { useAuthStore } from '@/domains/auth/stores/auth'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import { getMockCardConnection } from '@/domains/card/mocks/ownedCards'
 import { useOwnedCardsStore } from '@/domains/card/stores/ownedCards'
@@ -12,12 +12,13 @@ const PROGRESS_RADIUS = 48
 const PROGRESS_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RADIUS
 
 const router = useRouter()
-const accountStore = useAccountStore()
+const authStore = useAuthStore()
 const ownedCardsStore = useOwnedCardsStore()
 let stepTimer: ReturnType<typeof setTimeout> | undefined
 let completionTimer: ReturnType<typeof setTimeout> | undefined
 
 const issuerCount = computed(() => ownedCardsStore.ownedIssuers.length)
+const nickname = computed(() => authStore.user?.nickname.trim() || '사용자')
 const processedCount = computed(
   () =>
     ownedCardsStore.connectionResults.filter(
@@ -88,10 +89,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <CardPageLayout bg="screen" @back="returnToBulkConnect">
-    <section class="px-1 pt-1">
+  <CardPageLayout
+    data-connect-progress-layout
+    title="카드 연결"
+    bg="screen"
+    class="[&>main]:flex [&>main]:flex-col [&>main]:overflow-hidden"
+    @back="returnToBulkConnect"
+  >
+    <section class="shrink-0 px-1 pt-1">
       <h1 class="text-display text-charcoal">
-        {{ accountStore.displayName }}님의 카드를<br />
+        {{ nickname }}님의 카드를<br />
         연결하고 있어요
       </h1>
       <p class="mt-2 text-body text-gray">잠시만 기다려 주세요</p>
@@ -99,7 +106,7 @@ onBeforeUnmount(() => {
 
     <section
       v-if="issuerCount > 0"
-      class="mt-8 flex flex-col items-center"
+      class="mt-8 flex shrink-0 flex-col items-center"
       aria-label="카드 연결 진행률"
     >
       <div
@@ -141,55 +148,61 @@ onBeforeUnmount(() => {
       </p>
     </section>
 
-    <ul v-if="issuerCount > 0" class="mt-7 overflow-hidden rounded-md bg-card shadow-tile">
-      <li
-        v-for="issuer in ownedCardsStore.connectionResults"
-        :key="issuer.id"
-        class="flex h-13 items-center gap-3 border-b border-divider px-4 last:border-b-0"
-      >
-        <span
-          class="flex size-5 shrink-0 items-center justify-center rounded-full"
-          :class="
-            issuer.status === 'connected'
-              ? 'bg-primary/12 text-primary'
-              : issuer.status === 'failed'
-                ? 'bg-error/10 text-error'
-                : 'bg-screen text-gray'
-          "
-          aria-hidden="true"
+    <div
+      v-if="issuerCount > 0"
+      data-connection-results-scroll
+      class="scrollbar-line mt-7 min-h-0 flex-1 overflow-y-auto rounded-md"
+    >
+      <ul class="overflow-hidden rounded-md bg-card shadow-tile">
+        <li
+          v-for="issuer in ownedCardsStore.connectionResults"
+          :key="issuer.id"
+          class="flex h-13 items-center gap-3 border-b border-divider px-4 last:border-b-0"
         >
-          <Check v-if="issuer.status === 'connected'" class="size-3.5 stroke-3" />
-          <LoaderCircle
-            v-else-if="issuer.status === 'connecting'"
-            class="size-3.5 animate-spin text-primary"
-          />
-          <X v-else-if="issuer.status === 'failed'" class="size-3.5 stroke-3" />
-          <span v-else class="size-1.5 rounded-full bg-disabled" />
-        </span>
-
-        <span class="flex-1 text-body font-medium text-charcoal">{{ issuer.name }}</span>
-        <span
-          class="text-caption font-medium"
-          :class="
-            issuer.status === 'connected' || issuer.status === 'connecting'
-              ? 'text-primary'
-              : issuer.status === 'failed'
-                ? 'text-error'
-                : 'text-gray'
-          "
-        >
-          {{
-            issuer.status === 'connected'
-              ? '연결 완료'
-              : issuer.status === 'connecting'
-                ? '연결 중'
+          <span
+            class="flex size-5 shrink-0 items-center justify-center rounded-full"
+            :class="
+              issuer.status === 'connected'
+                ? 'bg-primary/12 text-primary'
                 : issuer.status === 'failed'
-                  ? '연결 실패'
-                  : '대기 중'
-          }}
-        </span>
-      </li>
-    </ul>
+                  ? 'bg-error/10 text-error'
+                  : 'bg-screen text-gray'
+            "
+            aria-hidden="true"
+          >
+            <Check v-if="issuer.status === 'connected'" class="size-3.5 stroke-3" />
+            <LoaderCircle
+              v-else-if="issuer.status === 'connecting'"
+              class="size-3.5 animate-spin text-primary"
+            />
+            <X v-else-if="issuer.status === 'failed'" class="size-3.5 stroke-3" />
+            <span v-else class="size-1.5 rounded-full bg-disabled" />
+          </span>
+
+          <span class="flex-1 text-body font-medium text-charcoal">{{ issuer.name }}</span>
+          <span
+            class="text-caption font-medium"
+            :class="
+              issuer.status === 'connected' || issuer.status === 'connecting'
+                ? 'text-primary'
+                : issuer.status === 'failed'
+                  ? 'text-error'
+                  : 'text-gray'
+            "
+          >
+            {{
+              issuer.status === 'connected'
+                ? '연결 완료'
+                : issuer.status === 'connecting'
+                  ? '연결 중'
+                  : issuer.status === 'failed'
+                    ? '연결 실패'
+                    : '대기 중'
+            }}
+          </span>
+        </li>
+      </ul>
+    </div>
 
     <section v-else class="mt-20 rounded-md bg-card px-5 py-10 text-center shadow-tile">
       <p class="text-subheading text-charcoal">연결할 카드가 없어요</p>
