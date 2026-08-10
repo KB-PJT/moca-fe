@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { onClickOutside } from '@vueuse/core'
+import DOMPurify from 'dompurify'
 import {
   Bus,
   ChevronDown,
@@ -62,9 +63,8 @@ const memo = computed(() => card.value?.memo ?? '')
 const cardMeta = computed(() => {
   if (!card.value) return ''
 
-  const digits = card.value.cardNo?.replace(/\D/g, '') ?? ''
-  const last4 = digits.length >= 4 ? digits.slice(-4) : ''
-  return last4 ? `${card.value.issuerName} · •••• ${last4}` : card.value.issuerName
+  const cardNo = card.value.cardNo?.trim()
+  return cardNo ? `${card.value.issuerName} · ${cardNo}` : card.value.issuerName
 })
 const managedCard = computed(() =>
   cardManagementStore.cards.find((item) => item.id === card.value?.userCardId),
@@ -103,6 +103,10 @@ function resolveBenefitIcon(benefit: CardDetailBenefitResponse) {
   if (/편의점/.test(benefit.title)) return Store
   if (/교통|버스|지하철|택시/.test(benefit.title)) return Bus
   return ShoppingBag
+}
+
+function sanitizeDetailHtml(detailHtml: string) {
+  return DOMPurify.sanitize(detailHtml, { USE_PROFILES: { html: true } })
 }
 
 async function loadCard(userCardId: string) {
@@ -410,15 +414,15 @@ function confirmCardAction() {
               >
                 <component :is="resolveBenefitIcon(benefit)" class="size-5" aria-hidden="true" />
               </span>
-              <span class="min-w-0 flex-1 text-body font-semibold text-charcoal">
-                {{ benefit.title }}
-              </span>
-              <span
-                v-if="benefit.summary"
-                data-benefit-summary
-                class="shrink-0 text-caption text-gray"
-              >
-                {{ benefit.summary }}
+              <span class="min-w-0 flex-1">
+                <span class="block text-body font-semibold text-charcoal">{{ benefit.title }}</span>
+                <span
+                  v-if="benefit.summary"
+                  data-benefit-summary
+                  class="mt-1 block break-keep text-caption text-gray"
+                >
+                  {{ benefit.summary }}
+                </span>
               </span>
               <ChevronDown
                 class="size-4 shrink-0 text-gray transition-transform duration-200"
@@ -428,11 +432,20 @@ function confirmCardAction() {
             </button>
 
             <div
-              v-if="benefit.detailText && expandedBenefitIds.has(benefit.benefitId)"
+              v-if="
+                (benefit.detailHtml || benefit.detailText) &&
+                expandedBenefitIds.has(benefit.benefitId)
+              "
               :id="`benefit-description-${benefit.benefitId}`"
-              class="mx-5 mb-3 whitespace-pre-line rounded-md bg-screen px-4 py-4 text-body leading-6 text-gray"
+              class="mx-5 mb-3 rounded-md bg-screen px-4 py-4 text-body leading-6 text-gray [&_a]:underline [&_li]:ml-5 [&_ol]:list-decimal [&_p:not(:last-child)]:mb-2 [&_strong]:font-semibold [&_ul]:list-disc"
             >
-              {{ benefit.detailText }}
+              <div
+                v-if="benefit.detailHtml"
+                data-benefit-detail-html
+                class="card-detail-html"
+                v-html="sanitizeDetailHtml(benefit.detailHtml)"
+              />
+              <p v-else class="whitespace-pre-line">{{ benefit.detailText }}</p>
             </div>
           </li>
         </ul>
@@ -445,8 +458,14 @@ function confirmCardAction() {
           <li v-for="notice in card.notices" :key="notice.benefitId" class="not-last:mb-5">
             <h3 class="text-body font-semibold text-charcoal">{{ notice.title }}</h3>
             <p v-if="notice.summary" class="mt-1 text-caption text-gray">{{ notice.summary }}</p>
+            <div
+              v-if="notice.detailHtml"
+              data-notice-detail-html
+              class="card-detail-html mt-2 text-caption leading-5 text-gray [&_a]:underline [&_li]:ml-5 [&_ol]:list-decimal [&_p:not(:last-child)]:mb-2 [&_strong]:font-semibold [&_ul]:list-disc"
+              v-html="sanitizeDetailHtml(notice.detailHtml)"
+            />
             <p
-              v-if="notice.detailText"
+              v-else-if="notice.detailText"
               class="mt-2 whitespace-pre-line text-caption leading-5 text-gray"
             >
               {{ notice.detailText }}
@@ -481,3 +500,39 @@ function confirmCardAction() {
     />
   </div>
 </template>
+
+<style scoped>
+.card-detail-html {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.card-detail-html :deep(*) {
+  max-width: 100%;
+}
+
+.card-detail-html :deep(table) {
+  width: 100% !important;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.card-detail-html :deep(th),
+.card-detail-html :deep(td) {
+  padding: 8px 6px;
+  border: 1px solid var(--color-divider);
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+  vertical-align: middle;
+}
+
+.card-detail-html :deep(.b-table-top) {
+  background: var(--color-screen);
+  color: var(--color-charcoal);
+  font-weight: 600;
+}
+</style>

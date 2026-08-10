@@ -64,7 +64,8 @@ const benefits: CardDetailBenefitResponse[] = [
     title: '스타벅스, 폴바셋 10% 할인',
     summary: '월 최대 5,000원',
     detailText: '스타벅스·이디야·투썸플레이스 등 카페 가맹점 결제 시 10% 할인',
-    detailHtml: '<p>스타벅스·이디야·투썸플레이스 등 카페 가맹점 결제 시 10% 할인</p>',
+    detailHtml:
+      '<p><strong>스타벅스·이디야·투썸플레이스</strong> 등 카페 가맹점 결제 시 10% 할인</p><img src="x" onerror="alert(1)"><script>alert(1)</script>',
   },
   {
     benefitId: 'benefit-convenience',
@@ -81,7 +82,8 @@ const notices: CardDetailBenefitResponse[] = [
     title: '할인서비스 적용 안내',
     summary: null,
     detailText: '할인서비스는 환급할인으로 제공됩니다.',
-    detailHtml: '<p>할인서비스는 환급할인으로 제공됩니다.</p>',
+    detailHtml:
+      '<p>할인서비스는 <strong>환급할인</strong>으로 제공됩니다.</p><a href="javascript:alert(1)">안내</a>',
   },
 ]
 
@@ -172,11 +174,17 @@ describe('CardDetailView', () => {
 
     expect(apiMocks.fetchCardDetail).toHaveBeenCalledWith('managed-kb-wesh')
     expect(wrapper.text()).toContain('KB My WE:SH')
-    expect(wrapper.text()).toContain('KB국민카드 · •••• 4321')
+    expect(wrapper.text()).toContain('KB국민카드 · 123456******4321')
     expect(wrapper.text()).toContain('스타벅스, 폴바셋 10% 할인')
     expect(wrapper.text()).toContain('스타벅스·이디야·투썸플레이스')
+    expect(wrapper.get('[data-benefit-summary]').classes()).not.toContain('shrink-0')
     expect(wrapper.get('[data-card-notices] h3').text()).toBe('할인서비스 적용 안내')
     expect(wrapper.text()).toContain('할인서비스는 환급할인으로 제공됩니다.')
+    expect(wrapper.get('[data-benefit-detail-html] strong').text()).toContain('스타벅스')
+    expect(wrapper.get('[data-benefit-detail-html]').html()).not.toContain('onerror')
+    expect(wrapper.find('[data-benefit-detail-html] script').exists()).toBe(false)
+    expect(wrapper.get('[data-notice-detail-html] strong').text()).toBe('환급할인')
+    expect(wrapper.get('[data-notice-detail-html] a').attributes('href')).toBeUndefined()
   })
 
   it('다른 카드 ID로 접근하면 해당 카드 정보를 조회한다', async () => {
@@ -185,7 +193,7 @@ describe('CardDetailView', () => {
 
     expect(apiMocks.fetchCardDetail).toHaveBeenCalledWith('managed-shinhan-mrlife')
     expect(wrapper.text()).toContain('신한카드 Mr.Life')
-    expect(wrapper.text()).toContain('신한카드 · •••• 8847')
+    expect(wrapper.text()).toContain('신한카드 · 123456******8847')
   })
 
   it('상단 뒤로가기를 누르면 홈 화면으로 이동한다', async () => {
