@@ -1,3 +1,5 @@
+import { CARD_ISSUERS } from '@/domains/card/constants/cardIssuers'
+
 export interface HomeOwnedCard {
   id: string
   name: string
@@ -17,7 +19,7 @@ export const MOCK_HOME_OWNED_CARDS: HomeOwnedCard[] = [
     id: 'home-kb-wesh',
     name: 'KB My WE:SH',
     imageUrl: null,
-    accentColor: '#ff9c70',
+    accentColor: CARD_ISSUERS['kb-kookmin'].accentColor,
     receivedBenefitAmount: 21_800,
     availableBenefitAmount: 8_200,
     performance: {
@@ -29,7 +31,7 @@ export const MOCK_HOME_OWNED_CARDS: HomeOwnedCard[] = [
     id: 'home-kb-taptap',
     name: 'KB국민 청춘대로 톡톡카드',
     imageUrl: null,
-    accentColor: '#5fc8e8',
+    accentColor: CARD_ISSUERS['kb-kookmin'].accentColor,
     receivedBenefitAmount: 16_400,
     availableBenefitAmount: 6_600,
     performance: {
@@ -41,7 +43,7 @@ export const MOCK_HOME_OWNED_CARDS: HomeOwnedCard[] = [
     id: 'home-shinhan-mrlife',
     name: '신한카드 Mr.Life',
     imageUrl: null,
-    accentColor: '#7762df',
+    accentColor: CARD_ISSUERS.shinhan.accentColor,
     receivedBenefitAmount: 12_300,
     availableBenefitAmount: 4_700,
     performance: {
@@ -53,7 +55,7 @@ export const MOCK_HOME_OWNED_CARDS: HomeOwnedCard[] = [
     id: 'home-hyundai-zero',
     name: '현대카드 ZERO Edition3',
     imageUrl: null,
-    accentColor: '#4c535d',
+    accentColor: CARD_ISSUERS.hyundai.accentColor,
     receivedBenefitAmount: 9_600,
     availableBenefitAmount: 3_400,
     performance: {

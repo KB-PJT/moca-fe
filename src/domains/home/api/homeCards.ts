@@ -1,4 +1,10 @@
 import axios from 'axios'
+import {
+  CARD_ISSUERS,
+  CARD_ISSUER_LIST,
+  DEFAULT_CARD_ISSUER_ACCENT_COLOR,
+  isCardIssuerId,
+} from '@/domains/card/constants/cardIssuers'
 import apiClient from '@/shared/api/client'
 
 export interface HomeCardSummaryResponse {
@@ -15,6 +21,8 @@ export interface HomeCardResponse {
   userCardId: string
   order: number
   cardName: string
+  issuerId?: string | null
+  issuerName?: string | null
   alias: string | null
   cardImageUrl: string | null
   autoOrderReason?: string | null
@@ -52,15 +60,32 @@ export interface HomeOwnedCard {
   }
 }
 
-const CARD_ACCENT_COLORS = ['#ff9c70', '#5fc8e8', '#7762df', '#4c535d'] as const
+export function resolveHomeCardAccentColor(card: HomeCardResponse): string {
+  if (card.issuerId) {
+    if (isCardIssuerId(card.issuerId)) return CARD_ISSUERS[card.issuerId].accentColor
 
-export function toHomeOwnedCard(card: HomeCardResponse, index: number): HomeOwnedCard {
+    const issuer = CARD_ISSUER_LIST.find((item) => item.institutionCode === card.issuerId)
+    if (issuer) return issuer.accentColor
+  }
+
+  const issuerLabel = card.issuerName?.trim() || card.cardName
+  const normalizedIssuerLabel = issuerLabel.toLowerCase()
+  const issuer = CARD_ISSUER_LIST.find(
+    (item) =>
+      item.name.toLowerCase() === normalizedIssuerLabel ||
+      item.aliases.some((alias) => normalizedIssuerLabel.includes(alias.toLowerCase())),
+  )
+
+  return issuer?.accentColor ?? DEFAULT_CARD_ISSUER_ACCENT_COLOR
+}
+
+export function toHomeOwnedCard(card: HomeCardResponse): HomeOwnedCard {
   return {
     id: card.userCardId,
     name: card.cardName,
     memo: card.alias ?? '',
     imageUrl: card.cardImageUrl,
-    accentColor: CARD_ACCENT_COLORS[index % CARD_ACCENT_COLORS.length] ?? '#ff9c70',
+    accentColor: resolveHomeCardAccentColor(card),
     highlightBenefitTitle: card.highlightBenefit.title ?? '',
     receivedBenefitAmount: card.summary.receivedBenefitAmount,
     availableBenefitAmount: card.summary.availableBenefitAmount,
