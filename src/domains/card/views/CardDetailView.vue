@@ -375,7 +375,8 @@ async function confirmCardAction() {
         <div class="relative flex min-h-80 items-center justify-center px-14 pb-5 pt-4">
           <button
             type="button"
-            class="absolute left-4 flex size-12 items-center justify-center rounded-full bg-secondary text-charcoal disabled:bg-screen disabled:text-disabled"
+            class="absolute left-4 flex size-12 items-center justify-center rounded-full"
+            :class="canMovePrevious ? 'bg-accent text-primary' : 'bg-screen text-disabled'"
             aria-label="이전 카드"
             :disabled="!canMovePrevious"
             @click="moveCard(-1)"
@@ -393,7 +394,8 @@ async function confirmCardAction() {
 
           <button
             type="button"
-            class="absolute right-4 flex size-12 items-center justify-center rounded-full bg-secondary text-charcoal disabled:bg-screen disabled:text-disabled"
+            class="absolute right-4 flex size-12 items-center justify-center rounded-full"
+            :class="canMoveNext ? 'bg-accent text-primary' : 'bg-screen text-disabled'"
             aria-label="다음 카드"
             :disabled="!canMoveNext"
             @click="moveCard(1)"

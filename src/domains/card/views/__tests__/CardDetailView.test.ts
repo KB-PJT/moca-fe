@@ -227,8 +227,13 @@ describe('CardDetailView', () => {
 
   it('화살표로 다음 보유 카드의 상세 주소를 교체한다', async () => {
     const wrapper = await mountCardDetail()
+    const previousButton = wrapper.get('button[aria-label="이전 카드"]')
+    const nextButton = wrapper.get('button[aria-label="다음 카드"]')
 
-    await wrapper.get('button[aria-label="다음 카드"]').trigger('click')
+    expect(previousButton.classes()).toEqual(expect.arrayContaining(['bg-screen', 'text-disabled']))
+    expect(nextButton.classes()).toEqual(expect.arrayContaining(['bg-accent', 'text-primary']))
+
+    await nextButton.trigger('click')
 
     expect(replace).toHaveBeenCalledWith({
       name: 'card-detail',
