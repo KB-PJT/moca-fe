@@ -75,6 +75,11 @@ function returnToIssuerForm() {
   }
 }
 
+function returnToIssuerSelect() {
+  directCardConnectionStore.reset()
+  void router.replace({ name: 'card-issuer-select' })
+}
+
 async function addSelectedCards() {
   if (
     !issuerId.value ||
@@ -210,7 +215,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <CardPageLayout title="카드 등록" bg="screen" @back="returnToIssuerForm">
+  <CardPageLayout title="카드 등록" bg="screen" @back="returnToIssuerSelect">
     <template v-if="issuer">
       <section class="-mx-5 -mt-6 border-b border-divider bg-card px-5 py-4">
         <div class="flex items-start gap-2">

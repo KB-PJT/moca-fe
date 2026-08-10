@@ -35,7 +35,9 @@ vi.mock('@/domains/card/api/cardLinks', async (importOriginal) => ({
 
 const globalStubs = {
   CardPageLayout: {
-    template: '<main><slot /><footer><slot name="footer" /></footer></main>',
+    emits: ['back'],
+    template:
+      '<main><button type="button" aria-label="뒤로가기" @click="$emit(\'back\')" /><slot /><footer><slot name="footer" /></footer></main>',
   },
   MocaButton: {
     props: ['disabled'],
@@ -82,6 +84,55 @@ describe('CardIssuerCardSelectView', () => {
       supported: true,
       optionGroups: [],
     }))
+  })
+
+  it('상단 뒤로가기로 카드사 선택 화면으로 돌아간다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const directStore = useDirectCardConnectionStore()
+    directStore.beginLookup('kb-kookmin')
+    directStore.completeLookup([
+      {
+        id: 'selected-card',
+        userCardId: 'selected-card',
+        issuer: 'kb-kookmin',
+        name: 'KB 카드',
+        last4: '4710',
+      },
+    ])
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/cards/connect/select/:issuerId/cards',
+          name: 'card-issuer-card-select',
+          component: CardIssuerCardSelectView,
+        },
+        {
+          path: '/cards/connect/select/:issuerId',
+          name: 'card-issuer-connect',
+          component: { template: '<div />' },
+        },
+        {
+          path: '/cards/connect/select',
+          name: 'card-issuer-select',
+          component: { template: '<div />' },
+        },
+      ],
+    })
+    await router.push({ name: 'card-issuer-card-select', params: { issuerId: 'kb-kookmin' } })
+    await router.isReady()
+
+    const wrapper = mount(CardIssuerCardSelectView, {
+      global: { plugins: [pinia, router], stubs: globalStubs },
+    })
+
+    await wrapper.get('button[aria-label="뒤로가기"]').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('card-issuer-select')
+    expect(directStore.lookupStatus).toBe('idle')
   })
 
   it('모든 카드를 기본 선택하고 선택한 카드만 보유카드에 추가한다', async () => {
