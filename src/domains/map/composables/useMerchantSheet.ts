@@ -65,20 +65,25 @@ export function useMerchantSheet(
     touchStartY = touch.clientY
   }
 
+  const TOGGLE_THRESHOLD = 50
+  // 펼쳐진 상세 시트를 "당겨서 닫기"는 스크롤하려는 손짓과 자주 겹치는 제스처라, 실수로
+  // 닫히지 않도록 접기/펼치기 토글보다 더 크고 확실한 드래그를 요구한다.
+  const CLOSE_THRESHOLD = 120
+
   function onSheetTouchMove(event: TouchEvent) {
     if (!selectedMerchant.value) return
     const touch = event.touches[0]
     if (!touch) return
     const delta = touch.clientY - touchStartY
 
-    if (!sheet.isExpanding.value && delta < -50) {
+    if (!sheet.isExpanding.value && delta < -TOGGLE_THRESHOLD) {
       startExpand(selectedMerchant.value)
-    } else if (!sheet.isExpanding.value && delta > 50) {
+    } else if (!sheet.isExpanding.value && delta > TOGGLE_THRESHOLD) {
       startCollapse()
     } else if (
       sheet.isExpanding.value &&
       !sheet.isCollapsing.value &&
-      delta > 50 &&
+      delta > CLOSE_THRESHOLD &&
       (sheetRef.value?.scrollTop ?? 0) <= 0
     ) {
       // 콘텐츠가 스크롤된 상태에서 아래로 드래그하면 스크롤 동작으로 봐야 하므로,
