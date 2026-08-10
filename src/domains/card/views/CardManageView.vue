@@ -431,10 +431,10 @@ onMounted(() => {
                 @dragend="finishNativeCardDrag"
               >
                 <article
-                  class="overflow-hidden rounded-md bg-card shadow-card transition-shadow"
+                  class="overflow-hidden rounded-md border border-divider bg-card"
                   :class="[
                     isReordering ? 'ring-1 ring-primary/30' : '',
-                    draggingCardId === card.id ? 'scale-[0.99] opacity-60 shadow-modal' : '',
+                    draggingCardId === card.id ? 'scale-[0.99] opacity-60' : '',
                     dragTargetCardId === card.id && draggingCardId !== card.id
                       ? 'ring-2 ring-primary'
                       : '',
@@ -462,7 +462,7 @@ onMounted(() => {
                       orientation="horizontal"
                       :width="72"
                       :height="44"
-                      class="shrink-0 rounded-sm shadow-tile"
+                      class="shrink-0 rounded-sm"
                     />
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center gap-2">
@@ -520,8 +520,14 @@ onMounted(() => {
 
             <ul v-if="cardManagementStore.inactiveCards.length" class="space-y-3">
               <li v-for="card in cardManagementStore.inactiveCards" :key="card.id">
-                <article class="overflow-hidden rounded-md bg-screen shadow-card">
-                  <div class="flex min-h-20 items-center gap-4 px-4 py-4">
+                <article
+                  data-inactive-card
+                  class="overflow-hidden rounded-md border border-divider bg-screen"
+                >
+                  <div
+                    data-inactive-card-summary
+                    class="flex min-h-20 items-center gap-4 px-4 py-4 opacity-60"
+                  >
                     <CardImage
                       :src="card.imageUrl"
                       :alt="`${card.name} 카드 이미지`"
@@ -529,7 +535,7 @@ onMounted(() => {
                       orientation="horizontal"
                       :width="72"
                       :height="44"
-                      class="shrink-0 rounded-sm opacity-85 shadow-tile"
+                      class="shrink-0 rounded-sm"
                     />
                     <div class="min-w-0 flex-1">
                       <h3 class="truncate text-subheading text-charcoal">{{ card.name }}</h3>
