@@ -31,6 +31,8 @@ describe('CardIssuerSelectView', () => {
     const issuerButtons = wrapper.findAll('ul button')
 
     expect(issuerButtons).toHaveLength(9)
+    expect(issuerButtons.every((button) => !button.classes().includes('shadow-btn'))).toBe(true)
+    expect(issuerButtons.every((button) => button.classes().includes('border'))).toBe(true)
 
     await issuerButtons[0]?.trigger('click')
 

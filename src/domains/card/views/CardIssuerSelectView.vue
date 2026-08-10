@@ -25,7 +25,7 @@ function selectIssuer(issuerId: CardIssuerId) {
       <li v-for="issuer in CARD_ISSUER_SELECTION_LIST" :key="issuer.id">
         <button
           type="button"
-          class="flex h-16 w-full items-center gap-3 rounded-md border border-border bg-card px-4 text-left shadow-btn transition-colors hover:border-primary/40 active:bg-accent"
+          class="flex h-16 w-full items-center gap-3 rounded-md border border-border bg-card px-4 text-left transition-colors hover:border-primary/40 active:bg-accent"
           @click="selectIssuer(issuer.id)"
         >
           <CardIssuerIcon :issuer="issuer.id" variant="fill" />
