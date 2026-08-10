@@ -368,8 +368,15 @@ onMounted(() => {
             {{ cardsError }} 기존 목록을 표시하고 있어요.
           </p>
 
-          <section aria-labelledby="active-card-heading">
-            <div class="mb-3 flex min-h-11 items-center justify-between">
+          <section
+            data-active-card-section
+            :class="cardsError ? '' : '-mt-6'"
+            aria-labelledby="active-card-heading"
+          >
+            <div
+              data-card-management-toolbar
+              class="mb-1 flex min-h-11 items-center justify-between"
+            >
               <h1 id="active-card-heading" class="text-caption text-gray">
                 등록된 카드 {{ cardManagementStore.activeCards.length }}개
               </h1>
