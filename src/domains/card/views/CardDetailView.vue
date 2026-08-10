@@ -14,6 +14,7 @@ import {
 } from '@lucide/vue'
 import {
   fetchCardDetail,
+  type CardDetailBenefitResponse,
   type CardDetailResponse,
   updateCardMemo,
 } from '@/domains/card/api/cardDetail'
@@ -88,6 +89,27 @@ const actionDialogDescription = computed(() =>
 const actionDialogConfirmLabel = computed(() =>
   pendingAction.value === 'deactivate' ? '비활성화' : '연결 해제',
 )
+
+const REDUNDANT_NOTICE_TITLES = new Set(['유의사항', '유의 사항'])
+const REDUNDANT_NOTICE_SUMMARIES = new Set(['꼭 확인하세요', '꼭 확인하세요!'])
+
+function normalizeNoticeIntro(text: string) {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+function hasVisibleNoticeTitle(notice: CardDetailBenefitResponse) {
+  return !REDUNDANT_NOTICE_TITLES.has(normalizeNoticeIntro(notice.title))
+}
+
+function hasVisibleNoticeSummary(notice: CardDetailBenefitResponse) {
+  return Boolean(
+    notice.summary && !REDUNDANT_NOTICE_SUMMARIES.has(normalizeNoticeIntro(notice.summary)),
+  )
+}
+
+function hasVisibleNoticeIntro(notice: CardDetailBenefitResponse) {
+  return hasVisibleNoticeTitle(notice) || hasVisibleNoticeSummary(notice)
+}
 
 onClickOutside(actionMenu, () => {
   isActionMenuOpen.value = false
@@ -503,17 +525,27 @@ async function confirmCardAction() {
         <h2 id="card-notice-title" class="px-5 text-subheading text-charcoal">유의 사항</h2>
         <ul v-if="card.notices.length > 0" data-card-notices class="mt-4 bg-screen px-5 py-5">
           <li v-for="notice in card.notices" :key="notice.benefitId" class="not-last:mb-5">
-            <h3 class="text-body font-semibold text-charcoal">{{ notice.title }}</h3>
-            <p v-if="notice.summary" class="mt-1 text-caption text-gray">{{ notice.summary }}</p>
+            <h3 v-if="hasVisibleNoticeTitle(notice)" class="text-body font-semibold text-charcoal">
+              {{ notice.title }}
+            </h3>
+            <p
+              v-if="hasVisibleNoticeSummary(notice)"
+              class="text-caption text-gray"
+              :class="hasVisibleNoticeTitle(notice) ? 'mt-1' : ''"
+            >
+              {{ notice.summary }}
+            </p>
             <div
               v-if="notice.detailHtml"
               data-notice-detail-html
-              class="card-detail-html mt-2 text-caption leading-5 text-gray [&_a]:underline [&_li]:ml-5 [&_ol]:list-decimal [&_p:not(:last-child)]:mb-2 [&_strong]:font-semibold [&_ul]:list-disc"
+              class="card-detail-html text-caption leading-5 text-gray [&_a]:underline [&_li]:ml-5 [&_ol]:list-decimal [&_p:not(:last-child)]:mb-2 [&_strong]:font-semibold [&_ul]:list-disc"
+              :class="hasVisibleNoticeIntro(notice) ? 'mt-2' : ''"
               v-html="sanitizeDetailHtml(notice.detailHtml)"
             />
             <p
               v-else-if="notice.detailText"
-              class="mt-2 whitespace-pre-line text-caption leading-5 text-gray"
+              class="whitespace-pre-line text-caption leading-5 text-gray"
+              :class="hasVisibleNoticeIntro(notice) ? 'mt-2' : ''"
             >
               {{ notice.detailText }}
             </p>

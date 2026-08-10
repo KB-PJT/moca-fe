@@ -92,11 +92,11 @@ const benefits: CardDetailBenefitResponse[] = [
 const notices: CardDetailBenefitResponse[] = [
   {
     benefitId: 'notice-discount',
-    title: '할인서비스 적용 안내',
-    summary: null,
+    title: '유의사항',
+    summary: '꼭 확인하세요!',
     detailText: '할인서비스는 환급할인으로 제공됩니다.',
     detailHtml:
-      '<p>할인서비스는 <strong>환급할인</strong>으로 제공됩니다.</p><a href="javascript:alert(1)">안내</a>',
+      '<h3>할인서비스 적용 안내</h3><p>할인서비스는 <strong>환급할인</strong>으로 제공됩니다.</p><a href="javascript:alert(1)">안내</a>',
   },
 ]
 
@@ -196,6 +196,7 @@ describe('CardDetailView', () => {
     expect(wrapper.text()).toContain('스타벅스·이디야·투썸플레이스')
     expect(wrapper.get('[data-benefit-summary]').classes()).not.toContain('shrink-0')
     expect(wrapper.get('[data-card-notices] h3').text()).toBe('할인서비스 적용 안내')
+    expect(wrapper.get('[data-card-notices]').text()).not.toContain('꼭 확인하세요!')
     expect(wrapper.text()).toContain('할인서비스는 환급할인으로 제공됩니다.')
     expect(wrapper.get('[data-benefit-detail-html] strong').text()).toContain('스타벅스')
     expect(wrapper.get('[data-benefit-detail-html]').html()).not.toContain('onerror')
