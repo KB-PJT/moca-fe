@@ -25,6 +25,10 @@ export const useCardMemoStore = defineStore('cardMemo', () => {
     return memos.value[cardId] ?? ''
   }
 
+  function hasMemo(cardId: string) {
+    return Object.prototype.hasOwnProperty.call(memos.value, cardId)
+  }
+
   function setMemo(cardId: string, memo: string) {
     memos.value = {
       ...memos.value,
@@ -40,5 +44,5 @@ export const useCardMemoStore = defineStore('cardMemo', () => {
     }
   }
 
-  return { memos, getMemo, setMemo }
+  return { memos, getMemo, hasMemo, setMemo }
 })

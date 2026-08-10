@@ -185,7 +185,7 @@ function cancelMemoEditing() {
 }
 
 async function saveMemo() {
-  if (!card.value || !memoDraft.value.trim()) return
+  if (!card.value || isSavingMemo.value || !memoDraft.value.trim()) return
 
   const nextMemo = memoDraft.value.trim()
   isSavingMemo.value = true

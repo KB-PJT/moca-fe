@@ -277,6 +277,27 @@ describe('CardDetailView', () => {
     expect(useCardMemoStore().getMemo('managed-kb-wesh')).toBe('주말 카페 결제용 카드')
   })
 
+  it('메모 저장 중 단축키를 반복해도 API를 한 번만 호출한다', async () => {
+    let resolveUpdate!: (card: MyCardItemResponse) => void
+    apiMocks.updateCardMemo.mockReturnValue(
+      new Promise((resolve) => {
+        resolveUpdate = resolve
+      }),
+    )
+    const wrapper = await mountCardDetail()
+
+    await wrapper.get('button[aria-label="메모 수정"]').trigger('click')
+    const textarea = wrapper.get('textarea[aria-label="카드 메모"]')
+    await textarea.setValue('주말 카페 결제용 카드')
+    await textarea.trigger('keydown', { key: 'Enter', metaKey: true })
+    await textarea.trigger('keydown', { key: 'Enter', ctrlKey: true })
+
+    expect(apiMocks.updateCardMemo).toHaveBeenCalledOnce()
+
+    resolveUpdate({ ...myCardsResponse.activeCards[0]!, memo: '주말 카페 결제용 카드' })
+    await flushPromises()
+  })
+
   it('상세 조회에 실패하면 재시도 가능한 오류 상태를 표시한다', async () => {
     apiMocks.fetchCardDetail.mockRejectedValueOnce(new Error('network error'))
 

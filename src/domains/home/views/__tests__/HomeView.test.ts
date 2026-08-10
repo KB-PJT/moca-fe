@@ -179,6 +179,24 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-card-memo]').text()).toBe('주말 카페 결제용 카드')
   })
 
+  it('저장된 빈 메모를 서버 메모로 덮어쓰지 않는다', async () => {
+    const response = createHomeCardsResponse()
+    const firstCard = response.cards[0]
+    if (!firstCard) throw new Error('test card is required')
+
+    firstCard.userCardId = 'empty-memo-card-id'
+    firstCard.alias = '서버 메모'
+    response.selectedUserCardId = firstCard.userCardId
+    fetchHomeCards.mockResolvedValue(response)
+
+    const pinia = createPinia()
+    useCardMemoStore(pinia).setMemo(firstCard.userCardId, '')
+    const wrapper = mountView(pinia)
+    await flushPromises()
+
+    expect(wrapper.get('[data-card-memo]').text()).toBe('')
+  })
+
   it('서버 메모는 카드명이 아니라 카드 위 메모 영역에 표시한다', async () => {
     const response = createHomeCardsResponse()
     const firstCard = response.cards[0]
