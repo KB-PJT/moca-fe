@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { Eye, EyeOff, GripVertical, LoaderCircle, Plus, RotateCw, Trash2 } from '@lucide/vue'
+import {
+  ChevronDown,
+  Eye,
+  EyeOff,
+  GripVertical,
+  LoaderCircle,
+  Plus,
+  RotateCw,
+  Trash2,
+} from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { activateCardLinkCards, syncCardLinkCards } from '@/domains/card/api/cardLinks'
@@ -47,6 +56,7 @@ const isActionLoading = ref(false)
 const actionError = ref('')
 const activatingCardId = ref<string | null>(null)
 const activationError = ref('')
+const isInactiveCardsExpanded = ref(true)
 
 const activeBottomBarPath = computed(() => {
   const from = Array.isArray(route.query.from) ? route.query.from[0] : route.query.from
@@ -509,16 +519,34 @@ onMounted(() => {
             </p>
           </section>
 
-          <section class="mt-18" aria-labelledby="inactive-card-heading">
-            <h2 id="inactive-card-heading" class="mb-3 text-caption text-gray">
-              비활성화 된 카드 {{ cardManagementStore.inactiveCards.length }}개
+          <section data-inactive-card-section class="mt-8" aria-labelledby="inactive-card-heading">
+            <h2 id="inactive-card-heading" class="mb-3">
+              <button
+                type="button"
+                class="flex min-h-11 w-full items-center justify-between text-left text-caption text-gray"
+                :aria-expanded="isInactiveCardsExpanded"
+                aria-controls="inactive-card-list"
+                :aria-label="`비활성 카드 ${isInactiveCardsExpanded ? '접기' : '펼치기'}`"
+                @click="isInactiveCardsExpanded = !isInactiveCardsExpanded"
+              >
+                <span>비활성화 된 카드 {{ cardManagementStore.inactiveCards.length }}개</span>
+                <ChevronDown
+                  class="size-4 transition-transform duration-200"
+                  :class="isInactiveCardsExpanded ? 'rotate-180' : ''"
+                  aria-hidden="true"
+                />
+              </button>
             </h2>
 
             <p v-if="activationError" class="mb-3 text-caption text-rose-500" role="alert">
               {{ activationError }}
             </p>
 
-            <ul v-if="cardManagementStore.inactiveCards.length" class="space-y-3">
+            <ul
+              v-if="cardManagementStore.inactiveCards.length && isInactiveCardsExpanded"
+              id="inactive-card-list"
+              class="space-y-3"
+            >
               <li v-for="card in cardManagementStore.inactiveCards" :key="card.id">
                 <article
                   data-inactive-card
