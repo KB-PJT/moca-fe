@@ -36,6 +36,14 @@ export async function fetchMyCards(): Promise<MyCardsResponse> {
   return response.data.data
 }
 
+export async function reorderMyCards(userCardIds: string[]): Promise<MyCardsResponse> {
+  const response = await apiClient.patch<MyCardsApiResponse>('/api/v1/me/cards/order', {
+    userCardIds,
+  })
+
+  return response.data.data
+}
+
 export async function deactivateMyCard(userCardId: string): Promise<void> {
   await apiClient.patch<SuccessApiResponse>(
     `/api/v1/me/cards/${encodeURIComponent(userCardId)}/deactivate`,

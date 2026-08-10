@@ -3,10 +3,6 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import CardManageView from '@/domains/card/views/CardManageView.vue'
-import {
-  getMockManagedCardOrder,
-  resetMockManagedCardOrder,
-} from '@/domains/card/api/cardManagement.mock'
 import { MOCK_MANAGED_CARDS } from '@/domains/card/mocks/managedCards'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
@@ -15,6 +11,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchMyCards: vi.fn<() => Promise<unknown>>(),
   deactivateMyCard: vi.fn<(userCardId: string) => Promise<void>>(),
   disconnectMyCard: vi.fn<(userCardId: string) => Promise<void>>(),
+  reorderMyCards: vi.fn<(userCardIds: string[]) => Promise<unknown>>(),
   syncCardLinkCards: vi.fn<() => Promise<unknown>>(),
   activateCardLinkCards: vi.fn<() => Promise<unknown>>(),
 }))
@@ -28,6 +25,7 @@ vi.mock('@/domains/card/api/cardManagement', () => ({
   fetchMyCards: apiMocks.fetchMyCards,
   deactivateMyCard: apiMocks.deactivateMyCard,
   disconnectMyCard: apiMocks.disconnectMyCard,
+  reorderMyCards: apiMocks.reorderMyCards,
 }))
 
 function createMyCardsResponse() {
@@ -119,6 +117,8 @@ describe('CardManageView', () => {
     apiMocks.deactivateMyCard.mockResolvedValue(undefined)
     apiMocks.disconnectMyCard.mockReset()
     apiMocks.disconnectMyCard.mockResolvedValue(undefined)
+    apiMocks.reorderMyCards.mockReset()
+    apiMocks.reorderMyCards.mockResolvedValue(createMyCardsResponse())
     apiMocks.syncCardLinkCards.mockReset()
     apiMocks.syncCardLinkCards.mockResolvedValue({
       results: [
@@ -150,7 +150,6 @@ describe('CardManageView', () => {
       activatedUserCardIds: ['managed-shinhan-deep-dream'],
       activatedCount: 1,
     })
-    resetMockManagedCardOrder()
     for (const key of Object.keys(routeQuery)) delete routeQuery[key]
   })
 
@@ -395,8 +394,13 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('새로고침')
   })
 
-  it('활성 카드 순서를 변경하고 mock API에 저장한다', async () => {
-    vi.useFakeTimers()
+  it('활성 카드 전체의 변경된 순서를 API에 저장하고 응답 목록을 반영한다', async () => {
+    let resolveReorder!: (value: unknown) => void
+    apiMocks.reorderMyCards.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveReorder = resolve
+      }),
+    )
     const wrapper = await mountView()
 
     await wrapper
@@ -427,14 +431,11 @@ describe('CardManageView', () => {
       ?.trigger('click')
     expect(wrapper.text()).toContain('저장 중')
 
-    await vi.advanceTimersByTimeAsync(300)
-
-    expect(getMockManagedCardOrder()).toEqual([
+    expect(apiMocks.reorderMyCards).toHaveBeenCalledWith([
       'managed-shinhan-deep-dream',
       'managed-kb-wesh',
       'managed-hyundai-zero',
     ])
-    expect(wrapper.text()).not.toContain('카드 순서를 저장했어요.')
 
     const reorderedResponse = createMyCardsResponse()
     reorderedResponse.activeCards = [
@@ -442,13 +443,36 @@ describe('CardManageView', () => {
       reorderedResponse.activeCards[0]!,
       reorderedResponse.activeCards[2]!,
     ]
-    apiMocks.fetchMyCards.mockResolvedValueOnce(reorderedResponse)
-    await wrapper.get('button[aria-label="카드 목록 새로고침"]').trigger('click')
+    resolveReorder(reorderedResponse)
     await flushPromises()
 
     expect(
       wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
     ).toEqual(['managed-shinhan-deep-dream', 'managed-kb-wesh', 'managed-hyundai-zero'])
+    expect(wrapper.text()).not.toContain('저장 중')
+  })
+
+  it('카드 순서 저장에 실패하면 변경 전 순서로 복원한다', async () => {
+    apiMocks.reorderMyCards.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = await mountView()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '순서 변경')
+      ?.trigger('click')
+    await wrapper
+      .get('button[aria-label="신한 Deep Dream 순서 이동"]')
+      .trigger('keydown', { key: 'ArrowUp' })
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '저장')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('카드 순서를 저장하지 못했어요.')
+    expect(
+      wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
+    ).toEqual(['managed-kb-wesh', 'managed-shinhan-deep-dream', 'managed-hyundai-zero'])
   })
 
   it('카드 순서 변경을 취소하면 기존 순서로 복원한다', async () => {

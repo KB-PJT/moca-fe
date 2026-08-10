@@ -3,12 +3,13 @@ import {
   deactivateMyCard,
   disconnectMyCard,
   fetchMyCards,
+  reorderMyCards,
   type MyCardsResponse,
 } from '../cardManagement'
 
 const apiClientMocks = vi.hoisted(() => ({
   get: vi.fn<(url: string, config?: unknown) => Promise<unknown>>(),
-  patch: vi.fn<(url: string) => Promise<unknown>>(),
+  patch: vi.fn<(url: string, data?: unknown) => Promise<unknown>>(),
   delete: vi.fn<(url: string) => Promise<unknown>>(),
 }))
 
@@ -39,6 +40,20 @@ describe('cardManagement API', () => {
     await expect(deactivateMyCard('card/id')).resolves.toBeUndefined()
 
     expect(apiClientMocks.patch).toHaveBeenCalledWith('/api/v1/me/cards/card%2Fid/deactivate')
+  })
+
+  it('활성 보유 카드 전체의 표시 순서를 변경한다', async () => {
+    const responseData: MyCardsResponse = {
+      lastSyncedAt: '2026-08-07T10:30:00+09:00',
+      activeCards: [],
+      inactiveCards: [],
+    }
+    apiClientMocks.patch.mockResolvedValue({ data: { success: true, data: responseData } })
+
+    await expect(reorderMyCards(['card-2', 'card-1'])).resolves.toEqual(responseData)
+    expect(apiClientMocks.patch).toHaveBeenCalledWith('/api/v1/me/cards/order', {
+      userCardIds: ['card-2', 'card-1'],
+    })
   })
 
   it('선택한 보유 카드의 연결을 해제한다', async () => {

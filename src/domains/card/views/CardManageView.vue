@@ -3,8 +3,12 @@ import { Eye, EyeOff, GripVertical, LoaderCircle, Plus, RotateCw, Trash2 } from 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { activateCardLinkCards, syncCardLinkCards } from '@/domains/card/api/cardLinks'
-import { deactivateMyCard, disconnectMyCard, fetchMyCards } from '@/domains/card/api/cardManagement'
-import { updateManagedCardOrder } from '@/domains/card/api/cardManagement.mock'
+import {
+  deactivateMyCard,
+  disconnectMyCard,
+  fetchMyCards,
+  reorderMyCards,
+} from '@/domains/card/api/cardManagement'
 import { CARD_ISSUER_LIST } from '@/domains/card/constants/cardIssuers'
 import { type ManagedCard, useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
@@ -112,7 +116,8 @@ async function saveCardOrder() {
 
   try {
     const cardIds = cardManagementStore.activeCards.map((card) => card.id)
-    await updateManagedCardOrder(cardIds)
+    const response = await reorderMyCards(cardIds)
+    cardManagementStore.setCards(response)
     draggingCardId.value = null
     dragTargetCardId.value = null
     orderSnapshot.value = []
