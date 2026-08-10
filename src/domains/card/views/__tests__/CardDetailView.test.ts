@@ -353,7 +353,10 @@ describe('CardDetailView', () => {
   it('메모를 수정하면 API와 카드별 메모 상태를 갱신한다', async () => {
     const wrapper = await mountCardDetail()
 
-    await wrapper.get('button[aria-label="메모 수정"]').trigger('click')
+    const editMemoButton = wrapper.get('button[aria-label="메모 수정"]')
+    expect(editMemoButton.classes()).toContain('bg-screen')
+
+    await editMemoButton.trigger('click')
     await wrapper.get('textarea[aria-label="카드 메모"]').setValue('주말 카페 결제용 카드')
     await wrapper
       .findAll('button')

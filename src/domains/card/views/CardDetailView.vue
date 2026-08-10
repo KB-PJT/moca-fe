@@ -428,7 +428,7 @@ async function confirmCardAction() {
           <button
             v-else
             type="button"
-            class="flex size-9 items-center justify-center rounded-full bg-[#F2EDFF] text-primary"
+            class="flex size-9 items-center justify-center rounded-full bg-screen text-primary"
             aria-label="메모 수정"
             @click="startMemoEditing"
           >
