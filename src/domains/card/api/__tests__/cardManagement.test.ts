@@ -42,6 +42,12 @@ describe('cardManagement API', () => {
     expect(apiClientMocks.patch).toHaveBeenCalledWith('/api/v1/me/cards/card%2Fid/deactivate')
   })
 
+  it('카드 비활성화 응답 본문이 실패이면 예외를 발생시킨다', async () => {
+    apiClientMocks.patch.mockResolvedValue({ data: { success: true, data: { success: false } } })
+
+    await expect(deactivateMyCard('card-id')).rejects.toThrow('CARD_DEACTIVATION_FAILED')
+  })
+
   it('활성 보유 카드 전체의 표시 순서를 변경한다', async () => {
     const responseData: MyCardsResponse = {
       lastSyncedAt: '2026-08-07T10:30:00+09:00',
@@ -62,5 +68,11 @@ describe('cardManagement API', () => {
     await expect(disconnectMyCard('card/id')).resolves.toBeUndefined()
 
     expect(apiClientMocks.delete).toHaveBeenCalledWith('/api/v1/me/cards/card%2Fid')
+  })
+
+  it('카드 연결 해제 응답 본문이 실패이면 예외를 발생시킨다', async () => {
+    apiClientMocks.delete.mockResolvedValue({ data: { success: true, data: { success: false } } })
+
+    await expect(disconnectMyCard('card-id')).rejects.toThrow('CARD_DISCONNECTION_FAILED')
   })
 })

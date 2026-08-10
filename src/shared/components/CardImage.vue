@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const displayedSrc = ref(defaultCardImageUrl)
-const sourceOrientation = ref<'vertical' | 'horizontal' | null>(null)
+const sourceOrientation = ref<'vertical' | 'horizontal' | 'square' | null>(null)
 const presetSize = computed(() => (props.small ? SMALL_CARD_SIZE : LARGE_CARD_SIZE))
 const resolvedWidth = computed(() => {
   if (props.width !== undefined) return normalizeSize(props.width)
@@ -42,7 +42,7 @@ const frameStyle = computed(() => ({
 }))
 const shouldRotate = computed(() => {
   if (!sourceOrientation.value) return props.orientation === 'horizontal'
-  return sourceOrientation.value !== props.orientation
+  return sourceOrientation.value !== 'square' && sourceOrientation.value !== props.orientation
 })
 const imageStyle = computed(() => {
   if (shouldRotate.value) {
@@ -82,6 +82,14 @@ function useDefaultImage() {
 
 function detectSourceOrientation(event: Event) {
   const image = event.currentTarget as HTMLImageElement
+  if (image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+    sourceOrientation.value = null
+    return
+  }
+  if (image.naturalWidth === image.naturalHeight) {
+    sourceOrientation.value = 'square'
+    return
+  }
   sourceOrientation.value = image.naturalWidth > image.naturalHeight ? 'horizontal' : 'vertical'
 }
 </script>

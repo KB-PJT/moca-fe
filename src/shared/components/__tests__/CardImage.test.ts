@@ -98,4 +98,44 @@ describe('CardImage', () => {
     expect(image.attributes('style')).toContain('height: 100%')
     expect(image.attributes('style')).not.toContain('transform')
   })
+
+  it('가로 프레임의 정사각형 원본은 회전하지 않는다', async () => {
+    const wrapper = mount(CardImage, {
+      props: {
+        src: 'https://example.com/square-card.png',
+        small: true,
+        orientation: 'horizontal',
+      },
+    })
+    const image = wrapper.get('img')
+    Object.defineProperties(image.element, {
+      naturalWidth: { configurable: true, value: 200 },
+      naturalHeight: { configurable: true, value: 200 },
+    })
+
+    await image.trigger('load')
+
+    expect(image.attributes('style')).toContain('width: 100%')
+    expect(image.attributes('style')).toContain('height: 100%')
+    expect(image.attributes('style')).not.toContain('transform')
+  })
+
+  it('원본 크기를 확인할 수 없으면 방향 미확인 상태를 유지한다', async () => {
+    const wrapper = mount(CardImage, {
+      props: {
+        src: 'https://example.com/unloaded-card.png',
+        small: true,
+        orientation: 'horizontal',
+      },
+    })
+    const image = wrapper.get('img')
+    Object.defineProperties(image.element, {
+      naturalWidth: { configurable: true, value: 0 },
+      naturalHeight: { configurable: true, value: 0 },
+    })
+
+    await image.trigger('load')
+
+    expect(image.attributes('style')).toContain('transform: rotate(90deg)')
+  })
 })
