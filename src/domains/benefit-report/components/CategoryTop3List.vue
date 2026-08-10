@@ -34,7 +34,7 @@ const rest = computed(() => props.items.filter((item) => item.rank !== 1))
 
     <div
       v-if="first"
-      class="mt-3 flex items-center gap-3 rounded-lg border border-primary/30 bg-card p-4 shadow-card"
+      class="mt-3 flex items-center gap-3 rounded-lg border border-primary/30 bg-card p-4"
     >
       <span
         class="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-primary"
@@ -60,7 +60,7 @@ const rest = computed(() => props.items.filter((item) => item.rank !== 1))
       <div
         v-for="item in rest"
         :key="item.rank"
-        class="rounded-lg border border-divider bg-card p-3 shadow-card"
+        class="rounded-lg border border-divider bg-card p-3"
       >
         <div class="flex items-center justify-between">
           <span class="flex size-8 items-center justify-center rounded-full bg-accent text-primary">

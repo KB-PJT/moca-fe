@@ -75,7 +75,7 @@ function goToNextMonth() {
       <button
         type="button"
         class="flex-1 rounded-full py-2 text-caption font-semibold"
-        :class="activeTab === 'benefit' ? 'bg-white text-primary shadow-card' : 'text-gray'"
+        :class="activeTab === 'benefit' ? 'bg-white text-primary' : 'text-gray'"
         @click="activeTab = 'benefit'"
       >
         혜택
@@ -83,7 +83,7 @@ function goToNextMonth() {
       <button
         type="button"
         class="flex-1 rounded-full py-2 text-caption font-semibold"
-        :class="activeTab === 'performance' ? 'bg-white text-primary shadow-card' : 'text-gray'"
+        :class="activeTab === 'performance' ? 'bg-white text-primary' : 'text-gray'"
         @click="activeTab = 'performance'"
       >
         실적

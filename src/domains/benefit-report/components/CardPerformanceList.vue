@@ -66,7 +66,7 @@ function tier1MarkerPercent(card: CardPerformance): number {
     <div
       v-for="(card, index) in cards"
       :key="card.cardId"
-      class="rounded-lg border border-divider bg-card p-3 shadow-card"
+      class="rounded-lg border border-divider bg-card p-3"
       :style="{ transitionDelay: `${index * 70}ms` }"
     >
       <div class="flex items-center gap-3">
