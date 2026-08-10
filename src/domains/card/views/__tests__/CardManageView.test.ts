@@ -169,6 +169,30 @@ describe('CardManageView', () => {
     expect(wrapper.text()).toContain('현대 Zero Edition')
     expect(wrapper.text()).toContain('신한카드 · 123456******8847')
     expect(wrapper.text()).toContain('KB국민카드 · 123456******4321')
+    expect(wrapper.get('[data-active-card-section]').classes()).toContain('-mt-6')
+    expect(wrapper.get('[data-card-management-toolbar]').classes()).toContain('mb-1')
+    expect(wrapper.get('[data-inactive-card-section]').classes()).toContain('mt-8')
+    expect(wrapper.get('[data-inactive-card-summary]').classes()).toContain('opacity-60')
+    expect(wrapper.get('[data-inactive-card]').classes()).not.toContain('opacity-60')
+  })
+
+  it('비활성 카드 목록을 접고 다시 펼친다', async () => {
+    const wrapper = await mountView()
+    const toggle = wrapper.get('button[aria-label="비활성 카드 접기"]')
+
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('[data-inactive-card]').exists()).toBe(true)
+
+    await toggle.trigger('click')
+
+    expect(wrapper.find('[data-inactive-card]').exists()).toBe(false)
+    expect(wrapper.get('button[aria-label="비활성 카드 펼치기"]').attributes('aria-expanded')).toBe(
+      'false',
+    )
+
+    await wrapper.get('button[aria-label="비활성 카드 펼치기"]').trigger('click')
+
+    expect(wrapper.find('[data-inactive-card]').exists()).toBe(true)
   })
 
   it('상세 화면의 로컬 변경 후 진입하면 목록을 한 번 보존한다', async () => {
