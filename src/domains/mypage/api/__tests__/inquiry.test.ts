@@ -33,4 +33,17 @@ describe('createInquiry', () => {
     await expect(createInquiry(request)).resolves.toEqual(responseData)
     expect(apiClient.post).toHaveBeenCalledWith('/api/v1/support/inquiries', request)
   })
+
+  it('문의 등록 요청이 실패하면 오류를 그대로 전달한다', async () => {
+    const request: CreateInquiryRequest = {
+      inquiryType: 'card_link',
+      title: '카드 연동이 안 돼요',
+      content: '인증번호 입력 화면에서 계속 실패합니다.',
+      replyEmail: 'kakao_jimin@kakao.com',
+    }
+    const apiError = new Error('request failed')
+    vi.mocked(apiClient.post).mockRejectedValue(apiError)
+
+    await expect(createInquiry(request)).rejects.toBe(apiError)
+  })
 })

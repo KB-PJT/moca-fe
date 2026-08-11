@@ -38,6 +38,8 @@ const title = ref('')
 const content = ref('')
 const email = ref(authStore.user?.email ?? '')
 const isSubmitting = ref(false)
+const isRouting = ref(false)
+const isSubmitted = ref(false)
 const submitError = ref('')
 
 const normalizedTitle = computed(() => title.value.trim())
@@ -48,6 +50,7 @@ const isEmailValid = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized
 const isSubmitDisabled = computed(
   () =>
     isSubmitting.value ||
+    isSubmitted.value ||
     !selectedCategory.value ||
     !normalizedTitle.value ||
     normalizedTitle.value.length > 100 ||
@@ -58,6 +61,24 @@ const isSubmitDisabled = computed(
 
 function selectCategory(category: InquiryCategory) {
   selectedCategory.value = category
+}
+
+async function goToMypage() {
+  if (isRouting.value) return
+
+  isRouting.value = true
+  submitError.value = ''
+
+  try {
+    await router.push({
+      name: 'mypage',
+      state: { inquirySubmitted: true },
+    })
+  } catch {
+    submitError.value = '문의는 접수되었지만 마이페이지로 이동하지 못했습니다. 다시 이동해주세요.'
+  } finally {
+    isRouting.value = false
+  }
 }
 
 async function submitInquiry() {
@@ -74,10 +95,7 @@ async function submitInquiry() {
       replyEmail: normalizedEmail.value,
     })
 
-    await router.push({
-      name: 'mypage',
-      state: { inquirySubmitted: true },
-    })
+    isSubmitted.value = true
   } catch (error) {
     if (axios.isAxiosError<InquiryErrorApiResponse>(error)) {
       const errorCode = error.response?.data?.error?.code
@@ -94,9 +112,12 @@ async function submitInquiry() {
     }
 
     submitError.value = '문의 접수에 실패했습니다. 잠시 후 다시 시도해주세요.'
+    return
   } finally {
     isSubmitting.value = false
   }
+
+  await goToMypage()
 }
 </script>
 
@@ -178,6 +199,18 @@ async function submitInquiry() {
 
     <template #footer>
       <MocaButton
+        v-if="isSubmitted"
+        data-testid="mypage-navigation-retry"
+        type="button"
+        block
+        :disabled="isRouting"
+        class="h-13 rounded-md font-bold disabled:bg-primary! disabled:opacity-35!"
+        @click="goToMypage"
+      >
+        {{ isRouting ? '이동 중...' : '마이페이지로 이동' }}
+      </MocaButton>
+      <MocaButton
+        v-else
         form="inquiry-form"
         type="submit"
         block
