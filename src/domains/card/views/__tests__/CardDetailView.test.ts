@@ -197,6 +197,8 @@ describe('CardDetailView', () => {
     expect(wrapper.text()).toContain('스타벅스, 폴바셋 10% 할인')
     expect(wrapper.text()).toContain('스타벅스·이디야·투썸플레이스')
     expect(wrapper.get('[data-benefit-summary]').classes()).not.toContain('shrink-0')
+    expect(wrapper.findAll('[data-benefit-header]')[0]?.classes()).toContain('sticky')
+    expect(wrapper.findAll('[data-benefit-header]')[1]?.classes()).not.toContain('sticky')
     expect(wrapper.get('[data-card-notices] h3').text()).toBe('할인서비스 적용 안내')
     expect(wrapper.get('[data-card-notices]').text()).not.toContain('꼭 확인하세요!')
     expect(wrapper.text()).toContain('할인서비스는 환급할인으로 제공됩니다.')
@@ -218,6 +220,24 @@ describe('CardDetailView', () => {
     expect(apiMocks.fetchCardDetail).toHaveBeenCalledWith('managed-shinhan-mrlife')
     expect(wrapper.text()).toContain('신한카드 Mr.Life')
     expect(wrapper.text()).toContain('신한카드 · 123456******8847')
+  })
+
+  it('고정된 혜택을 닫아도 해당 헤더 위치를 유지한다', async () => {
+    const wrapper = await mountCardDetail()
+    const scrollContainer = wrapper.get('main').element
+    const benefitHeader = wrapper.findAll('[data-benefit-header]')[0]!.element
+
+    scrollContainer.scrollTop = 500
+    vi.spyOn(scrollContainer, 'getBoundingClientRect').mockReturnValue({ top: 0 } as DOMRect)
+    vi.spyOn(benefitHeader, 'getBoundingClientRect')
+      .mockReturnValueOnce({ top: 0 } as DOMRect)
+      .mockReturnValueOnce({ top: -400 } as DOMRect)
+
+    await wrapper.findAll('[data-benefit-header]')[0]!.trigger('click')
+    await flushPromises()
+
+    expect(scrollContainer.scrollTop).toBe(100)
+    expect(wrapper.findAll('[data-benefit-header]')[0]!.attributes('aria-expanded')).toBe('false')
   })
 
   it('상단 뒤로가기를 누르면 홈 화면으로 이동한다', async () => {

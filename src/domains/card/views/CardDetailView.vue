@@ -86,6 +86,7 @@ const isSavingMemo = ref(false)
 const memoError = ref('')
 const memoDraft = ref('')
 const expandedBenefitIds = ref<Set<string>>(new Set())
+const detailScrollContainer = ref<HTMLElement | null>(null)
 const actionMenu = ref<HTMLElement | null>(null)
 const isActionMenuOpen = ref(false)
 const isActionDialogOpen = ref(false)
@@ -260,13 +261,29 @@ async function saveMemo() {
   }
 }
 
-function toggleBenefit(benefitId: string) {
+async function toggleBenefit(benefitId: string, event: MouseEvent) {
   const nextExpandedIds = new Set(expandedBenefitIds.value)
+  const isCollapsing = nextExpandedIds.has(benefitId)
+  const benefitHeader = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
+  const scrollContainer = detailScrollContainer.value
+  const isPinned =
+    isCollapsing &&
+    benefitHeader !== null &&
+    scrollContainer !== null &&
+    Math.abs(
+      benefitHeader.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top,
+    ) <= 2
 
-  if (nextExpandedIds.has(benefitId)) nextExpandedIds.delete(benefitId)
+  if (isCollapsing) nextExpandedIds.delete(benefitId)
   else nextExpandedIds.add(benefitId)
 
   expandedBenefitIds.value = nextExpandedIds
+
+  if (!isPinned || !benefitHeader || !scrollContainer) return
+
+  await nextTick()
+  scrollContainer.scrollTop +=
+    benefitHeader.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top
 }
 
 function requestCardAction(action: CardAction) {
@@ -391,7 +408,7 @@ async function confirmCardAction() {
       <Skeleton class="mt-4 h-44 w-full" />
     </main>
 
-    <main v-else-if="card" class="min-h-0 flex-1 overflow-y-auto">
+    <main v-else-if="card" ref="detailScrollContainer" class="min-h-0 flex-1 overflow-y-auto">
       <section class="border-b border-divider" aria-label="카드 이미지">
         <div class="mt-4 flex h-2 items-center justify-center gap-2">
           <span
@@ -490,10 +507,12 @@ async function confirmCardAction() {
           <li v-for="benefit in card.benefits" :key="benefit.benefitId">
             <button
               type="button"
-              class="flex w-full items-center gap-3 px-5 py-3 text-left"
+              data-benefit-header
+              class="flex w-full items-center gap-3 bg-card px-5 py-3 text-left"
+              :class="expandedBenefitIds.has(benefit.benefitId) ? 'sticky top-0 z-10' : ''"
               :aria-expanded="expandedBenefitIds.has(benefit.benefitId)"
               :aria-controls="`benefit-description-${benefit.benefitId}`"
-              @click="toggleBenefit(benefit.benefitId)"
+              @click="toggleBenefit(benefit.benefitId, $event)"
             >
               <span
                 class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
