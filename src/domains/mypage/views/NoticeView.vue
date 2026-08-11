@@ -108,15 +108,13 @@ function toggleNotice(id: number) {
 
       <div
         class="scrollbar-hide mx-5 mt-4 flex gap-2 overflow-x-auto pb-1"
-        role="tablist"
         aria-label="공지사항 카테고리"
       >
         <button
           v-for="category in categories"
           :key="category"
           type="button"
-          role="tab"
-          :aria-selected="selectedCategory === category"
+          :aria-pressed="selectedCategory === category"
           class="text-caption shrink-0 rounded-full px-3.5 py-1.5 font-bold transition-colors"
           :class="
             selectedCategory === category ? 'bg-primary text-white' : 'bg-divider text-[#8C7F74]'
