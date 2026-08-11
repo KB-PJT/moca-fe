@@ -191,7 +191,7 @@ watch(
         :key="renderedCard.virtualIndex"
         data-owned-card
         :data-card-index="renderedCard.cardIndex"
-        class="absolute top-4 left-1/2 w-[184px] transform-gpu transition-[transform,opacity] will-change-transform [backface-visibility:hidden]"
+        class="absolute top-4 left-1/2 w-[184px] transform-gpu transition-[transform,opacity] will-change-transform"
         :class="[
           renderedCard.virtualIndex === virtualActiveIndex ? '' : 'cursor-pointer',
           isDragging
@@ -212,17 +212,18 @@ watch(
         @keydown.enter.prevent="selectVirtualCard(renderedCard.virtualIndex)"
         @keydown.space.prevent="selectVirtualCard(renderedCard.virtualIndex)"
       >
+        <span
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-x-0 top-0.5 h-[292px] rounded-lg ring-1 ring-primary/15 shadow-[0_0_10px_3px_rgba(255,136,54,0.24)] transition-opacity duration-300"
+          :class="renderedCard.virtualIndex === virtualActiveIndex ? 'opacity-100' : 'opacity-0'"
+        />
+
         <CardImage
           :src="renderedCard.card.imageUrl"
           :alt="`${renderedCard.card.name} 카드 이미지`"
           :width="CARD_WIDTH"
           :height="CARD_HEIGHT"
-          class="rounded-lg transition-[filter,box-shadow] duration-500 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
-          :class="
-            renderedCard.virtualIndex === virtualActiveIndex
-              ? 'drop-shadow-[0_0_8px_rgba(255,136,54,0.32)]'
-              : 'shadow-card'
-          "
+          class="rounded-lg shadow-card"
         />
 
         <Transition
