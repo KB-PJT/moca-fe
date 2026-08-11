@@ -236,6 +236,13 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
   })
 
+  it('카드 캐러셀을 드래그하는 동안 페이지 스크롤을 막는다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-card-carousel]').classes()).toContain('touch-none')
+  })
+
   it('카드가 두 장이면 첫 카드와 마지막 카드에서 순환하지 않는다', async () => {
     const response = createHomeCardsResponse()
     response.cards = response.cards.slice(0, 2)

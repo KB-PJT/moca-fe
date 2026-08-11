@@ -174,7 +174,7 @@ watch(
   <div
     ref="viewport"
     data-card-carousel
-    class="touch-pan-y relative h-[328px] cursor-grab overflow-hidden select-none active:cursor-grabbing"
+    class="touch-none relative h-[328px] cursor-grab overflow-hidden select-none active:cursor-grabbing"
     aria-label="보유 카드 목록"
     @pointerdown="startDrag"
     @pointermove="moveDrag"
