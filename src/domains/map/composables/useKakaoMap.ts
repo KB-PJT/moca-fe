@@ -25,6 +25,7 @@ export function useKakaoMap(
   const markerByPlaceId = new Map<string, any>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let selectedMarker: any = null
+  let selectedPlaceId: string | null = null
   let selectedMerchantCategory: string | null = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentLocationMarker: any = null
@@ -40,13 +41,20 @@ export function useKakaoMap(
     markerByPlaceId.clear()
 
     const markers = merchants.map((merchant) => {
+      // 재렌더링 전에 선택돼 있던 가맹점이면, 새로 만드는 마커도 선택 상태(핀 모양)를 유지한다.
+      const isSelected = merchant.placeId === selectedPlaceId
       const marker = new window.kakao.maps.Marker({
         position: new window.kakao.maps.LatLng(merchant.latitude, merchant.longitude),
-        image: dotMarkerImage(merchant.category),
+        image: isSelected ? pinMarkerImage(merchant.category) : dotMarkerImage(merchant.category),
       })
 
       markerByPlaceId.set(merchant.placeId, marker)
       window.kakao.maps.event.addListener(marker, 'click', () => onMarkerClick(merchant))
+
+      if (isSelected) {
+        selectedMarker = marker
+        selectedMerchantCategory = merchant.category
+      }
 
       return marker
     })
@@ -57,6 +65,13 @@ export function useKakaoMap(
       averageCenter: true,
       minLevel: 5,
     })
+
+    // 선택돼 있던 가맹점이 새 목록에 더 이상 없으면 선택 상태를 함께 정리한다.
+    if (selectedPlaceId && !markerByPlaceId.has(selectedPlaceId)) {
+      selectedMarker = null
+      selectedPlaceId = null
+      selectedMerchantCategory = null
+    }
   }
 
   function selectMarker(merchant: Merchant) {
@@ -69,6 +84,7 @@ export function useKakaoMap(
 
     marker.setImage(pinMarkerImage(merchant.category))
     selectedMarker = marker
+    selectedPlaceId = merchant.placeId
     selectedMerchantCategory = merchant.category
     return true
   }
@@ -79,6 +95,7 @@ export function useKakaoMap(
       selectedMarker.setImage(dotMarkerImage(selectedMerchantCategory))
     }
     selectedMarker = null
+    selectedPlaceId = null
     selectedMerchantCategory = null
   }
 
