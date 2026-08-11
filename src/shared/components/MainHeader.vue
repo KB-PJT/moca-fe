@@ -14,7 +14,7 @@ withDefaults(defineProps<Props>(), {
   >
     <div class="flex min-h-(--app-bar-height) items-center px-5 py-2">
       <slot>
-        <h1 class="text-heading text-charcoal">{{ title }}</h1>
+        <h1 class="text-subheading text-charcoal">{{ title }}</h1>
       </slot>
     </div>
   </header>
