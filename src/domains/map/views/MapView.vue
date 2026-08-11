@@ -37,7 +37,12 @@ const {
   handleLaterLocation,
 } = useLocationPermission(isMapReady)
 
-const { data: categories } = useQuery({
+const {
+  data: categories,
+  isPending: isCategoriesPending,
+  isError: isCategoriesError,
+  refetch: refetchCategories,
+} = useQuery({
   queryKey: ['merchants', 'categories'],
   queryFn: fetchMerchantCategories,
 })
@@ -56,7 +61,11 @@ const activeCategoryName = computed(
       ?.categoryName ?? '',
 )
 
-const { data: nearbyMerchants } = useQuery({
+const {
+  data: nearbyMerchants,
+  isError: isNearbyError,
+  refetch: refetchNearby,
+} = useQuery({
   queryKey: ['merchants', 'nearby', activeCategoryId, currentLocation],
   queryFn: () =>
     fetchNearbyMerchants({
@@ -116,7 +125,9 @@ watch(currentLocation, (coordinates) => {
 
     <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
-      :class="viewMode === 'list' ? 'bg-card' : !isScreenReady && 'bg-screen'"
+      :class="
+        viewMode === 'list' ? 'bg-card' : (!isScreenReady || isCategoriesPending) && 'bg-screen'
+      "
     >
       <div class="pointer-events-auto flex items-center gap-2 p-4 pb-0">
         <div class="bg-card shadow-float flex flex-1 items-center gap-2 rounded-md px-3">
@@ -140,7 +151,7 @@ watch(currentLocation, (coordinates) => {
       </div>
 
       <div
-        v-if="!isScreenReady"
+        v-if="!isScreenReady || isCategoriesPending || isCategoriesError"
         class="pointer-events-auto flex flex-1 flex-col items-center justify-center gap-2"
       >
         <template v-if="mapLoadError">
@@ -153,9 +164,21 @@ watch(currentLocation, (coordinates) => {
             다시 시도
           </button>
         </template>
+        <template v-else-if="isScreenReady && isCategoriesError">
+          <p class="text-caption text-gray">카테고리를 불러오지 못했어요.</p>
+          <button
+            type="button"
+            class="text-caption bg-primary rounded-full px-4 py-1.5 text-white"
+            @click="() => refetchCategories()"
+          >
+            다시 시도
+          </button>
+        </template>
         <template v-else>
           <LoaderCircle class="text-primary size-6 animate-spin" />
-          <p class="text-caption text-gray">지도를 불러오는 중...</p>
+          <p class="text-caption text-gray">
+            {{ isScreenReady ? '카테고리를 불러오는 중...' : '지도를 불러오는 중...' }}
+          </p>
         </template>
       </div>
 
@@ -172,9 +195,24 @@ watch(currentLocation, (coordinates) => {
                   ? 'bg-primary text-white'
                   : 'bg-card text-charcoal'
               "
+              :aria-pressed="activeCategoryId === category.categoryId"
               @click="activeCategoryId = category.categoryId"
             >
               {{ category.categoryName }}
+            </button>
+          </div>
+
+          <div
+            v-if="isNearbyError"
+            class="shadow-float flex items-center justify-between gap-2 rounded-md bg-card px-3 py-2"
+          >
+            <p class="text-caption text-gray">가맹점 정보를 불러오지 못했어요.</p>
+            <button
+              type="button"
+              class="text-caption text-primary font-semibold"
+              @click="() => refetchNearby()"
+            >
+              다시 시도
             </button>
           </div>
         </div>
