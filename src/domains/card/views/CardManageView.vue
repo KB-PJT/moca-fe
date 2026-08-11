@@ -65,6 +65,7 @@ const activeBottomBarPath = computed(() => {
   if (from === 'mypage') return '/mypage'
   return undefined
 })
+const isActivationRequired = computed(() => route.query.required === 'activate')
 const actionDialogTitle = computed(() => {
   if (!pendingAction.value) return ''
 
@@ -220,6 +221,10 @@ function addCard() {
   void router.push({ name: 'card-connect' })
 }
 
+function openAccountSupport() {
+  void router.push({ name: 'mypage' })
+}
+
 function requestCardAction(type: CardManagementAction, cardId: string, cardName: string) {
   pendingAction.value = { type, cardId, cardName }
   actionError.value = ''
@@ -265,6 +270,7 @@ async function activateCard(card: ManagedCard) {
 
     await activateCardLinkCards(result.linkId, { activeUserCardIds: [card.id] })
     cardManagementStore.setCardActive(card.id, true)
+    if (isActivationRequired.value) await router.replace({ name: 'home' })
   } catch {
     activationError.value = '카드를 활성화하지 못했어요. 다시 시도해 주세요.'
   } finally {
@@ -318,7 +324,20 @@ async function confirmCardAction() {
     isActionLoading.value = false
   }
 
-  if (succeeded) closeActionDialog()
+  if (!succeeded) return
+
+  closeActionDialog()
+
+  if (cardManagementStore.activeCards.length > 0) return
+
+  if (cardManagementStore.cards.length === 0) {
+    await router.replace({ name: 'card-connect', query: { required: 'true' } })
+    return
+  }
+
+  if (!isActivationRequired.value) {
+    await router.replace({ name: 'card-manage', query: { required: 'activate' } })
+  }
 }
 
 onBeforeUnmount(() => {
@@ -339,7 +358,21 @@ onMounted(() => {
 <template>
   <div class="flex h-full min-h-0 flex-col bg-background">
     <div class="min-h-0 flex-1">
-      <PageLayout title="내 카드 관리" has-bottom-bar>
+      <PageLayout
+        title="내 카드 관리"
+        :show-back="!isActivationRequired"
+        :has-bottom-bar="!isActivationRequired"
+      >
+        <section
+          v-if="isActivationRequired"
+          data-activation-required
+          class="mb-6 rounded-md bg-primary/8 px-4 py-4"
+        >
+          <h1 class="text-body font-semibold text-charcoal">카드를 다시 활성화해 주세요</h1>
+          <p class="mt-1 text-caption leading-5 text-gray">
+            활성 카드가 있어야 MOCA의 혜택과 추천 서비스를 이용할 수 있어요.
+          </p>
+        </section>
         <div
           v-if="isCardsLoading"
           data-managed-cards-loading
@@ -623,11 +656,19 @@ onMounted(() => {
             <Plus class="size-5" aria-hidden="true" />
             카드 추가하기
           </MocaButton>
+          <button
+            v-if="isActivationRequired"
+            type="button"
+            class="mx-auto mt-2 flex min-h-11 items-center px-4 text-caption font-medium text-gray underline underline-offset-4"
+            @click="openAccountSupport"
+          >
+            계정 및 고객지원
+          </button>
         </template>
       </PageLayout>
     </div>
 
-    <BottomBar :active-path="activeBottomBarPath" />
+    <BottomBar v-if="!isActivationRequired" :active-path="activeBottomBarPath" />
 
     <ConfirmDialog
       v-if="pendingAction"

@@ -47,16 +47,20 @@ function createMyCardsResponse() {
 }
 
 const push = vi.fn<(location: { name: string; params?: Record<string, string> }) => void>()
+const replace =
+  vi.fn<(location: { name: string; query?: Record<string, string> }) => Promise<void>>()
 const routeQuery: Record<string, string | string[] | undefined> = {}
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: routeQuery }),
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace }),
 }))
 
 const globalStubs = {
   PageLayout: {
-    template: '<main><slot /><footer><slot name="footer" /></footer></main>',
+    props: ['showBack', 'hasBottomBar'],
+    template:
+      '<main :data-show-back="showBack" :data-has-bottom-bar="hasBottomBar"><slot /><footer><slot name="footer" /></footer></main>',
   },
   BottomBar: {
     props: ['activePath'],
@@ -113,6 +117,8 @@ async function mountView() {
 describe('CardManageView', () => {
   beforeEach(() => {
     push.mockClear()
+    replace.mockReset()
+    replace.mockResolvedValue(undefined)
     apiMocks.fetchMyCards.mockReset()
     apiMocks.fetchMyCards.mockResolvedValue(createMyCardsResponse())
     apiMocks.deactivateMyCard.mockReset()
@@ -546,6 +552,75 @@ describe('CardManageView', () => {
     const wrapper = await mountView()
 
     expect(wrapper.get('nav').attributes('data-active-path')).toBeUndefined()
+  })
+
+  it('비활성 카드만 있으면 재활성화 안내와 계정 및 고객지원 동선을 표시한다', async () => {
+    const response = createMyCardsResponse()
+    response.inactiveCards = [...response.activeCards, ...response.inactiveCards]
+    response.activeCards = []
+    apiMocks.fetchMyCards.mockResolvedValue(response)
+    routeQuery.required = 'activate'
+
+    const wrapper = await mountView()
+
+    expect(wrapper.text()).toContain('카드를 다시 활성화해 주세요')
+    expect(wrapper.get('main').attributes('data-show-back')).toBe('false')
+    expect(wrapper.find('nav').exists()).toBe(false)
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '계정 및 고객지원')
+      ?.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'mypage' })
+  })
+
+  it('재활성화 모드에서 카드를 활성화하면 홈으로 이동한다', async () => {
+    const response = createMyCardsResponse()
+    response.inactiveCards = [...response.activeCards, ...response.inactiveCards]
+    response.activeCards = []
+    apiMocks.fetchMyCards.mockResolvedValue(response)
+    routeQuery.required = 'activate'
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="신한 Deep Dream 활성화"]').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({ name: 'home' })
+  })
+
+  it('마지막 활성 카드를 비활성화하면 재활성화 모드로 전환한다', async () => {
+    const response = createMyCardsResponse()
+    response.activeCards = response.activeCards.slice(0, 1)
+    response.inactiveCards = []
+    apiMocks.fetchMyCards.mockResolvedValue(response)
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="KB My WE:SH 비활성화"]').trigger('click')
+    await wrapper.get('button[aria-label="비활성화 확인"]').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({
+      name: 'card-manage',
+      query: { required: 'activate' },
+    })
+  })
+
+  it('마지막 카드 연결을 해제하면 강제 카드 연동 화면으로 이동한다', async () => {
+    const response = createMyCardsResponse()
+    response.activeCards = response.activeCards.slice(0, 1)
+    response.inactiveCards = []
+    apiMocks.fetchMyCards.mockResolvedValue(response)
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="KB My WE:SH 연결 해제"]').trigger('click')
+    await wrapper.get('button[aria-label="연결 해제 확인"]').trigger('click')
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({
+      name: 'card-connect',
+      query: { required: 'true' },
+    })
   })
 
   it('실제 확인 다이얼로그에서 확인하면 선택한 카드 액션을 실행한다', async () => {

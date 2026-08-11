@@ -4,6 +4,7 @@ import {
   disconnectMyCard,
   fetchMyCards,
   reorderMyCards,
+  resolveCardAccessState,
   type MyCardsResponse,
 } from '../cardManagement'
 
@@ -30,8 +31,30 @@ describe('cardManagement API', () => {
 
     await expect(fetchMyCards()).resolves.toEqual(responseData)
     expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/me/cards', {
-      params: { includeInactive: false },
+      params: { includeInactive: true },
     })
+  })
+
+  it('활성·비활성 카드 목록으로 접근 상태를 판별한다', () => {
+    const card = {
+      userCardId: 'card-id',
+      cardName: '테스트 카드',
+      cardNo: null,
+      issuerId: 'issuer-id',
+      issuerName: '테스트 카드사',
+      cardImageUrl: null,
+      memo: null,
+    }
+
+    expect(
+      resolveCardAccessState({ lastSyncedAt: null, activeCards: [card], inactiveCards: [] }),
+    ).toBe('active')
+    expect(
+      resolveCardAccessState({ lastSyncedAt: null, activeCards: [], inactiveCards: [card] }),
+    ).toBe('inactive-only')
+    expect(resolveCardAccessState({ lastSyncedAt: null, activeCards: [], inactiveCards: [] })).toBe(
+      'none',
+    )
   })
 
   it('선택한 보유 카드를 비활성화한다', async () => {
