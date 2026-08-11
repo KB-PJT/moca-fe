@@ -60,7 +60,7 @@ const noticeItems: NoticeItem[] = [
 
 const searchQuery = ref('')
 const selectedCategory = ref<NoticeCategory>('전체')
-const expandedNoticeId = ref<number | null>(null)
+const expandedNoticeIds = ref<Set<number>>(new Set())
 
 const filteredNoticeItems = computed(() => {
   const keyword = searchQuery.value.trim().toLocaleLowerCase('ko-KR')
@@ -79,11 +79,19 @@ const filteredNoticeItems = computed(() => {
 
 function selectCategory(category: NoticeCategory) {
   selectedCategory.value = category
-  expandedNoticeId.value = null
+  expandedNoticeIds.value = new Set()
 }
 
 function toggleNotice(id: number) {
-  expandedNoticeId.value = expandedNoticeId.value === id ? null : id
+  const nextExpandedNoticeIds = new Set(expandedNoticeIds.value)
+
+  if (nextExpandedNoticeIds.has(id)) {
+    nextExpandedNoticeIds.delete(id)
+  } else {
+    nextExpandedNoticeIds.add(id)
+  }
+
+  expandedNoticeIds.value = nextExpandedNoticeIds
 }
 </script>
 
@@ -138,7 +146,7 @@ function toggleNotice(id: number) {
             <button
               type="button"
               class="flex min-h-13 w-full items-center gap-3 px-5 py-3.5 text-left"
-              :aria-expanded="expandedNoticeId === notice.id"
+              :aria-expanded="expandedNoticeIds.has(notice.id)"
               :aria-controls="`notice-content-${notice.id}`"
               @click="toggleNotice(notice.id)"
             >
@@ -154,12 +162,12 @@ function toggleNotice(id: number) {
               </strong>
               <ChevronDown
                 class="size-4 shrink-0 text-[#8C7F74] transition-transform"
-                :class="expandedNoticeId === notice.id && 'rotate-180'"
+                :class="expandedNoticeIds.has(notice.id) && 'rotate-180'"
                 aria-hidden="true"
               />
             </button>
             <div
-              v-show="expandedNoticeId === notice.id"
+              v-show="expandedNoticeIds.has(notice.id)"
               :id="`notice-content-${notice.id}`"
               class="border-t border-black/5 bg-screen px-5 py-4"
             >
