@@ -1,7 +1,13 @@
 <script setup lang="ts">
+import axios from 'axios'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/domains/auth/stores/auth'
+import {
+  createInquiry,
+  type InquiryErrorApiResponse,
+  type InquiryType,
+} from '@/domains/mypage/api/inquiry'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 
@@ -16,28 +22,81 @@ const inquiryCategories = [
 
 type InquiryCategory = (typeof inquiryCategories)[number]
 
+const inquiryTypeMap: Record<InquiryCategory, InquiryType> = {
+  '카드 연동': 'card_link',
+  '실적·혜택 정보': 'performance_benefit',
+  '지도·가맹점': 'map_merchant',
+  '계정·로그인': 'account_login',
+  '오류 신고': 'bug',
+  기타: 'etc',
+}
+
 const authStore = useAuthStore()
 const router = useRouter()
 const selectedCategory = ref<InquiryCategory | null>(null)
 const title = ref('')
 const content = ref('')
 const email = ref(authStore.user?.email ?? '')
+const isSubmitting = ref(false)
+const submitError = ref('')
+
+const normalizedTitle = computed(() => title.value.trim())
+const normalizedContent = computed(() => content.value.trim())
+const normalizedEmail = computed(() => email.value.trim())
+const isEmailValid = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail.value))
 
 const isSubmitDisabled = computed(
   () =>
-    !selectedCategory.value || !title.value.trim() || !content.value.trim() || !email.value.trim(),
+    isSubmitting.value ||
+    !selectedCategory.value ||
+    !normalizedTitle.value ||
+    normalizedTitle.value.length > 100 ||
+    !normalizedContent.value ||
+    normalizedContent.value.length > 2000 ||
+    !isEmailValid.value,
 )
 
 function selectCategory(category: InquiryCategory) {
   selectedCategory.value = category
 }
 
-function submitInquiry() {
-  if (isSubmitDisabled.value) return
-  void router.push({
-    name: 'mypage',
-    state: { inquirySubmitted: true },
-  })
+async function submitInquiry() {
+  if (isSubmitDisabled.value || !selectedCategory.value) return
+
+  isSubmitting.value = true
+  submitError.value = ''
+
+  try {
+    await createInquiry({
+      inquiryType: inquiryTypeMap[selectedCategory.value],
+      title: normalizedTitle.value,
+      content: normalizedContent.value,
+      replyEmail: normalizedEmail.value,
+    })
+
+    await router.push({
+      name: 'mypage',
+      state: { inquirySubmitted: true },
+    })
+  } catch (error) {
+    if (axios.isAxiosError<InquiryErrorApiResponse>(error)) {
+      const errorCode = error.response?.data.error.code
+
+      if (errorCode === 'VALIDATION_FAILED') {
+        submitError.value = '입력한 내용을 다시 확인해주세요.'
+        return
+      }
+
+      if (errorCode === 'AUTHENTICATION_REQUIRED') {
+        submitError.value = '로그인이 필요합니다. 다시 로그인해주세요.'
+        return
+      }
+    }
+
+    submitError.value = '문의 접수에 실패했습니다. 잠시 후 다시 시도해주세요.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -75,6 +134,7 @@ function submitInquiry() {
           name="title"
           type="text"
           required
+          maxlength="100"
           class="text-body h-12.5 w-full rounded-md border border-black/8 bg-card px-4 text-charcoal outline-none placeholder:text-charcoal/50 focus:border-primary focus:ring-3 focus:ring-primary/15"
           placeholder="문의 제목을 입력해주세요"
         />
@@ -89,6 +149,7 @@ function submitInquiry() {
           v-model="content"
           name="content"
           required
+          maxlength="2000"
           class="text-body h-32.5 w-full resize-none rounded-md border border-black/8 bg-card px-4 py-3.5 text-charcoal outline-none placeholder:text-charcoal/50 focus:border-primary focus:ring-3 focus:ring-primary/15"
           placeholder="문의 내용을 자세히 입력해주세요"
         />
@@ -111,6 +172,10 @@ function submitInquiry() {
       </div>
     </form>
 
+    <p v-if="submitError" role="alert" class="mt-3 text-caption text-error">
+      {{ submitError }}
+    </p>
+
     <template #footer>
       <MocaButton
         form="inquiry-form"
@@ -119,7 +184,7 @@ function submitInquiry() {
         :disabled="isSubmitDisabled"
         class="h-13 rounded-md font-bold disabled:bg-primary! disabled:opacity-35!"
       >
-        문의 보내기
+        {{ isSubmitting ? '접수 중...' : '문의 보내기' }}
       </MocaButton>
     </template>
   </PageLayout>
