@@ -32,7 +32,7 @@ interface SuccessApiResponse {
 
 export async function fetchMyCards(): Promise<MyCardsResponse> {
   const response = await apiClient.get<MyCardsApiResponse>('/api/v1/me/cards', {
-    params: { includeInactive: false },
+    params: { includeInactive: true },
   })
 
   return response.data.data

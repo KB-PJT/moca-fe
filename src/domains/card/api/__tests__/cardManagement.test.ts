@@ -31,7 +31,7 @@ describe('cardManagement API', () => {
 
     await expect(fetchMyCards()).resolves.toEqual(responseData)
     expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/me/cards', {
-      params: { includeInactive: false },
+      params: { includeInactive: true },
     })
   })
 
