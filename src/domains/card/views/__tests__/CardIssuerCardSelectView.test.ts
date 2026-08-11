@@ -135,6 +135,83 @@ describe('CardIssuerCardSelectView', () => {
     expect(directStore.lookupStatus).toBe('idle')
   })
 
+  it('카드 활성화 중에는 뒤로가지 않고 요청 시작 시점의 선택 카드로 완료 처리한다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const directStore = useDirectCardConnectionStore()
+    const ownedCardsStore = useOwnedCardsStore()
+    directStore.beginLookup('kb-kookmin')
+    directStore.linkId = 'link-id'
+    directStore.completeLookup([
+      {
+        id: 'activation-snapshot-card',
+        userCardId: 'activation-snapshot-card',
+        issuer: 'kb-kookmin',
+        name: 'KB 스냅샷 카드',
+        last4: '4710',
+      },
+    ])
+
+    let resolveActivation: ((response: ActivateCardLinkCardsResponse) => void) | undefined
+    cardLinkApiMocks.activateCardLinkCards.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveActivation = resolve
+        }),
+    )
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/cards/connect/select/:issuerId/cards',
+          name: 'card-issuer-card-select',
+          component: CardIssuerCardSelectView,
+        },
+        {
+          path: '/cards/connect/select/:issuerId/complete',
+          name: 'card-issuer-connect-complete',
+          component: { template: '<div />' },
+        },
+        {
+          path: '/cards/connect/select/:issuerId',
+          name: 'card-issuer-connect',
+          component: { template: '<div />' },
+        },
+        {
+          path: '/cards/connect/select',
+          name: 'card-issuer-select',
+          component: { template: '<div />' },
+        },
+      ],
+    })
+    await router.push({ name: 'card-issuer-card-select', params: { issuerId: 'kb-kookmin' } })
+    await router.isReady()
+
+    const wrapper = mount(CardIssuerCardSelectView, {
+      global: { plugins: [pinia, router], stubs: globalStubs },
+    })
+
+    await wrapper.get('footer button').trigger('click')
+    await wrapper.get('button[aria-label="뒤로가기"]').trigger('click')
+
+    expect(router.currentRoute.value.name).toBe('card-issuer-card-select')
+    expect(directStore.lookupStatus).toBe('success')
+
+    directStore.selectedCardIds = []
+    resolveActivation?.({
+      linkId: 'link-id',
+      activatedUserCardIds: ['activation-snapshot-card'],
+      activatedCount: 1,
+    })
+    await flushPromises()
+
+    expect(ownedCardsStore.ownedCards.some((card) => card.id === 'activation-snapshot-card')).toBe(
+      true,
+    )
+    expect(router.currentRoute.value.name).toBe('card-issuer-connect-complete')
+  })
+
   it('모든 카드를 기본 선택하고 선택한 카드만 보유카드에 추가한다', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
@@ -320,6 +397,13 @@ describe('CardIssuerCardSelectView', () => {
         activatedUserCardIds: ['user-card-1', 'user-card-2'],
         activatedCount: 2,
       })
+    let resolveCredentials: ((response: CardLinkCardResponse) => void) | undefined
+    cardLinkApiMocks.submitCardCredentials.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCredentials = resolve
+        }),
+    )
 
     const router = createRouter({
       history: createMemoryHistory(),
@@ -359,6 +443,24 @@ describe('CardIssuerCardSelectView', () => {
     expect(wrapper.get('[data-test="credential-dialog"]').text()).toContain('현대카드 2')
 
     await wrapper.get('[data-test="credential-dialog"] button').trigger('click')
+    await wrapper.get('button[aria-label="뒤로가기"]').trigger('click')
+
+    expect(router.currentRoute.value.name).toBe('card-issuer-card-select')
+    expect(directStore.lookupStatus).toBe('success')
+
+    resolveCredentials?.({
+      userCardId: 'user-card-2',
+      cardId: 'card-id',
+      cardName: '현대카드 2',
+      cardNo: '1234********5678',
+      institutionCode: '0302',
+      issuerName: '현대카드',
+      cardType: 'CREDIT',
+      cardImageUrl: null,
+      matched: true,
+      supported: true,
+      optionGroups: [],
+    })
     await flushPromises()
 
     expect(cardLinkApiMocks.submitCardCredentials).toHaveBeenCalledWith('user-card-2', {

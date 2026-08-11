@@ -16,7 +16,10 @@ import {
 import CardCredentialDialog from '@/domains/card/components/CardCredentialDialog.vue'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
-import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
+import {
+  useDirectCardConnectionStore,
+  type DiscoveredCard,
+} from '@/domains/card/stores/directCardConnection'
 import { useOwnedCardsStore } from '@/domains/card/stores/ownedCards'
 import CardImage from '@/shared/components/CardImage.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
@@ -76,15 +79,20 @@ function returnToIssuerForm() {
 }
 
 function returnToIssuerSelect() {
+  if (isSubmitting.value || isSubmittingCredentials.value) return
+
   directCardConnectionStore.reset()
   void router.replace({ name: 'card-issuer-select' })
 }
 
 async function addSelectedCards() {
+  const linkIdSnapshot = directCardConnectionStore.linkId
+  const selectedCardsSnapshot = [...directCardConnectionStore.selectedCards]
+
   if (
     !issuerId.value ||
-    !directCardConnectionStore.linkId ||
-    selectedCount.value === 0 ||
+    !linkIdSnapshot ||
+    selectedCardsSnapshot.length === 0 ||
     hasIncompleteOptions.value ||
     isSubmitting.value
   )
@@ -95,12 +103,12 @@ async function addSelectedCards() {
 
   try {
     const request = buildActivateCardLinkCardsRequest(
-      directCardConnectionStore.selectedCards,
+      selectedCardsSnapshot,
       directCardConnectionStore.optionSelections,
     )
-    const response = await activateCardLinkCards(directCardConnectionStore.linkId, request)
+    const response = await activateCardLinkCards(linkIdSnapshot, request)
     const activatedIds = new Set(response.activatedUserCardIds)
-    const activatedCards = directCardConnectionStore.selectedCards.filter(
+    const activatedCards = selectedCardsSnapshot.filter(
       (card) => card.userCardId && activatedIds.has(card.userCardId),
     )
 
@@ -124,7 +132,7 @@ async function addSelectedCards() {
       params: { issuerId: issuerId.value },
     })
   } catch (error) {
-    if (!prepareCredentialSubmission(error)) {
+    if (!prepareCredentialSubmission(error, selectedCardsSnapshot)) {
       activationError.value = toActivationErrorMessage(error)
     }
   } finally {
@@ -132,7 +140,7 @@ async function addSelectedCards() {
   }
 }
 
-function prepareCredentialSubmission(error: unknown) {
+function prepareCredentialSubmission(error: unknown, selectedCardsSnapshot: DiscoveredCard[]) {
   if (!axios.isAxiosError<CardLinkErrorResponse>(error)) return false
 
   const apiError = error.response?.data?.error
@@ -145,9 +153,7 @@ function prepareCredentialSubmission(error: unknown) {
   if (!userCardIds?.length) return false
 
   const selectedUserCardIds = new Set(
-    directCardConnectionStore.selectedCards.flatMap((card) =>
-      card.userCardId ? [card.userCardId] : [],
-    ),
+    selectedCardsSnapshot.flatMap((card) => (card.userCardId ? [card.userCardId] : [])),
   )
   credentialCardIds.value = [...new Set(userCardIds)].filter((id) => selectedUserCardIds.has(id))
   credentialErrors.value = {}
