@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Merchant } from '@/domains/map/api/merchants.mock'
+import type { Merchant } from '@/domains/map/api/merchants'
 import { myCardRankingByPlaceId, type MyCardRankItem } from '@/domains/map/api/myCardRanking.mock'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'

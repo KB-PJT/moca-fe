@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { List, LoaderCircle, Map as MapIcon, Search } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
-import { merchants } from '@/domains/map/api/merchants.mock'
+import {
+  fetchMerchantCategories,
+  fetchNearbyMerchants,
+  toMerchant,
+} from '@/domains/map/api/merchants'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 import { useLocationPermission } from '@/domains/map/composables/useLocationPermission'
 import { useMerchantSheet } from '@/domains/map/composables/useMerchantSheet'
-import { calculateDistanceMeters } from '@/domains/map/utils/distance'
 import LocationPermissionModal from '@/domains/map/components/LocationPermissionModal.vue'
 import MerchantBottomSheet from '@/domains/map/components/MerchantBottomSheet.vue'
 import PlaceListPanel from '@/domains/map/components/PlaceListPanel.vue'
@@ -15,8 +19,6 @@ const mapContainer = ref<HTMLElement | null>(null)
 const controlsRef = ref<HTMLElement | null>(null)
 const sheetRef = ref<HTMLElement | null>(null)
 
-const categories = ['전체', '음식점', '카페', '편의점', '마트']
-const activeCategory = ref('전체')
 const viewMode = ref<'map' | 'list'>('map')
 
 let onBackgroundClick = () => {}
@@ -35,22 +37,47 @@ const {
   handleLaterLocation,
 } = useLocationPermission(isMapReady)
 
-const merchantsWithDistance = computed(() => {
-  if (!currentLocation.value) return merchants
-
-  return merchants.map((merchant) => ({
-    ...merchant,
-    distance: calculateDistanceMeters(currentLocation.value!, {
-      latitude: merchant.latitude,
-      longitude: merchant.longitude,
-    }),
-  }))
+const {
+  data: categories,
+  isPending: isCategoriesPending,
+  isError: isCategoriesError,
+  refetch: refetchCategories,
+} = useQuery({
+  queryKey: ['merchants', 'categories'],
+  queryFn: fetchMerchantCategories,
 })
 
-const filteredMerchants = computed(() =>
-  activeCategory.value === '전체'
-    ? merchantsWithDistance.value
-    : merchantsWithDistance.value.filter((merchant) => merchant.category === activeCategory.value),
+const activeCategoryId = ref<string | null>(null)
+
+watch(categories, (list) => {
+  if (list?.length && !activeCategoryId.value) {
+    activeCategoryId.value = list[0]!.categoryId
+  }
+})
+
+const activeCategoryName = computed(
+  () =>
+    categories.value?.find((category) => category.categoryId === activeCategoryId.value)
+      ?.categoryName ?? '',
+)
+
+const {
+  data: nearbyMerchants,
+  isError: isNearbyError,
+  refetch: refetchNearby,
+} = useQuery({
+  queryKey: ['merchants', 'nearby', activeCategoryId, currentLocation],
+  queryFn: () =>
+    fetchNearbyMerchants({
+      categoryId: activeCategoryId.value!,
+      latitude: currentLocation.value!.latitude,
+      longitude: currentLocation.value!.longitude,
+    }),
+  enabled: computed(() => Boolean(activeCategoryId.value && currentLocation.value)),
+})
+
+const filteredMerchants = computed(
+  () => nearbyMerchants.value?.map((item) => toMerchant(item, activeCategoryName.value)) ?? [],
 )
 
 const {
@@ -98,7 +125,9 @@ watch(currentLocation, (coordinates) => {
 
     <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
-      :class="viewMode === 'list' ? 'bg-card' : !isScreenReady && 'bg-screen'"
+      :class="
+        viewMode === 'list' ? 'bg-card' : (!isScreenReady || isCategoriesPending) && 'bg-screen'
+      "
     >
       <div class="pointer-events-auto flex items-center gap-2 p-4 pb-0">
         <div class="bg-card shadow-float flex flex-1 items-center gap-2 rounded-md px-3">
@@ -122,7 +151,7 @@ watch(currentLocation, (coordinates) => {
       </div>
 
       <div
-        v-if="!isScreenReady"
+        v-if="!isScreenReady || isCategoriesPending || isCategoriesError"
         class="pointer-events-auto flex flex-1 flex-col items-center justify-center gap-2"
       >
         <template v-if="mapLoadError">
@@ -135,9 +164,21 @@ watch(currentLocation, (coordinates) => {
             다시 시도
           </button>
         </template>
+        <template v-else-if="isScreenReady && isCategoriesError">
+          <p class="text-caption text-gray">카테고리를 불러오지 못했어요.</p>
+          <button
+            type="button"
+            class="text-caption bg-primary rounded-full px-4 py-1.5 text-white"
+            @click="() => refetchCategories()"
+          >
+            다시 시도
+          </button>
+        </template>
         <template v-else>
           <LoaderCircle class="text-primary size-6 animate-spin" />
-          <p class="text-caption text-gray">지도를 불러오는 중...</p>
+          <p class="text-caption text-gray">
+            {{ isScreenReady ? '카테고리를 불러오는 중...' : '지도를 불러오는 중...' }}
+          </p>
         </template>
       </div>
 
@@ -145,16 +186,33 @@ watch(currentLocation, (coordinates) => {
         <div class="pointer-events-auto space-y-3 p-4 pt-3">
           <div ref="controlsRef" class="scrollbar-hide flex gap-2 overflow-x-auto">
             <button
-              v-for="category in categories"
-              :key="category"
+              v-for="category in categories ?? []"
+              :key="category.categoryId"
               type="button"
               class="text-caption shrink-0 rounded-full px-3 py-1.5 whitespace-nowrap"
               :class="
-                activeCategory === category ? 'bg-primary text-white' : 'bg-card text-charcoal'
+                activeCategoryId === category.categoryId
+                  ? 'bg-primary text-white'
+                  : 'bg-card text-charcoal'
               "
-              @click="activeCategory = category"
+              :aria-pressed="activeCategoryId === category.categoryId"
+              @click="activeCategoryId = category.categoryId"
             >
-              {{ category }}
+              {{ category.categoryName }}
+            </button>
+          </div>
+
+          <div
+            v-if="isNearbyError"
+            class="shadow-float flex items-center justify-between gap-2 rounded-md bg-card px-3 py-2"
+          >
+            <p class="text-caption text-gray">가맹점 정보를 불러오지 못했어요.</p>
+            <button
+              type="button"
+              class="text-caption text-primary font-semibold"
+              @click="() => refetchNearby()"
+            >
+              다시 시도
             </button>
           </div>
         </div>

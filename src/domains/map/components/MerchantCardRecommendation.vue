@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { Check, Star } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { formatAmountWithUnit, formatPercent } from '@/shared/utils/format'
-import type { Merchant } from '@/domains/map/api/merchants.mock'
+import type { Merchant } from '@/domains/map/api/merchants'
 import {
   cardRecommendationByPlaceId,
   type CardRecommendation,
