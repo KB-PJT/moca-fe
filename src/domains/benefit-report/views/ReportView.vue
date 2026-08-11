@@ -57,6 +57,7 @@ const {
   data: benefitSummary,
   isPending: isSummaryPending,
   isError: isSummaryError,
+  isFetching: isSummaryFetching,
   refetch: refetchSummary,
 } = useQuery({
   queryKey: computed(() => ['benefit-report', 'summary', activeYearMonth.value]),
@@ -68,6 +69,7 @@ const {
   data: benefitCategories,
   isPending: isCategoriesPending,
   isError: isCategoriesError,
+  isFetching: isCategoriesFetching,
   refetch: refetchCategories,
 } = useQuery({
   queryKey: computed(() => ['benefit-report', 'categories', activeYearMonth.value]),
@@ -79,6 +81,7 @@ const {
   data: performanceSummary,
   isPending: isPerformanceSummaryPending,
   isError: isPerformanceSummaryError,
+  isFetching: isPerformanceSummaryFetching,
   refetch: refetchPerformanceSummary,
 } = useQuery({
   queryKey: computed(() => ['performance-report', 'summary', activeYearMonth.value]),
@@ -90,6 +93,7 @@ const {
   data: performanceCards,
   isPending: isPerformanceCardsPending,
   isError: isPerformanceCardsError,
+  isFetching: isPerformanceCardsFetching,
   refetch: refetchPerformanceCards,
 } = useQuery({
   queryKey: computed(() => ['performance-report', 'cards', activeYearMonth.value]),
@@ -153,10 +157,11 @@ const {
           <p class="text-caption text-gray">혜택 요약을 불러오지 못했어요.</p>
           <button
             type="button"
-            class="text-caption font-semibold text-primary"
+            class="text-caption font-semibold text-primary disabled:opacity-50"
+            :disabled="isSummaryFetching"
             @click="() => refetchSummary()"
           >
-            다시 시도
+            {{ isSummaryFetching ? '재시도 중...' : '다시 시도' }}
           </button>
         </div>
         <BenefitSummaryCard v-else-if="benefitSummary" :summary="benefitSummary" />
@@ -171,10 +176,11 @@ const {
           <p class="text-caption text-gray">카테고리별 혜택을 불러오지 못했어요.</p>
           <button
             type="button"
-            class="text-caption font-semibold text-primary"
+            class="text-caption font-semibold text-primary disabled:opacity-50"
+            :disabled="isCategoriesFetching"
             @click="() => refetchCategories()"
           >
-            다시 시도
+            {{ isCategoriesFetching ? '재시도 중...' : '다시 시도' }}
           </button>
         </div>
         <CategoryTop3List v-else-if="benefitCategories" :items="benefitCategories.categories" />
@@ -195,10 +201,11 @@ const {
           <p class="text-caption text-gray">실적 요약을 불러오지 못했어요.</p>
           <button
             type="button"
-            class="text-caption font-semibold text-primary"
+            class="text-caption font-semibold text-primary disabled:opacity-50"
+            :disabled="isPerformanceSummaryFetching"
             @click="() => refetchPerformanceSummary()"
           >
-            다시 시도
+            {{ isPerformanceSummaryFetching ? '재시도 중...' : '다시 시도' }}
           </button>
         </div>
         <CardPerformanceSummary v-else-if="performanceSummary" :summary="performanceSummary" />
@@ -219,10 +226,11 @@ const {
               <p class="text-caption text-gray">카드별 실적을 불러오지 못했어요.</p>
               <button
                 type="button"
-                class="text-caption font-semibold text-primary"
+                class="text-caption font-semibold text-primary disabled:opacity-50"
+                :disabled="isPerformanceCardsFetching"
                 @click="() => refetchPerformanceCards()"
               >
-                다시 시도
+                {{ isPerformanceCardsFetching ? '재시도 중...' : '다시 시도' }}
               </button>
             </div>
             <p
