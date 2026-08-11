@@ -40,6 +40,12 @@ describe('CardConnectCompleteView', () => {
     expect(wrapper.text()).toContain('연결 성공 8개')
     expect(wrapper.text()).toContain('재연결 필요 1개')
     expect(wrapper.findAll('li')).toHaveLength(9)
+    expect(wrapper.get('[data-connect-complete-layout]').classes()).toEqual(
+      expect.arrayContaining(['[&>main]:flex', '[&>main]:flex-col', '[&>main]:overflow-hidden']),
+    )
+    expect(wrapper.get('[data-connection-complete-results-scroll]').classes()).toEqual(
+      expect.arrayContaining(['scrollbar-line', 'min-h-0', 'flex-1', 'overflow-y-auto']),
+    )
 
     await wrapper.get('li button').trigger('click')
     expect(wrapper.text()).toContain('연결 중')

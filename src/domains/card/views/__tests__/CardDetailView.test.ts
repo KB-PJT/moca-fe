@@ -78,7 +78,7 @@ const benefits: CardDetailBenefitResponse[] = [
     summary: '월 최대 5,000원',
     detailText: '스타벅스·이디야·투썸플레이스 등 카페 가맹점 결제 시 10% 할인',
     detailHtml:
-      '<p><strong>스타벅스·이디야·투썸플레이스</strong> 등 카페 가맹점 결제 시 10% 할인</p><img src="x" onerror="alert(1)"><script>alert(1)</script>',
+      '<p><strong>스타벅스·이디야·투썸플레이스</strong> 등 카페 가맹점 결제 시 10% 할인</p><img src="x" onerror="alert(1)"><script>alert(1)</script><p><a href="https://www.froala.com/wysiwyg-editor">Powered by Froala Editor</a></p>',
   },
   {
     benefitId: 'benefit-convenience',
@@ -92,11 +92,11 @@ const benefits: CardDetailBenefitResponse[] = [
 const notices: CardDetailBenefitResponse[] = [
   {
     benefitId: 'notice-discount',
-    title: '할인서비스 적용 안내',
-    summary: null,
+    title: '유의사항',
+    summary: '꼭 확인하세요!',
     detailText: '할인서비스는 환급할인으로 제공됩니다.',
     detailHtml:
-      '<p>할인서비스는 <strong>환급할인</strong>으로 제공됩니다.</p><a href="javascript:alert(1)">안내</a>',
+      '<h3>할인서비스 적용 안내</h3><p>할인서비스는 <strong>환급할인</strong>으로 제공됩니다.</p><a href="javascript:alert(1)">안내</a>',
   },
 ]
 
@@ -196,9 +196,14 @@ describe('CardDetailView', () => {
     expect(wrapper.text()).toContain('스타벅스·이디야·투썸플레이스')
     expect(wrapper.get('[data-benefit-summary]').classes()).not.toContain('shrink-0')
     expect(wrapper.get('[data-card-notices] h3').text()).toBe('할인서비스 적용 안내')
+    expect(wrapper.get('[data-card-notices]').text()).not.toContain('꼭 확인하세요!')
     expect(wrapper.text()).toContain('할인서비스는 환급할인으로 제공됩니다.')
     expect(wrapper.get('[data-benefit-detail-html] strong').text()).toContain('스타벅스')
     expect(wrapper.get('[data-benefit-detail-html]').html()).not.toContain('onerror')
+    expect(wrapper.get('[data-benefit-detail-html]').text()).not.toContain(
+      'Powered by Froala Editor',
+    )
+    expect(wrapper.get('[data-benefit-detail-html]').html()).not.toContain('froala.com')
     expect(wrapper.find('[data-benefit-detail-html] script').exists()).toBe(false)
     expect(wrapper.get('[data-notice-detail-html] strong').text()).toBe('환급할인')
     expect(wrapper.get('[data-notice-detail-html] a').attributes('href')).toBeUndefined()
@@ -223,8 +228,13 @@ describe('CardDetailView', () => {
 
   it('화살표로 다음 보유 카드의 상세 주소를 교체한다', async () => {
     const wrapper = await mountCardDetail()
+    const previousButton = wrapper.get('button[aria-label="이전 카드"]')
+    const nextButton = wrapper.get('button[aria-label="다음 카드"]')
 
-    await wrapper.get('button[aria-label="다음 카드"]').trigger('click')
+    expect(previousButton.classes()).toEqual(expect.arrayContaining(['bg-screen', 'text-disabled']))
+    expect(nextButton.classes()).toEqual(expect.arrayContaining(['bg-accent', 'text-primary']))
+
+    await nextButton.trigger('click')
 
     expect(replace).toHaveBeenCalledWith({
       name: 'card-detail',
@@ -344,7 +354,10 @@ describe('CardDetailView', () => {
   it('메모를 수정하면 API와 카드별 메모 상태를 갱신한다', async () => {
     const wrapper = await mountCardDetail()
 
-    await wrapper.get('button[aria-label="메모 수정"]').trigger('click')
+    const editMemoButton = wrapper.get('button[aria-label="메모 수정"]')
+    expect(editMemoButton.classes()).toContain('bg-screen')
+
+    await editMemoButton.trigger('click')
     await wrapper.get('textarea[aria-label="카드 메모"]').setValue('주말 카페 결제용 카드')
     await wrapper
       .findAll('button')

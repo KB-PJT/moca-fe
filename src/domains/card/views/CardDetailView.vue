@@ -4,16 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { onClickOutside } from '@vueuse/core'
 import DOMPurify from 'dompurify'
 import {
-  Bus,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Coffee,
   EllipsisVertical,
   EyeOff,
   Pencil,
-  ShoppingBag,
-  Store,
   Trash2,
 } from '@lucide/vue'
 import {
@@ -23,6 +19,7 @@ import {
   updateCardMemo,
 } from '@/domains/card/api/cardDetail'
 import { deactivateMyCard, disconnectMyCard, fetchMyCards } from '@/domains/card/api/cardManagement'
+import { resolveCardBenefitIcon } from '@/domains/card/constants/benefitCategories'
 import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import AppBar from '@/shared/components/AppBar.vue'
@@ -93,19 +90,57 @@ const actionDialogConfirmLabel = computed(() =>
   pendingAction.value === 'deactivate' ? '비활성화' : '연결 해제',
 )
 
+const REDUNDANT_NOTICE_TITLES = new Set(['유의사항', '유의 사항'])
+const REDUNDANT_NOTICE_SUMMARIES = new Set(['꼭 확인하세요', '꼭 확인하세요!'])
+
+function normalizeNoticeIntro(text: string) {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+function hasVisibleNoticeTitle(notice: CardDetailBenefitResponse) {
+  return !REDUNDANT_NOTICE_TITLES.has(normalizeNoticeIntro(notice.title))
+}
+
+function hasVisibleNoticeSummary(notice: CardDetailBenefitResponse) {
+  return Boolean(
+    notice.summary && !REDUNDANT_NOTICE_SUMMARIES.has(normalizeNoticeIntro(notice.summary)),
+  )
+}
+
+function hasVisibleNoticeIntro(notice: CardDetailBenefitResponse) {
+  return hasVisibleNoticeTitle(notice) || hasVisibleNoticeSummary(notice)
+}
+
 onClickOutside(actionMenu, () => {
   isActionMenuOpen.value = false
 })
 
-function resolveBenefitIcon(benefit: CardDetailBenefitResponse) {
-  if (/카페|커피|스타벅스|디저트/.test(benefit.title)) return Coffee
-  if (/편의점/.test(benefit.title)) return Store
-  if (/교통|버스|지하철|택시/.test(benefit.title)) return Bus
-  return ShoppingBag
-}
-
 function sanitizeDetailHtml(detailHtml: string) {
-  return DOMPurify.sanitize(detailHtml, { USE_PROFILES: { html: true } })
+  const sanitizedHtml = DOMPurify.sanitize(detailHtml, { USE_PROFILES: { html: true } })
+  const container = document.createElement('div')
+  container.innerHTML = sanitizedHtml
+
+  const watermarkText = 'powered by froala editor'
+  const watermarkElements = [...container.querySelectorAll<HTMLElement>('*')].filter(
+    (element) => element.textContent?.replace(/\s+/g, ' ').trim().toLowerCase() === watermarkText,
+  )
+
+  for (const element of watermarkElements) {
+    let removalTarget = element
+
+    while (
+      removalTarget.parentElement &&
+      removalTarget.parentElement !== container &&
+      removalTarget.parentElement.textContent?.replace(/\s+/g, ' ').trim().toLowerCase() ===
+        watermarkText
+    ) {
+      removalTarget = removalTarget.parentElement
+    }
+
+    removalTarget.remove()
+  }
+
+  return container.innerHTML
 }
 
 async function loadCard(userCardId: string) {
@@ -351,7 +386,8 @@ async function confirmCardAction() {
         <div class="relative flex min-h-80 items-center justify-center px-14 pb-5 pt-4">
           <button
             type="button"
-            class="absolute left-4 flex size-12 items-center justify-center rounded-full bg-secondary text-charcoal disabled:bg-screen disabled:text-disabled"
+            class="absolute left-4 flex size-12 items-center justify-center rounded-full"
+            :class="canMovePrevious ? 'bg-accent text-primary' : 'bg-screen text-disabled'"
             aria-label="이전 카드"
             :disabled="!canMovePrevious"
             @click="moveCard(-1)"
@@ -369,7 +405,8 @@ async function confirmCardAction() {
 
           <button
             type="button"
-            class="absolute right-4 flex size-12 items-center justify-center rounded-full bg-secondary text-charcoal disabled:bg-screen disabled:text-disabled"
+            class="absolute right-4 flex size-12 items-center justify-center rounded-full"
+            :class="canMoveNext ? 'bg-accent text-primary' : 'bg-screen text-disabled'"
             aria-label="다음 카드"
             :disabled="!canMoveNext"
             @click="moveCard(1)"
@@ -402,7 +439,7 @@ async function confirmCardAction() {
           <button
             v-else
             type="button"
-            class="flex size-9 items-center justify-center rounded-full bg-[#F2EDFF] text-primary"
+            class="flex size-9 items-center justify-center rounded-full bg-screen text-primary"
             aria-label="메모 수정"
             @click="startMemoEditing"
           >
@@ -440,7 +477,11 @@ async function confirmCardAction() {
               <span
                 class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
               >
-                <component :is="resolveBenefitIcon(benefit)" class="size-5" aria-hidden="true" />
+                <component
+                  :is="resolveCardBenefitIcon(benefit)"
+                  class="size-5"
+                  aria-hidden="true"
+                />
               </span>
               <span class="min-w-0 flex-1">
                 <span class="block text-body font-semibold text-charcoal">{{ benefit.title }}</span>
@@ -484,17 +525,27 @@ async function confirmCardAction() {
         <h2 id="card-notice-title" class="px-5 text-subheading text-charcoal">유의 사항</h2>
         <ul v-if="card.notices.length > 0" data-card-notices class="mt-4 bg-screen px-5 py-5">
           <li v-for="notice in card.notices" :key="notice.benefitId" class="not-last:mb-5">
-            <h3 class="text-body font-semibold text-charcoal">{{ notice.title }}</h3>
-            <p v-if="notice.summary" class="mt-1 text-caption text-gray">{{ notice.summary }}</p>
+            <h3 v-if="hasVisibleNoticeTitle(notice)" class="text-body font-semibold text-charcoal">
+              {{ notice.title }}
+            </h3>
+            <p
+              v-if="hasVisibleNoticeSummary(notice)"
+              class="text-caption text-gray"
+              :class="hasVisibleNoticeTitle(notice) ? 'mt-1' : ''"
+            >
+              {{ notice.summary }}
+            </p>
             <div
               v-if="notice.detailHtml"
               data-notice-detail-html
-              class="card-detail-html mt-2 text-caption leading-5 text-gray [&_a]:underline [&_li]:ml-5 [&_ol]:list-decimal [&_p:not(:last-child)]:mb-2 [&_strong]:font-semibold [&_ul]:list-disc"
+              class="card-detail-html text-caption leading-5 text-gray [&_a]:underline [&_li]:ml-5 [&_ol]:list-decimal [&_p:not(:last-child)]:mb-2 [&_strong]:font-semibold [&_ul]:list-disc"
+              :class="hasVisibleNoticeIntro(notice) ? 'mt-2' : ''"
               v-html="sanitizeDetailHtml(notice.detailHtml)"
             />
             <p
               v-else-if="notice.detailText"
-              class="mt-2 whitespace-pre-line text-caption leading-5 text-gray"
+              class="whitespace-pre-line text-caption leading-5 text-gray"
+              :class="hasVisibleNoticeIntro(notice) ? 'mt-2' : ''"
             >
               {{ notice.detailText }}
             </p>

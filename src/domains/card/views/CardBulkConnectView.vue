@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAccountStore } from '@/domains/auth/stores/account'
+import { useAuthStore } from '@/domains/auth/stores/auth'
 import BulkCardConnectIllustration from '@/domains/card/components/BulkCardConnectIllustration.vue'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
@@ -9,9 +9,10 @@ import MocaButton from '@/shared/components/MocaButton.vue'
 const SCAN_DURATION_MS = 2600
 
 const router = useRouter()
-const accountStore = useAccountStore()
+const authStore = useAuthStore()
 const isScanning = ref(true)
 let scanTimer: ReturnType<typeof setTimeout> | undefined
+const nickname = computed(() => authStore.user?.nickname.trim() || '사용자')
 
 // TODO(API): 보유카드 사전 조회 API의 로딩/완료 상태로 교체하고 응답은 ownedCards 스토어에 저장한다.
 function startScan() {
@@ -40,12 +41,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <CardPageLayout bg="screen" @back="returnToCardConnect">
+  <CardPageLayout
+    bg="screen"
+    class="[&>div:last-child]:border-t-0 [&>div:last-child]:bg-transparent!"
+    @back="returnToCardConnect"
+  >
     <div class="flex min-h-full flex-col">
       <section class="px-1 pt-1">
-        <p class="text-caption font-semibold text-brown">카드 연결</p>
-        <h1 class="mt-2 text-display text-charcoal">
-          {{ accountStore.displayName }}님의 카드를<br />
+        <h1 class="text-display text-charcoal">
+          {{ nickname }}님의 카드를<br />
           찾아볼게요
         </h1>
         <p class="mt-2 text-body text-gray">최대 1분 정도 걸릴 수 있어요</p>

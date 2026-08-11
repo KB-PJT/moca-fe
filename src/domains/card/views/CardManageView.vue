@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { Eye, EyeOff, GripVertical, LoaderCircle, Plus, RotateCw, Trash2 } from '@lucide/vue'
+import {
+  ChevronDown,
+  Eye,
+  EyeOff,
+  GripVertical,
+  LoaderCircle,
+  Plus,
+  RotateCw,
+  Trash2,
+} from '@lucide/vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { activateCardLinkCards, syncCardLinkCards } from '@/domains/card/api/cardLinks'
@@ -47,6 +56,7 @@ const isActionLoading = ref(false)
 const actionError = ref('')
 const activatingCardId = ref<string | null>(null)
 const activationError = ref('')
+const isInactiveCardsExpanded = ref(true)
 
 const activeBottomBarPath = computed(() => {
   const from = Array.isArray(route.query.from) ? route.query.from[0] : route.query.from
@@ -59,9 +69,10 @@ const actionDialogTitle = computed(() => {
   if (!pendingAction.value) return ''
 
   return pendingAction.value.type === 'deactivate'
-    ? `${pendingAction.value.cardName} 카드를 비활성화할까요?`
-    : `${pendingAction.value.cardName} 카드 연결을 해제할까요?`
+    ? '카드를 비활성화할까요?'
+    : '카드 연결을 해제할까요?'
 })
+const actionDialogSubject = computed(() => pendingAction.value?.cardName ?? '')
 const actionDialogDescription = computed(() =>
   pendingAction.value?.type === 'deactivate'
     ? '비활성화한 카드는 혜택과 실적 계산에서 제외돼요. 언제든 다시 활성화할 수 있어요.'
@@ -357,8 +368,15 @@ onMounted(() => {
             {{ cardsError }} 기존 목록을 표시하고 있어요.
           </p>
 
-          <section aria-labelledby="active-card-heading">
-            <div class="mb-3 flex min-h-11 items-center justify-between">
+          <section
+            data-active-card-section
+            :class="cardsError ? '' : '-mt-6'"
+            aria-labelledby="active-card-heading"
+          >
+            <div
+              data-card-management-toolbar
+              class="mb-1 flex min-h-11 items-center justify-between"
+            >
               <h1 id="active-card-heading" class="text-caption text-gray">
                 등록된 카드 {{ cardManagementStore.activeCards.length }}개
               </h1>
@@ -430,10 +448,10 @@ onMounted(() => {
                 @dragend="finishNativeCardDrag"
               >
                 <article
-                  class="overflow-hidden rounded-md bg-card shadow-card transition-shadow"
+                  class="overflow-hidden rounded-md border border-divider bg-card"
                   :class="[
                     isReordering ? 'ring-1 ring-primary/30' : '',
-                    draggingCardId === card.id ? 'scale-[0.99] opacity-60 shadow-modal' : '',
+                    draggingCardId === card.id ? 'scale-[0.99] opacity-60' : '',
                     dragTargetCardId === card.id && draggingCardId !== card.id
                       ? 'ring-2 ring-primary'
                       : '',
@@ -461,7 +479,7 @@ onMounted(() => {
                       orientation="horizontal"
                       :width="72"
                       :height="44"
-                      class="shrink-0 rounded-sm shadow-tile"
+                      class="shrink-0 rounded-sm"
                     />
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center gap-2">
@@ -508,19 +526,43 @@ onMounted(() => {
             </p>
           </section>
 
-          <section class="mt-18" aria-labelledby="inactive-card-heading">
-            <h2 id="inactive-card-heading" class="mb-3 text-caption text-gray">
-              비활성화 된 카드 {{ cardManagementStore.inactiveCards.length }}개
+          <section data-inactive-card-section class="mt-8" aria-labelledby="inactive-card-heading">
+            <h2 id="inactive-card-heading" class="mb-3">
+              <button
+                type="button"
+                class="flex min-h-11 w-full items-center justify-between text-left text-caption text-gray"
+                :aria-expanded="isInactiveCardsExpanded"
+                aria-controls="inactive-card-list"
+                :aria-label="`비활성 카드 ${isInactiveCardsExpanded ? '접기' : '펼치기'}`"
+                @click="isInactiveCardsExpanded = !isInactiveCardsExpanded"
+              >
+                <span>비활성화 된 카드 {{ cardManagementStore.inactiveCards.length }}개</span>
+                <ChevronDown
+                  class="size-4 transition-transform duration-200"
+                  :class="isInactiveCardsExpanded ? 'rotate-180' : ''"
+                  aria-hidden="true"
+                />
+              </button>
             </h2>
 
             <p v-if="activationError" class="mb-3 text-caption text-rose-500" role="alert">
               {{ activationError }}
             </p>
 
-            <ul v-if="cardManagementStore.inactiveCards.length" class="space-y-3">
+            <ul
+              v-if="cardManagementStore.inactiveCards.length && isInactiveCardsExpanded"
+              id="inactive-card-list"
+              class="space-y-3"
+            >
               <li v-for="card in cardManagementStore.inactiveCards" :key="card.id">
-                <article class="overflow-hidden rounded-md bg-screen shadow-card">
-                  <div class="flex min-h-20 items-center gap-4 px-4 py-4">
+                <article
+                  data-inactive-card
+                  class="overflow-hidden rounded-md border border-divider bg-screen"
+                >
+                  <div
+                    data-inactive-card-summary
+                    class="flex min-h-20 items-center gap-4 px-4 py-4 opacity-60"
+                  >
                     <CardImage
                       :src="card.imageUrl"
                       :alt="`${card.name} 카드 이미지`"
@@ -528,7 +570,7 @@ onMounted(() => {
                       orientation="horizontal"
                       :width="72"
                       :height="44"
-                      class="shrink-0 rounded-sm opacity-85 shadow-tile"
+                      class="shrink-0 rounded-sm"
                     />
                     <div class="min-w-0 flex-1">
                       <h3 class="truncate text-subheading text-charcoal">{{ card.name }}</h3>
@@ -590,6 +632,7 @@ onMounted(() => {
     <ConfirmDialog
       v-if="pendingAction"
       :open="isActionDialogOpen"
+      :subject="actionDialogSubject"
       :title="actionDialogTitle"
       :description="actionDialogDescription"
       :confirm-label="actionDialogConfirmLabel"

@@ -12,6 +12,7 @@ import {
 
 interface Props {
   open: boolean
+  subject?: string
   title: string
   description: string
   confirmLabel?: string
@@ -22,6 +23,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  subject: '',
   confirmLabel: '확인',
   cancelLabel: '취소',
   destructive: false,
@@ -50,7 +52,17 @@ function confirm() {
   <AlertDialog :open="open" @update:open="updateOpen">
     <AlertDialogContent class="w-[calc(100%-2rem)] max-w-85 sm:max-w-85">
       <AlertDialogHeader>
-        <AlertDialogTitle>{{ title }}</AlertDialogTitle>
+        <AlertDialogTitle>
+          <template v-if="subject">
+            <span class="block truncate text-body font-semibold text-primary" :title="subject">
+              {{ subject }}
+            </span>
+            <span class="mt-1 block break-keep text-subheading font-semibold text-charcoal">
+              {{ title }}
+            </span>
+          </template>
+          <template v-else>{{ title }}</template>
+        </AlertDialogTitle>
         <AlertDialogDescription>{{ description }}</AlertDialogDescription>
         <p v-if="errorMessage" class="text-caption text-error" role="alert">
           {{ errorMessage }}

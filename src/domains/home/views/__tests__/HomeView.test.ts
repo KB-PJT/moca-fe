@@ -1,6 +1,7 @@
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CARD_ISSUERS } from '@/domains/card/constants/cardIssuers'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
 import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
@@ -70,8 +71,18 @@ describe('HomeView', () => {
     expect(manageLink?.props('to')).toEqual({ name: 'card-manage', query: { from: 'home' } })
     expect(wrapper.findAll('[data-owned-card]')).toHaveLength(4)
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
+    expect(wrapper.get('[data-selected-card-info]').classes()).toContain('min-h-16')
+    const expectedAccent = document.createElement('span')
+    expectedAccent.style.backgroundColor = CARD_ISSUERS['kb-kookmin'].accentColor
+    expect(wrapper.get('[data-selected-card-accent]').classes()).toContain('size-2.5')
+    const selectedCardAccent = wrapper.get('[data-selected-card-accent]').element as HTMLElement
+    expect(selectedCardAccent.style.backgroundColor).toBe(expectedAccent.style.backgroundColor)
+    expect(selectedCardAccent.style.backgroundImage).toContain('linear-gradient')
+    expect(wrapper.get('[data-card-benefit-amounts]').classes()).toContain('min-h-20')
     expect(wrapper.get('[data-received-benefit]').text()).toBe('21,800원')
+    expect(wrapper.get('[data-received-benefit]').classes()).toContain('text-heading')
     expect(wrapper.get('[data-available-benefit]').text()).toBe('8,200원')
+    expect(wrapper.get('[data-available-benefit]').classes()).toContain('text-heading')
     const receivedBenefitLink = wrapper
       .findAllComponents(RouterLinkStub)
       .find((link) => link.attributes('data-received-benefit') !== undefined)

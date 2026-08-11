@@ -66,6 +66,20 @@ describe('ConfirmDialog', () => {
     expect(getButton('삭제').classList).toContain('bg-error!')
   })
 
+  it('긴 대상을 한 줄 말줄임하고 질문과 분리한다', async () => {
+    const wrapper = mountDialog()
+    await wrapper.setProps({
+      subject: '신한카드 Point Plan 체크 캐릭터형(짱구)',
+      title: '카드를 비활성화할까요?',
+    })
+
+    const title = document.querySelector('[data-slot="alert-dialog-title"]')
+    const subject = title?.querySelector('[title="신한카드 Point Plan 체크 캐릭터형(짱구)"]')
+    expect(subject?.classList).toContain('truncate')
+    expect(subject?.classList).toContain('text-primary')
+    expect(title?.textContent).toContain('카드를 비활성화할까요?')
+  })
+
   it('처리 중에는 버튼을 비활성화하고 오류 메시지를 표시한다', async () => {
     const wrapper = mountDialog()
     await wrapper.setProps({ loading: true, errorMessage: '요청을 처리하지 못했어요.' })

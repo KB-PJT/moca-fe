@@ -154,6 +154,26 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  .scrollbar-line {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-disabled) transparent;
+    scrollbar-gutter: auto;
+  }
+
+  .scrollbar-line::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+
+  .scrollbar-line::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-line::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: var(--color-disabled);
+  }
 }
 
 /* ------------------------------------------------------------
