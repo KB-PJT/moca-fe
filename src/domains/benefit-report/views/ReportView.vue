@@ -6,7 +6,10 @@ import {
   fetchBenefitCategories,
   fetchBenefitSummary,
 } from '@/domains/benefit-report/api/benefitReport'
-import { MOCK_CARD_PERFORMANCES } from '@/domains/benefit-report/api/cardPerformance.mock'
+import {
+  fetchPerformanceCards,
+  fetchPerformanceSummary,
+} from '@/domains/benefit-report/api/performanceReport'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
 import BenefitSummaryCard from '@/domains/benefit-report/components/BenefitSummaryCard.vue'
@@ -48,11 +51,13 @@ function goToNextMonth() {
 }
 
 const isBenefitTabActive = computed(() => activeTab.value === 'benefit')
+const isPerformanceTabActive = computed(() => activeTab.value === 'performance')
 
 const {
   data: benefitSummary,
   isPending: isSummaryPending,
   isError: isSummaryError,
+  isFetching: isSummaryFetching,
   refetch: refetchSummary,
 } = useQuery({
   queryKey: computed(() => ['benefit-report', 'summary', activeYearMonth.value]),
@@ -64,11 +69,36 @@ const {
   data: benefitCategories,
   isPending: isCategoriesPending,
   isError: isCategoriesError,
+  isFetching: isCategoriesFetching,
   refetch: refetchCategories,
 } = useQuery({
   queryKey: computed(() => ['benefit-report', 'categories', activeYearMonth.value]),
   queryFn: () => fetchBenefitCategories({ yearMonth: activeYearMonth.value, limit: 3 }),
   enabled: isBenefitTabActive,
+})
+
+const {
+  data: performanceSummary,
+  isPending: isPerformanceSummaryPending,
+  isError: isPerformanceSummaryError,
+  isFetching: isPerformanceSummaryFetching,
+  refetch: refetchPerformanceSummary,
+} = useQuery({
+  queryKey: computed(() => ['performance-report', 'summary', activeYearMonth.value]),
+  queryFn: () => fetchPerformanceSummary(activeYearMonth.value),
+  enabled: isPerformanceTabActive,
+})
+
+const {
+  data: performanceCards,
+  isPending: isPerformanceCardsPending,
+  isError: isPerformanceCardsError,
+  isFetching: isPerformanceCardsFetching,
+  refetch: refetchPerformanceCards,
+} = useQuery({
+  queryKey: computed(() => ['performance-report', 'cards', activeYearMonth.value]),
+  queryFn: () => fetchPerformanceCards(activeYearMonth.value),
+  enabled: isPerformanceTabActive,
 })
 </script>
 
@@ -77,7 +107,7 @@ const {
     <MainHeader>
       <div class="flex w-full items-center justify-between">
         <div>
-          <h1 class="text-heading text-charcoal">{{ pageTitle }}</h1>
+          <h1 class="text-subheading text-charcoal">{{ pageTitle }}</h1>
           <p class="text-caption text-gray">매일 AM 02:00 동기화</p>
         </div>
 
@@ -127,10 +157,11 @@ const {
           <p class="text-caption text-gray">혜택 요약을 불러오지 못했어요.</p>
           <button
             type="button"
-            class="text-caption font-semibold text-primary"
+            class="text-caption font-semibold text-primary disabled:opacity-50"
+            :disabled="isSummaryFetching"
             @click="() => refetchSummary()"
           >
-            다시 시도
+            {{ isSummaryFetching ? '재시도 중...' : '다시 시도' }}
           </button>
         </div>
         <BenefitSummaryCard v-else-if="benefitSummary" :summary="benefitSummary" />
@@ -145,10 +176,11 @@ const {
           <p class="text-caption text-gray">카테고리별 혜택을 불러오지 못했어요.</p>
           <button
             type="button"
-            class="text-caption font-semibold text-primary"
+            class="text-caption font-semibold text-primary disabled:opacity-50"
+            :disabled="isCategoriesFetching"
             @click="() => refetchCategories()"
           >
-            다시 시도
+            {{ isCategoriesFetching ? '재시도 중...' : '다시 시도' }}
           </button>
         </div>
         <CategoryTop3List v-else-if="benefitCategories" :items="benefitCategories.categories" />
@@ -156,11 +188,58 @@ const {
         <MissedBenefitsSection :year-month="activeYearMonth" />
       </div>
       <div v-else key="performance" class="mt-4 space-y-7">
-        <CardPerformanceSummary :cards="MOCK_CARD_PERFORMANCES" />
+        <div
+          v-if="isPerformanceSummaryPending"
+          class="flex items-center justify-center gap-2 py-10"
+        >
+          <LoaderCircle class="text-primary size-6 animate-spin" />
+        </div>
+        <div
+          v-else-if="isPerformanceSummaryError"
+          class="flex flex-col items-center gap-2 py-6 text-center"
+        >
+          <p class="text-caption text-gray">실적 요약을 불러오지 못했어요.</p>
+          <button
+            type="button"
+            class="text-caption font-semibold text-primary disabled:opacity-50"
+            :disabled="isPerformanceSummaryFetching"
+            @click="() => refetchPerformanceSummary()"
+          >
+            {{ isPerformanceSummaryFetching ? '재시도 중...' : '다시 시도' }}
+          </button>
+        </div>
+        <CardPerformanceSummary v-else-if="performanceSummary" :summary="performanceSummary" />
+
         <div>
           <p class="text-subheading font-bold text-charcoal">카드별 실적 달성 현황</p>
           <div class="mt-3">
-            <CardPerformanceList :cards="MOCK_CARD_PERFORMANCES" />
+            <div
+              v-if="isPerformanceCardsPending"
+              class="flex items-center justify-center gap-2 py-6"
+            >
+              <LoaderCircle class="text-primary size-6 animate-spin" />
+            </div>
+            <div
+              v-else-if="isPerformanceCardsError"
+              class="flex flex-col items-center gap-2 py-6 text-center"
+            >
+              <p class="text-caption text-gray">카드별 실적을 불러오지 못했어요.</p>
+              <button
+                type="button"
+                class="text-caption font-semibold text-primary disabled:opacity-50"
+                :disabled="isPerformanceCardsFetching"
+                @click="() => refetchPerformanceCards()"
+              >
+                {{ isPerformanceCardsFetching ? '재시도 중...' : '다시 시도' }}
+              </button>
+            </div>
+            <p
+              v-else-if="performanceCards && performanceCards.cards.length === 0"
+              class="rounded-lg border border-divider bg-card py-8 text-center text-caption text-gray"
+            >
+              등록된 카드가 없어요.
+            </p>
+            <CardPerformanceList v-else-if="performanceCards" :cards="performanceCards.cards" />
           </div>
         </div>
       </div>
