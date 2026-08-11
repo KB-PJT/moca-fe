@@ -6,6 +6,10 @@ import { CARD_ISSUER_SELECTION_LIST, type CardIssuerId } from '@/domains/card/co
 
 const router = useRouter()
 
+function returnToCardConnect() {
+  void router.replace({ name: 'card-connect' })
+}
+
 function selectIssuer(issuerId: CardIssuerId) {
   void router.push({
     name: 'card-issuer-connect',
@@ -15,7 +19,7 @@ function selectIssuer(issuerId: CardIssuerId) {
 </script>
 
 <template>
-  <CardPageLayout bg="screen">
+  <CardPageLayout bg="screen" @back="returnToCardConnect">
     <section>
       <h1 class="text-subheading text-charcoal">카드사를 선택해 주세요</h1>
       <p class="mt-1.5 text-body text-gray">선택한 카드사의 카드 정보를 불러올게요</p>
