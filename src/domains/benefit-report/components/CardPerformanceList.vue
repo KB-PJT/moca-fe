@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import type { CardPerformance } from '@/domains/benefit-report/api/benefitReport.mock'
+import type { CardPerformance } from '@/domains/benefit-report/api/cardPerformance.mock'
 import { formatAmountWithUnit, formatCompactAmount } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
 

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { ChevronLeft, ChevronRight } from '@lucide/vue'
+import { useQuery } from '@tanstack/vue-query'
+import { ChevronLeft, ChevronRight, LoaderCircle } from '@lucide/vue'
 import {
-  MOCK_CARD_PERFORMANCES,
-  MOCK_MONTHLY_BENEFIT_SUMMARIES,
-} from '@/domains/benefit-report/api/benefitReport.mock'
+  fetchBenefitCategories,
+  fetchBenefitSummary,
+} from '@/domains/benefit-report/api/benefitReport'
+import { MOCK_CARD_PERFORMANCES } from '@/domains/benefit-report/api/cardPerformance.mock'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
 import BenefitSummaryCard from '@/domains/benefit-report/components/BenefitSummaryCard.vue'
@@ -13,31 +15,59 @@ import MissedBenefitsSection from '@/domains/benefit-report/components/MissedBen
 import CardPerformanceSummary from '@/domains/benefit-report/components/CardPerformanceSummary.vue'
 import CardPerformanceList from '@/domains/benefit-report/components/CardPerformanceList.vue'
 
+function currentYearMonth(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function shiftYearMonth(yearMonth: string, delta: number): string {
+  const [year, month] = yearMonth.split('-').map(Number)
+  const date = new Date(year!, month! - 1 + delta, 1)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
 const activeTab = ref<'benefit' | 'performance'>('benefit')
-const monthIndex = ref(MOCK_MONTHLY_BENEFIT_SUMMARIES.length - 1)
+const activeYearMonth = ref(currentYearMonth())
 
 const pageTitle = computed(() => (activeTab.value === 'benefit' ? '혜택 리포트' : '실적 리포트'))
 
-const currentSummary = computed(() => MOCK_MONTHLY_BENEFIT_SUMMARIES[monthIndex.value]!)
-const previousSummary = computed(() => MOCK_MONTHLY_BENEFIT_SUMMARIES[monthIndex.value - 1] ?? null)
-
-const canGoPrevMonth = computed(() => monthIndex.value > 0)
-const canGoNextMonth = computed(() => monthIndex.value < MOCK_MONTHLY_BENEFIT_SUMMARIES.length - 1)
+const canGoNextMonth = computed(() => activeYearMonth.value < currentYearMonth())
 
 const monthLabel = computed(() => {
-  const [, month] = currentSummary.value.periodYm.split('-')
+  const [, month] = activeYearMonth.value.split('-')
   return `${Number(month)}월`
 })
 
 function goToPrevMonth() {
-  if (!canGoPrevMonth.value) return
-  monthIndex.value -= 1
+  activeYearMonth.value = shiftYearMonth(activeYearMonth.value, -1)
 }
 
 function goToNextMonth() {
   if (!canGoNextMonth.value) return
-  monthIndex.value += 1
+  activeYearMonth.value = shiftYearMonth(activeYearMonth.value, 1)
 }
+
+const isBenefitTabActive = computed(() => activeTab.value === 'benefit')
+
+const {
+  data: benefitSummary,
+  isPending: isSummaryPending,
+  isError: isSummaryError,
+} = useQuery({
+  queryKey: computed(() => ['benefit-report', 'summary', activeYearMonth.value]),
+  queryFn: () => fetchBenefitSummary(activeYearMonth.value),
+  enabled: isBenefitTabActive,
+})
+
+const {
+  data: benefitCategories,
+  isPending: isCategoriesPending,
+  isError: isCategoriesError,
+} = useQuery({
+  queryKey: computed(() => ['benefit-report', 'categories', activeYearMonth.value]),
+  queryFn: () => fetchBenefitCategories({ yearMonth: activeYearMonth.value }),
+  enabled: isBenefitTabActive,
+})
 </script>
 
 <template>
@@ -50,12 +80,7 @@ function goToNextMonth() {
         </div>
 
         <div class="flex items-center gap-1.5">
-          <button
-            type="button"
-            class="text-gray disabled:opacity-30"
-            :disabled="!canGoPrevMonth"
-            @click="goToPrevMonth"
-          >
+          <button type="button" class="text-gray" @click="goToPrevMonth">
             <ChevronLeft class="size-4" />
           </button>
           <span class="text-body font-semibold text-primary">{{ monthLabel }}</span>
@@ -92,12 +117,23 @@ function goToNextMonth() {
 
     <Transition name="tab-fade" mode="out-in">
       <div v-if="activeTab === 'benefit'" key="benefit" class="mt-4 space-y-7">
-        <BenefitSummaryCard
-          :summary="currentSummary"
-          :previous-total-amount="previousSummary?.totalAmount ?? null"
-        />
-        <CategoryTop3List :items="currentSummary.categoryTop3" />
-        <MissedBenefitsSection />
+        <div v-if="isSummaryPending" class="flex items-center justify-center gap-2 py-10">
+          <LoaderCircle class="text-primary size-6 animate-spin" />
+        </div>
+        <p v-else-if="isSummaryError" class="text-caption text-gray">
+          혜택 요약을 불러오지 못했어요.
+        </p>
+        <BenefitSummaryCard v-else-if="benefitSummary" :summary="benefitSummary" />
+
+        <div v-if="isCategoriesPending" class="flex items-center justify-center gap-2 py-6">
+          <LoaderCircle class="text-primary size-6 animate-spin" />
+        </div>
+        <p v-else-if="isCategoriesError" class="text-caption text-gray">
+          카테고리별 혜택을 불러오지 못했어요.
+        </p>
+        <CategoryTop3List v-else-if="benefitCategories" :items="benefitCategories.categories" />
+
+        <MissedBenefitsSection :year-month="activeYearMonth" />
       </div>
       <div v-else key="performance" class="mt-4 space-y-7">
         <CardPerformanceSummary :cards="MOCK_CARD_PERFORMANCES" />

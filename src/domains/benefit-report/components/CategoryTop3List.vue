@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Bus, Coffee, Store, Tag, type LucideIcon } from '@lucide/vue'
-import type { CategorySavingItem } from '@/domains/benefit-report/api/benefitReport.mock'
+import type { BenefitCategoryItem } from '@/domains/benefit-report/api/benefitReport'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 
 const props = defineProps<{
-  items: CategorySavingItem[]
+  items: BenefitCategoryItem[]
 }>()
 
-const RANK_MEDAL: Record<1 | 2 | 3, string> = {
+const RANK_MEDAL: Record<number, string> = {
   1: '🥇',
   2: '🥈',
   3: '🥉',
@@ -20,8 +20,8 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   교통: Bus,
 }
 
-function iconFor(category: string) {
-  return CATEGORY_ICONS[category] ?? Tag
+function iconFor(categoryName: string) {
+  return CATEGORY_ICONS[categoryName] ?? Tag
 }
 
 const first = computed(() => props.items.find((item) => item.rank === 1))
@@ -39,19 +39,19 @@ const rest = computed(() => props.items.filter((item) => item.rank !== 1))
       <span
         class="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-primary"
       >
-        <component :is="iconFor(first.category)" class="size-5" />
+        <component :is="iconFor(first.categoryName)" class="size-5" />
       </span>
 
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-1">
-          <span class="text-body font-bold text-charcoal">{{ first.category }}</span>
+          <span class="text-body font-bold text-charcoal">{{ first.categoryName }}</span>
           <span class="text-caption font-bold text-primary">{{ RANK_MEDAL[1] }} 1위</span>
         </div>
         <p class="mt-0.5 truncate text-caption text-gray">이번 달 가장 많이 절약한 카테고리</p>
       </div>
 
       <span class="shrink-0 text-body font-bold text-charcoal">
-        {{ formatAmountWithUnit(first.amount).replace('원', '')
+        {{ formatAmountWithUnit(first.benefitAmount).replace('원', '')
         }}<span class="text-caption font-normal text-gray">원</span>
       </span>
     </div>
@@ -64,15 +64,15 @@ const rest = computed(() => props.items.filter((item) => item.rank !== 1))
       >
         <div class="flex items-center justify-between">
           <span class="flex size-8 items-center justify-center rounded-full bg-accent text-primary">
-            <component :is="iconFor(item.category)" class="size-4" />
+            <component :is="iconFor(item.categoryName)" class="size-4" />
           </span>
           <span class="text-caption font-semibold text-gray"
             >{{ RANK_MEDAL[item.rank] }} {{ item.rank }}위</span
           >
         </div>
-        <p class="mt-2 text-caption text-gray">{{ item.category }}</p>
+        <p class="mt-2 text-caption text-gray">{{ item.categoryName }}</p>
         <p class="text-body font-bold text-charcoal">
-          {{ formatAmountWithUnit(item.amount).replace('원', '')
+          {{ formatAmountWithUnit(item.benefitAmount).replace('원', '')
           }}<span class="text-caption font-normal text-gray">원</span>
         </p>
       </div>

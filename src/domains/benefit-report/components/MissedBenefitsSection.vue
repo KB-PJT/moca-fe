@@ -1,44 +1,81 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { ChevronLeft, ChevronRight, Info } from '@lucide/vue'
+import { useQuery } from '@tanstack/vue-query'
+import { ChevronLeft, ChevronRight, Info, LoaderCircle } from '@lucide/vue'
 import {
-  MOCK_MISSED_BENEFIT_CARDS,
-  type MissedBenefitCondition,
-} from '@/domains/benefit-report/api/benefitReport.mock'
-import { formatAmountWithUnit, formatPoint } from '@/shared/utils/format'
+  fetchMissedBenefits,
+  type MissedBenefitItem,
+} from '@/domains/benefit-report/api/benefitReport'
+import { fetchMyCards } from '@/domains/card/api/cardManagement'
+import { formatAmountWithUnit } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
+
+const props = defineProps<{
+  yearMonth: string
+}>()
 
 const cardIndex = ref(0)
 const rootEl = ref<HTMLElement | null>(null)
 const slideDirection = ref<'next' | 'prev'>('next')
 
-// 카드 전환으로 조건 개수가 늘어났는지 미리 기록해뒀다가,
+const {
+  data: ownedCardsResult,
+  isPending: isOwnedCardsPending,
+  isError: isOwnedCardsError,
+} = useQuery({
+  queryKey: ['cards', 'my-cards'],
+  queryFn: fetchMyCards,
+})
+
+const ownedCards = computed(() => ownedCardsResult.value?.activeCards ?? [])
+const currentCard = computed(() => ownedCards.value[cardIndex.value] ?? null)
+
+const canGoPrevCard = computed(() => cardIndex.value > 0)
+const canGoNextCard = computed(() => cardIndex.value < ownedCards.value.length - 1)
+
+const {
+  data: missedReport,
+  isPending: isMissedPending,
+  isError: isMissedError,
+} = useQuery({
+  queryKey: computed(() => [
+    'benefit-report',
+    'missed',
+    currentCard.value?.userCardId,
+    props.yearMonth,
+  ]),
+  queryFn: () =>
+    fetchMissedBenefits({
+      userCardId: currentCard.value!.userCardId,
+      yearMonth: props.yearMonth,
+    }),
+  enabled: computed(() => Boolean(currentCard.value)),
+})
+
+const benefits = computed(() => missedReport.value?.benefits ?? [])
+const totalMissedAmount = computed(() => missedReport.value?.totalMissedBenefitAmount ?? 0)
+
+// 카드 전환으로 놓친 혜택 개수가 늘어났는지 기록해뒀다가,
 // 새 카드 콘텐츠가 다 나타난 뒤(@after-enter)에 늘어난 만큼 스크롤한다.
 const shouldScrollIntoView = ref(false)
+const previousBenefitsCount = ref<number | null>(null)
 
-watch(cardIndex, (newIndex, oldIndex) => {
-  const newCount = MOCK_MISSED_BENEFIT_CARDS[newIndex]?.conditions.length ?? 0
-  const oldCount = MOCK_MISSED_BENEFIT_CARDS[oldIndex]?.conditions.length ?? 0
-  shouldScrollIntoView.value = newCount > oldCount
-})
+watch(
+  () => missedReport.value?.benefits.length,
+  (newCount) => {
+    if (newCount === undefined) return
+    if (previousBenefitsCount.value !== null && newCount > previousBenefitsCount.value) {
+      shouldScrollIntoView.value = true
+    }
+    previousBenefitsCount.value = newCount
+  },
+)
 
 function handleConditionsAfterEnter() {
   if (!shouldScrollIntoView.value) return
   shouldScrollIntoView.value = false
   rootEl.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
 }
-
-const canGoPrevCard = computed(() => cardIndex.value > 0)
-const canGoNextCard = computed(() => cardIndex.value < MOCK_MISSED_BENEFIT_CARDS.length - 1)
-
-const currentCard = computed(() => MOCK_MISSED_BENEFIT_CARDS[cardIndex.value]!)
-
-const totalMissedAmount = computed(() =>
-  currentCard.value.conditions.reduce(
-    (sum, condition) => sum + (condition.targetAmount - condition.currentAmount),
-    0,
-  ),
-)
 
 function goToPrevCard() {
   if (!canGoPrevCard.value) return
@@ -52,21 +89,17 @@ function goToNextCard() {
   cardIndex.value += 1
 }
 
-function formatByUnit(condition: MissedBenefitCondition, amount: number) {
-  return condition.unit === 'point' ? formatPoint(amount) : formatAmountWithUnit(amount)
+function remainingText(item: MissedBenefitItem) {
+  return formatAmountWithUnit(item.remainingAmount)
 }
 
-function remainingText(condition: MissedBenefitCondition) {
-  return formatByUnit(condition, condition.targetAmount - condition.currentAmount)
+function progressText(item: MissedBenefitItem) {
+  return `${formatAmountWithUnit(item.usedAmount)} / ${formatAmountWithUnit(item.limitAmount)} 사용`
 }
 
-function progressText(condition: MissedBenefitCondition) {
-  return `${formatByUnit(condition, condition.currentAmount)} / ${formatByUnit(condition, condition.targetAmount)} 사용`
-}
-
-function progressPercent(condition: MissedBenefitCondition) {
-  if (condition.targetAmount <= 0) return 0
-  return Math.min(100, Math.floor((condition.currentAmount / condition.targetAmount) * 100))
+function progressPercent(item: MissedBenefitItem) {
+  if (item.limitAmount <= 0) return 0
+  return Math.min(100, Math.floor((item.usedAmount / item.limitAmount) * 100))
 }
 </script>
 
@@ -74,74 +107,98 @@ function progressPercent(condition: MissedBenefitCondition) {
   <div ref="rootEl">
     <p class="flex items-center gap-1.5">
       <span class="text-subheading font-bold text-charcoal">이번 달 놓치고 있는 혜택</span>
-      <span class="text-body font-bold text-primary">
+      <span v-if="currentCard" class="text-body font-bold text-primary">
         {{ formatAmountWithUnit(totalMissedAmount) }} 상당
       </span>
       <Info class="size-3.5 text-gray" />
     </p>
 
-    <div
-      class="mt-3 flex items-center justify-between rounded-full border border-divider bg-card p-1.5"
-    >
-      <button
-        type="button"
-        class="flex size-7 shrink-0 items-center justify-center text-gray disabled:opacity-30"
-        :disabled="!canGoPrevCard"
-        @click="goToPrevCard"
-      >
-        <ChevronLeft class="size-4" />
-      </button>
-
-      <div class="flex items-center gap-2">
-        <CardImage
-          :src="currentCard.cardImageUrl"
-          :alt="`${currentCard.cardName} 카드 이미지`"
-          orientation="horizontal"
-          :width="34"
-          :height="22"
-        />
-        <span class="text-caption font-semibold text-charcoal">{{ currentCard.cardName }}</span>
-      </div>
-
-      <button
-        type="button"
-        class="flex size-7 shrink-0 items-center justify-center text-gray disabled:opacity-30"
-        :disabled="!canGoNextCard"
-        @click="goToNextCard"
-      >
-        <ChevronRight class="size-4" />
-      </button>
+    <div v-if="isOwnedCardsPending" class="mt-3 flex items-center justify-center gap-2 py-6">
+      <LoaderCircle class="text-primary size-5 animate-spin" />
+      <p class="text-caption text-gray">카드 정보를 불러오는 중...</p>
     </div>
 
-    <Transition
-      :name="slideDirection === 'next' ? 'slide-next' : 'slide-prev'"
-      mode="out-in"
-      @after-enter="handleConditionsAfterEnter"
-    >
-      <div :key="currentCard.cardId" class="mt-3 space-y-2">
-        <div
-          v-for="condition in currentCard.conditions"
-          :key="condition.label"
-          class="rounded-lg border border-divider bg-card p-3"
+    <p v-else-if="isOwnedCardsError" class="mt-3 text-caption text-gray">
+      카드 정보를 불러오지 못했어요.
+    </p>
+
+    <p v-else-if="!currentCard" class="mt-3 text-caption text-gray">등록된 카드가 없어요.</p>
+
+    <template v-else>
+      <div
+        class="mt-3 flex items-center justify-between rounded-full border border-divider bg-card p-1.5"
+      >
+        <button
+          type="button"
+          class="flex size-7 shrink-0 items-center justify-center text-gray disabled:opacity-30"
+          :disabled="!canGoPrevCard"
+          @click="goToPrevCard"
         >
-          <div class="flex items-center justify-between">
-            <span class="text-body font-bold text-charcoal">{{ condition.label }}</span>
-            <span class="text-body font-bold text-charcoal"
-              >남은 {{ remainingText(condition) }}</span
-            >
-          </div>
+          <ChevronLeft class="size-4" />
+        </button>
 
-          <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-divider">
-            <div
-              class="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-              :style="{ width: `${progressPercent(condition)}%` }"
-            />
-          </div>
-
-          <p class="mt-1.5 text-caption text-gray">{{ progressText(condition) }}</p>
+        <div class="flex items-center gap-2">
+          <CardImage
+            :src="currentCard.cardImageUrl"
+            :alt="`${currentCard.cardName} 카드 이미지`"
+            orientation="horizontal"
+            :width="34"
+            :height="22"
+          />
+          <span class="text-caption font-semibold text-charcoal">{{ currentCard.cardName }}</span>
         </div>
+
+        <button
+          type="button"
+          class="flex size-7 shrink-0 items-center justify-center text-gray disabled:opacity-30"
+          :disabled="!canGoNextCard"
+          @click="goToNextCard"
+        >
+          <ChevronRight class="size-4" />
+        </button>
       </div>
-    </Transition>
+
+      <div v-if="isMissedPending" class="mt-3 flex items-center justify-center gap-2 py-6">
+        <LoaderCircle class="text-primary size-5 animate-spin" />
+      </div>
+
+      <p v-else-if="isMissedError" class="mt-3 text-caption text-gray">
+        놓친 혜택 정보를 불러오지 못했어요.
+      </p>
+
+      <p v-else-if="benefits.length === 0" class="mt-3 text-caption text-gray">
+        이 카드는 이번 달 놓친 혜택이 없어요.
+      </p>
+
+      <Transition
+        v-else
+        :name="slideDirection === 'next' ? 'slide-next' : 'slide-prev'"
+        mode="out-in"
+        @after-enter="handleConditionsAfterEnter"
+      >
+        <div :key="currentCard.userCardId" class="mt-3 space-y-2">
+          <div
+            v-for="item in benefits"
+            :key="item.benefitRuleId"
+            class="rounded-lg border border-divider bg-card p-3"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-body font-bold text-charcoal">{{ item.title }}</span>
+              <span class="text-body font-bold text-charcoal">남은 {{ remainingText(item) }}</span>
+            </div>
+
+            <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-divider">
+              <div
+                class="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+                :style="{ width: `${progressPercent(item)}%` }"
+              />
+            </div>
+
+            <p class="mt-1.5 text-caption text-gray">{{ progressText(item) }}</p>
+          </div>
+        </div>
+      </Transition>
+    </template>
   </div>
 </template>
 
