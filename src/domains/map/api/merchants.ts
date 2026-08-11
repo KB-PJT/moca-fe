@@ -21,7 +21,9 @@ export interface Merchant {
     benefitLabel: string
   }
   // 실제 응답에는 없는 UI 목업 전용 필드. 실제 영업시간 API가 생기면 교체.
-  isOpen: boolean
+  // mock에 매칭되지 않으면 영업 여부를 알 수 없으므로 null(정보 없음)로 둔다. true/false로
+  // 단정하면 실제로는 모르는 상태를 아는 것처럼 보여주게 된다.
+  isOpen: boolean | null
 }
 
 export interface MerchantCategory {
@@ -208,13 +210,15 @@ export function toMerchant(item: NearbyMerchant, categoryName: string): Merchant
   return {
     placeId: item.merchantId,
     name: item.name,
-    category: supplement?.category ?? categoryName,
+    // 카테고리는 이미 어떤 categoryId로 조회했는지 알고 있으니 API 응답이 항상 우선이다.
+    // mock category로 덮어쓰면 백엔드 카테고리가 바뀌었을 때 화면이 실제와 어긋난다.
+    category: categoryName,
     distance: item.distanceMeters,
     address: supplement?.address ?? '',
     latitude: item.latitude,
     longitude: item.longitude,
     hasBenefit: supplement?.hasBenefit ?? false,
     bestBenefit: supplement?.bestBenefit,
-    isOpen: supplement?.isOpen ?? true,
+    isOpen: supplement?.isOpen ?? null,
   }
 }

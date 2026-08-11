@@ -29,10 +29,14 @@ const emit = defineEmits<{ click: [] }>()
         <div class="flex items-center gap-2">
           <span class="text-body text-charcoal truncate font-semibold">{{ merchant.name }}</span>
           <span
+            v-if="merchant.isOpen !== null"
             class="text-label shrink-0 rounded-full px-2 py-0.5"
             :class="merchant.isOpen ? 'bg-success/10 text-success' : 'bg-disabled/40 text-gray'"
           >
             {{ merchant.isOpen ? '영업중' : '영업 종료' }}
+          </span>
+          <span v-else class="text-label text-gray shrink-0 rounded-full px-2 py-0.5">
+            영업시간 정보 없음
           </span>
         </div>
         <p class="text-caption text-gray truncate">
