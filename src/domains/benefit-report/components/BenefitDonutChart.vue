@@ -5,7 +5,7 @@ import { Doughnut } from 'vue-chartjs'
 import {
   BENEFIT_TYPE_COLORS,
   type BenefitBreakdownItem,
-} from '@/domains/benefit-report/api/benefitReport.mock'
+} from '@/domains/benefit-report/api/benefitReport'
 
 ChartJS.register(ArcElement, DoughnutController, Legend, Tooltip)
 

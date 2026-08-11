@@ -11,7 +11,7 @@ import {
   Tooltip,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
-import type { CardPerformance } from '@/domains/benefit-report/api/benefitReport.mock'
+import type { CardPerformance } from '@/domains/benefit-report/api/cardPerformance.mock'
 
 ChartJS.register(
   CategoryScale,

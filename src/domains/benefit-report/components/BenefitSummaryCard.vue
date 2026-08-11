@@ -3,22 +3,19 @@ import { computed } from 'vue'
 import { Info } from '@lucide/vue'
 import {
   BENEFIT_TYPE_COLORS,
-  type MonthlyBenefitSummary,
-} from '@/domains/benefit-report/api/benefitReport.mock'
+  type BenefitSummary,
+} from '@/domains/benefit-report/api/benefitReport'
 import { formatAmount, formatAmountWithUnit } from '@/shared/utils/format'
 import BenefitDonutChart from '@/domains/benefit-report/components/BenefitDonutChart.vue'
 
 const props = defineProps<{
-  summary: MonthlyBenefitSummary
-  previousTotalAmount: number | null
+  summary: BenefitSummary
 }>()
 
 const donutSize = 120
 
 const comparisonText = computed(() => {
-  if (props.previousTotalAmount == null) return null
-
-  const diff = props.summary.totalAmount - props.previousTotalAmount
+  const diff = props.summary.differenceAmount
 
   if (diff > 0) return `지난달보다 ${formatAmountWithUnit(diff)} 더 받았어요 ↑`
   if (diff < 0) return `지난달보다 ${formatAmountWithUnit(Math.abs(diff))} 덜 받았어요 ↓`
@@ -30,14 +27,16 @@ const comparisonText = computed(() => {
   <div class="rounded-lg bg-accent p-4">
     <p class="text-caption text-gray">이번 달 받은 총혜택</p>
     <p class="mt-1 flex items-center gap-1">
-      <span class="text-display text-charcoal">{{ formatAmount(summary.totalAmount) }}원</span>
+      <span class="text-display text-charcoal"
+        >{{ formatAmount(summary.totalBenefitAmount) }}원</span
+      >
       <Info class="size-3.5 text-gray" />
     </p>
     <p v-if="comparisonText" class="mt-1 text-caption font-semibold text-success">
       {{ comparisonText }}
     </p>
 
-    <div class="mt-3 flex items-center gap-10">
+    <div v-if="summary.breakdown.length > 0" class="mt-3 flex items-center gap-10">
       <BenefitDonutChart :breakdown="summary.breakdown" :size="donutSize" />
 
       <dl class="flex flex-1 flex-col space-y-2">
@@ -53,5 +52,6 @@ const comparisonText = computed(() => {
         </div>
       </dl>
     </div>
+    <p v-else class="mt-3 text-caption text-gray">이번 달 받은 혜택이 아직 없어요.</p>
   </div>
 </template>
