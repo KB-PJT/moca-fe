@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import type { CardPerformance } from '@/domains/benefit-report/api/cardPerformance.mock'
-import { formatAmountWithUnit, formatCompactAmount } from '@/shared/utils/format'
+import { CircleCheck } from '@lucide/vue'
+import type { PerformanceCardItem } from '@/domains/benefit-report/api/performanceReport'
+import { formatAmountWithUnit } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
 
-type PerformanceState = 'before-tier1' | 'tier1-complete' | 'tier2-complete'
-
 defineProps<{
-  cards: CardPerformance[]
+  cards: PerformanceCardItem[]
 }>()
 
 // 게이지가 화면에 나타날 때 0%에서 실제 값까지 차오르는 효과를 주기 위한 트리거.
@@ -20,44 +19,29 @@ onMounted(() => {
   })
 })
 
-function performanceState(card: CardPerformance): PerformanceState {
-  if (card.currentAmount >= card.tier2TargetAmount) return 'tier2-complete'
-  if (card.currentAmount >= card.tier1TargetAmount) return 'tier1-complete'
-  return 'before-tier1'
+// 카드 원천 데이터에 실적 tier가 없으면 currentTier=0, nextTier=null로 내려온다.
+function hasTierInfo(card: PerformanceCardItem): boolean {
+  return card.currentTier > 0 || card.nextTier !== null
 }
 
-function statusLabel(card: CardPerformance): string {
-  const state = performanceState(card)
-
-  if (state === 'tier2-complete') return '✅ 모든 구간 실적달성 완료'
-  if (state === 'tier1-complete') return '✅ 1구간 실적달성 완료'
-  return '다음 실적 달성'
+function displayRate(card: PerformanceCardItem): number {
+  return Math.min(100, Math.max(0, Math.floor(card.achievementRate)))
 }
 
-function remainingAmountText(card: CardPerformance): string | null {
-  const state = performanceState(card)
-
-  if (state === 'tier2-complete') return null
-
-  const remaining =
-    state === 'tier1-complete'
-      ? card.tier2TargetAmount - card.currentAmount
-      : card.tier1TargetAmount - card.currentAmount
-
-  return `${formatAmountWithUnit(remaining)} 남음`
+function isAchieved(card: PerformanceCardItem): boolean {
+  return hasTierInfo(card) && card.isCurrentTierAchieved
 }
 
-function achievementRate(card: CardPerformance): number {
-  if (card.tier2TargetAmount <= 0) return 0
-
-  const rate = (card.currentAmount / card.tier2TargetAmount) * 100
-  return Math.min(100, Math.floor(rate))
+function statusLabel(card: PerformanceCardItem): string {
+  if (!hasTierInfo(card)) return '실적 구간 정보 없음'
+  if (card.isCurrentTierAchieved && card.nextTier === null) return '모든 구간 실적달성 완료'
+  if (card.isCurrentTierAchieved) return `${card.currentTier}구간 실적달성 완료`
+  return '다음 실적 달성까지'
 }
-function tier1MarkerPercent(card: CardPerformance): number {
-  if (card.tier2TargetAmount <= 0) return 0
 
-  const rate = (card.tier1TargetAmount / card.tier2TargetAmount) * 100
-  return Math.min(100, Math.floor(rate))
+function remainingAmountText(card: PerformanceCardItem): string | null {
+  if (!hasTierInfo(card) || card.isCurrentTierAchieved) return null
+  return `${formatAmountWithUnit(card.remainingAmountToNextTier)} 남음`
 }
 </script>
 
@@ -65,7 +49,7 @@ function tier1MarkerPercent(card: CardPerformance): number {
   <TransitionGroup tag="div" name="card-stagger" appear class="space-y-3">
     <div
       v-for="(card, index) in cards"
-      :key="card.cardId"
+      :key="card.userCardId"
       class="rounded-lg border border-divider bg-card p-3"
       :style="{ transitionDelay: `${index * 70}ms` }"
     >
@@ -76,57 +60,31 @@ function tier1MarkerPercent(card: CardPerformance): number {
             <span class="truncate text-body font-bold text-charcoal">{{ card.cardName }}</span>
             <span
               class="shrink-0 text-body font-bold"
-              :class="achievementRate(card) >= 100 ? 'text-primary' : 'text-gray'"
+              :class="isAchieved(card) ? 'text-primary' : 'text-gray'"
             >
-              {{ achievementRate(card) }}%
+              {{ displayRate(card) }}%
             </span>
           </div>
-          <p class="mt-0.5 text-caption text-gray">
-            {{ formatAmountWithUnit(card.currentAmount) }} /
-            {{ formatAmountWithUnit(card.tier2TargetAmount) }}
+          <p v-if="hasTierInfo(card)" class="mt-0.5 text-caption text-gray">
+            {{ formatAmountWithUnit(card.currentPerformanceAmount) }} /
+            {{ formatAmountWithUnit(card.currentTierTargetAmount) }}
           </p>
         </div>
       </div>
 
-      <div class="relative mt-3 h-1.5 rounded-full bg-divider">
+      <div v-if="hasTierInfo(card)" class="mt-3 h-1.5 rounded-full bg-divider">
         <div
           class="gauge-fill h-full rounded-full bg-primary transition-[width] duration-1000 ease-out"
-          :style="{ width: `${isFilled ? achievementRate(card) : 0}%` }"
+          :style="{ width: `${isFilled ? displayRate(card) : 0}%` }"
         />
-        <span
-          class="absolute top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[9px] font-bold"
-          :class="
-            achievementRate(card) >= tier1MarkerPercent(card)
-              ? 'bg-primary text-white'
-              : 'border border-divider bg-card text-gray'
-          "
-          :style="{ left: `${tier1MarkerPercent(card)}%` }"
-        >
-          1
-        </span>
-        <span
-          class="absolute top-full mt-2 -translate-x-1/2 text-[9px] whitespace-nowrap text-gray"
-          :style="{ left: `${tier1MarkerPercent(card)}%` }"
-        >
-          {{ formatCompactAmount(card.tier1TargetAmount) }}
-        </span>
-        <span
-          class="absolute top-1/2 right-0 flex size-4 -translate-y-1/2 items-center justify-center rounded-full text-[9px] font-bold"
-          :class="
-            achievementRate(card) >= 100
-              ? 'bg-primary text-white'
-              : 'border border-divider bg-card text-gray'
-          "
-        >
-          2
-        </span>
       </div>
 
-      <div class="mt-5 flex items-center justify-between gap-2">
+      <div class="mt-3 flex items-center justify-between gap-2">
         <span
-          class="text-caption font-semibold"
-          :class="performanceState(card) === 'before-tier1' ? 'text-gray' : 'text-success'"
+          class="flex items-center gap-1 text-caption font-semibold"
+          :class="isAchieved(card) ? 'text-success' : 'text-gray'"
         >
+          <CircleCheck v-if="isAchieved(card)" class="size-3.5" />
           {{ statusLabel(card) }}
         </span>
         <span v-if="remainingAmountText(card)" class="text-caption font-bold text-primary">
