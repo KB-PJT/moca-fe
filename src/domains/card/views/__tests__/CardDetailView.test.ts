@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CardDetailBenefitResponse, CardDetailResponse } from '@/domains/card/api/cardDetail'
 import type { MyCardItemResponse, MyCardsResponse } from '@/domains/card/api/cardManagement'
@@ -27,8 +28,8 @@ vi.mock('@/domains/card/api/cardManagement', () => ({
 }))
 
 const replace = vi.fn<(location: unknown) => void>()
-const routeParams = { id: 'managed-kb-wesh' }
-const routeQuery: { from?: string } = {}
+let routeParams = reactive({ id: 'managed-kb-wesh' })
+let routeQuery = reactive<{ from?: string }>({})
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ params: routeParams, query: routeQuery }),
@@ -184,8 +185,8 @@ describe('CardDetailView', () => {
       return { ...detail, memo }
     })
     replace.mockClear()
-    routeParams.id = 'managed-kb-wesh'
-    delete routeQuery.from
+    routeParams = reactive({ id: 'managed-kb-wesh' })
+    routeQuery = reactive({})
   })
 
   it('선택한 카드의 상세 정보와 주요 혜택을 API에서 조회해 표시한다', async () => {
@@ -263,6 +264,33 @@ describe('CardDetailView', () => {
       params: { id: 'managed-kb-taptap' },
     })
     expect(wrapper.get('button[aria-label="이전 카드"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('다른 카드 상세를 불러오는 동안 기존 화면을 유지한다', async () => {
+    let resolveNextCard!: (card: CardDetailResponse) => void
+    apiMocks.fetchCardDetail.mockImplementation((userCardId) => {
+      if (userCardId === 'managed-shinhan-mrlife') {
+        return new Promise((resolve) => {
+          resolveNextCard = resolve
+        })
+      }
+
+      return Promise.resolve(cardDetails[userCardId]!)
+    })
+    const wrapper = await mountCardDetail()
+
+    routeParams.id = 'managed-shinhan-mrlife'
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-card-detail-loading]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('KB My WE:SH')
+    expect(wrapper.get('main').attributes('aria-busy')).toBe('true')
+
+    resolveNextCard(cardDetails['managed-shinhan-mrlife']!)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('신한카드 Mr.Life')
+    expect(wrapper.get('main').attributes('aria-busy')).toBe('false')
   })
 
   it('홈에서 진입하면 홈 캐러셀 순서로 다음 카드 상세를 연다', async () => {

@@ -219,7 +219,7 @@ function goBack() {
 }
 
 function moveCard(offset: number) {
-  if (cardIndex.value < 0) return
+  if (isCardLoading.value || cardIndex.value < 0) return
 
   const nextCard = navigationCards.value[cardIndex.value + offset]
   if (!nextCard) return
@@ -397,7 +397,7 @@ async function confirmCardAction() {
     </AppBar>
 
     <main
-      v-if="isCardLoading"
+      v-if="isCardLoading && !card"
       data-card-detail-loading
       class="min-h-0 flex-1 overflow-y-auto px-5 py-6"
       aria-label="카드 상세정보 로딩 중"
@@ -408,7 +408,12 @@ async function confirmCardAction() {
       <Skeleton class="mt-4 h-44 w-full" />
     </main>
 
-    <main v-else-if="card" ref="detailScrollContainer" class="min-h-0 flex-1 overflow-y-auto">
+    <main
+      v-else-if="card"
+      ref="detailScrollContainer"
+      class="min-h-0 flex-1 overflow-y-auto"
+      :aria-busy="isCardLoading"
+    >
       <section class="border-b border-divider" aria-label="카드 이미지">
         <div class="mt-4 flex h-2 items-center justify-center gap-2">
           <span
@@ -427,7 +432,7 @@ async function confirmCardAction() {
             class="absolute left-4 flex size-12 items-center justify-center rounded-full"
             :class="canMovePrevious ? 'bg-accent text-primary' : 'bg-screen text-disabled'"
             aria-label="이전 카드"
-            :disabled="!canMovePrevious"
+            :disabled="!canMovePrevious || isCardLoading"
             @click="moveCard(-1)"
           >
             <ChevronLeft class="size-5" aria-hidden="true" />
@@ -446,7 +451,7 @@ async function confirmCardAction() {
             class="absolute right-4 flex size-12 items-center justify-center rounded-full"
             :class="canMoveNext ? 'bg-accent text-primary' : 'bg-screen text-disabled'"
             aria-label="다음 카드"
-            :disabled="!canMoveNext"
+            :disabled="!canMoveNext || isCardLoading"
             @click="moveCard(1)"
           >
             <ChevronRight class="size-5" aria-hidden="true" />
