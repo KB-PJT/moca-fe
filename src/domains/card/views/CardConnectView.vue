@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import CardIssuerIcon from '@/domains/card/components/CardIssuerIcon.vue'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
 import CardSearchIllustration from '@/domains/card/components/CardSearchIllustration.vue'
 import { CARD_ISSUER_LIST } from '@/domains/card/constants/cardIssuers'
 import MocaButton from '@/shared/components/MocaButton.vue'
 
+const route = useRoute()
 const router = useRouter()
+const isRequiredConnection = computed(
+  () => route.query.required === 'true' || route.query.required === 'activate',
+)
 
 function connectAllCards() {
   void router.push({ name: 'card-bulk-connect' })
@@ -15,10 +20,14 @@ function connectAllCards() {
 function selectCardIssuers() {
   void router.push({ name: 'card-issuer-select' })
 }
+
+function openAccountSupport() {
+  void router.push({ name: 'mypage' })
+}
 </script>
 
 <template>
-  <CardPageLayout bg="screen">
+  <CardPageLayout bg="screen" :show-back="!isRequiredConnection">
     <div class="flex min-h-148 flex-col">
       <section class="px-1 pt-1">
         <h1 class="text-display text-charcoal">
@@ -63,6 +72,14 @@ function selectCardIssuers() {
         >
           기관 직접 선택하기
         </MocaButton>
+        <button
+          v-if="isRequiredConnection"
+          type="button"
+          class="mx-auto min-h-11 px-4 text-caption font-medium text-gray underline underline-offset-4"
+          @click="openAccountSupport"
+        >
+          계정 및 고객지원
+        </button>
       </div>
     </template>
   </CardPageLayout>

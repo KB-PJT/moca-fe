@@ -16,6 +16,8 @@ export interface MyCardsResponse {
   inactiveCards?: MyCardItemResponse[]
 }
 
+export type CardAccessState = 'none' | 'inactive-only' | 'active'
+
 interface MyCardsApiResponse {
   success: boolean
   data: MyCardsResponse
@@ -34,6 +36,12 @@ export async function fetchMyCards(): Promise<MyCardsResponse> {
   })
 
   return response.data.data
+}
+
+export function resolveCardAccessState(response: MyCardsResponse): CardAccessState {
+  if (response.activeCards.length > 0) return 'active'
+  if ((response.inactiveCards?.length ?? 0) > 0) return 'inactive-only'
+  return 'none'
 }
 
 export async function reorderMyCards(userCardIds: string[]): Promise<MyCardsResponse> {
