@@ -3,18 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CardConnectView from '@/domains/card/views/CardConnectView.vue'
 
 const push = vi.fn<(location: { name: string }) => void>()
+const replace = vi.fn<(location: { name: string }) => void>()
 const routeQuery: Record<string, string | undefined> = {}
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: routeQuery }),
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, replace }),
 }))
 
 const globalStubs = {
   CardPageLayout: {
     props: ['showBack'],
+    emits: ['back'],
     template:
-      '<main :data-show-back="showBack"><slot /><footer><slot name="footer" /></footer></main>',
+      '<main :data-show-back="showBack"><button v-if="showBack" type="button" aria-label="뒤로가기" @click="$emit(\'back\')" /><slot /><footer><slot name="footer" /></footer></main>',
   },
   CardIssuerIcon: {
     template: '<span />',
@@ -31,7 +33,18 @@ const globalStubs = {
 describe('CardConnectView', () => {
   beforeEach(() => {
     push.mockClear()
+    replace.mockClear()
     for (const key of Object.keys(routeQuery)) delete routeQuery[key]
+  })
+
+  it('일반 연동 화면에서 뒤로가기를 누르면 내 카드 관리로 이동한다', async () => {
+    const wrapper = mount(CardConnectView, {
+      global: { stubs: globalStubs },
+    })
+
+    await wrapper.get('button[aria-label="뒤로가기"]').trigger('click')
+
+    expect(replace).toHaveBeenCalledWith({ name: 'card-manage' })
   })
 
   it('기관 직접 선택하기를 누르면 카드사 선택 화면으로 이동한다', async () => {

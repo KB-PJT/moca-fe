@@ -13,6 +13,10 @@ const isRequiredConnection = computed(
   () => route.query.required === 'true' || route.query.required === 'activate',
 )
 
+function returnToCardManage() {
+  void router.replace({ name: 'card-manage' })
+}
+
 function connectAllCards() {
   void router.push({ name: 'card-bulk-connect' })
 }
@@ -27,7 +31,7 @@ function openAccountSupport() {
 </script>
 
 <template>
-  <CardPageLayout bg="screen" :show-back="!isRequiredConnection">
+  <CardPageLayout bg="screen" :show-back="!isRequiredConnection" @back="returnToCardManage">
     <div class="flex min-h-148 flex-col">
       <section class="px-1 pt-1">
         <h1 class="text-display text-charcoal">
