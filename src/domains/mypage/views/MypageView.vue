@@ -2,7 +2,6 @@
 import {
   Bell,
   ChevronRight,
-  CircleHelp,
   CreditCard,
   LogOut,
   MapPin,
@@ -90,8 +89,8 @@ function navigateToNotificationSettings() {
   void router.push({ name: 'notification-settings' })
 }
 
-function navigateToFaq() {
-  void router.push({ name: 'faq' })
+function navigateToNotices() {
+  void router.push({ name: 'mypage-notices' })
 }
 
 function navigateToInquiry() {
@@ -265,12 +264,12 @@ async function handleLogout() {
       flush
       class="overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
     >
-      <ListItem title="자주 묻는 질문" clickable @click="navigateToFaq">
+      <ListItem title="공지사항" clickable @click="navigateToNotices">
         <template #left>
           <span
             class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
           >
-            <CircleHelp class="size-4" />
+            <Megaphone class="size-4" />
           </span>
         </template>
         <template #right><ChevronRight class="size-4 text-gray" /></template>
@@ -282,17 +281,6 @@ async function handleLogout() {
             class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
           >
             <MessageSquare class="size-4" />
-          </span>
-        </template>
-        <template #right><ChevronRight class="size-4 text-gray" /></template>
-      </ListItem>
-
-      <ListItem title="공지사항" clickable>
-        <template #left>
-          <span
-            class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
-          >
-            <Megaphone class="size-4" />
           </span>
         </template>
         <template #right><ChevronRight class="size-4 text-gray" /></template>

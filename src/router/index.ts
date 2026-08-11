@@ -137,9 +137,9 @@ const router = createRouter({
           component: () => import('@/domains/notification/views/NotificationSettingsView.vue'),
         },
         {
-          path: 'mypage/faq',
-          name: 'faq',
-          component: () => import('@/domains/mypage/views/FaqView.vue'),
+          path: 'mypage/notices',
+          name: 'mypage-notices',
+          component: () => import('@/domains/mypage/views/NoticeView.vue'),
         },
         {
           path: 'mypage/inquiry',
