@@ -31,17 +31,18 @@ const currentSortLabel = computed(
   () => sortOptions.find((option) => option.value === sortMode.value)?.label,
 )
 
-// 카드 구조가 추천 카드 정보를 전제로 하므로, 혜택이 있는 가맹점만 목록에 노출한다.
-const benefitMerchants = computed(() => props.merchants.filter((merchant) => merchant.bestBenefit))
-
 const sortedMerchants = computed(() => {
-  const list = [...benefitMerchants.value]
+  const list = [...props.merchants]
 
   if (sortMode.value === 'distance') {
     return list.sort((a, b) => a.distance - b.distance)
   }
 
-  return list.sort((a, b) => b.bestBenefit!.estimatedBenefit - a.bestBenefit!.estimatedBenefit)
+  // 혜택 계산 API가 아직 없어 bestBenefit이 없는 가맹점도 섞여 있을 수 있으므로, 그런 경우
+  // 0으로 취급해 혜택순 정렬 맨 뒤로 밀려나게 한다.
+  return list.sort(
+    (a, b) => (b.bestBenefit?.estimatedBenefit ?? 0) - (a.bestBenefit?.estimatedBenefit ?? 0),
+  )
 })
 
 function selectSort(mode: SortMode) {
@@ -53,7 +54,7 @@ function selectSort(mode: SortMode) {
 <template>
   <div class="flex h-full flex-col">
     <div class="flex items-center justify-between px-4 pt-1 pb-2">
-      <p class="text-caption text-gray">혜택 가맹점 {{ sortedMerchants.length }}곳</p>
+      <p class="text-caption text-gray">가맹점 {{ sortedMerchants.length }}곳</p>
 
       <div ref="sortMenuRef" class="relative">
         <button
@@ -96,7 +97,7 @@ function selectSort(mode: SortMode) {
     </div>
 
     <p v-else class="text-caption text-gray flex-1 pt-10 text-center">
-      이 카테고리에는 혜택 가맹점이 없어요.
+      이 카테고리에는 가맹점이 없어요.
     </p>
   </div>
 </template>
