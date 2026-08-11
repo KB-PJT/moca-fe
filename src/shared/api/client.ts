@@ -12,6 +12,13 @@ interface RefreshTokenResponse {
   }
 }
 
+interface MyProfileResponse {
+  data: {
+    email: string | null
+    nickname: string
+  }
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -50,9 +57,20 @@ function refreshAccessToken(): Promise<string> {
   return refreshPromise
 }
 
+async function restoreCurrentUser(): Promise<void> {
+  const response = await apiClient.get<MyProfileResponse>('/api/v1/me')
+
+  useAuthStore().setUser({
+    nickname: response.data.data.nickname,
+    email: response.data.data.email ?? '',
+    provider: 'google',
+  })
+}
+
 export async function restoreMocaSession(): Promise<boolean> {
   try {
     await refreshAccessToken()
+    await restoreCurrentUser()
     return true
   } catch {
     useAuthStore().clearSession()
