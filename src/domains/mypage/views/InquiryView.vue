@@ -80,7 +80,7 @@ async function submitInquiry() {
     })
   } catch (error) {
     if (axios.isAxiosError<InquiryErrorApiResponse>(error)) {
-      const errorCode = error.response?.data.error.code
+      const errorCode = error.response?.data?.error?.code
 
       if (errorCode === 'VALIDATION_FAILED') {
         submitError.value = '입력한 내용을 다시 확인해주세요.'

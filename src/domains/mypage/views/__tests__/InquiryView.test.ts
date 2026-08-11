@@ -98,6 +98,24 @@ describe('InquiryView', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
+  it.each([
+    { isAxiosError: true, response: {} },
+    { isAxiosError: true, response: { data: {} } },
+  ])('Axios 오류 응답 형식이 불완전하면 기본 오류를 표시한다', async (apiError) => {
+    createInquiry.mockRejectedValueOnce(apiError)
+    await wrapper.get('button[aria-pressed="false"]').trigger('click')
+    await wrapper.get('#inquiry-title').setValue('카드가 연동되지 않아요')
+    await wrapper.get('#inquiry-content').setValue('카드 연결이 되지 않습니다.')
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toBe(
+      '문의 접수에 실패했습니다. 잠시 후 다시 시도해주세요.',
+    )
+    expect(push).not.toHaveBeenCalled()
+  })
+
   it('이메일이 비어 있으면 제출할 수 없다', async () => {
     await wrapper.get('button[aria-pressed="false"]').trigger('click')
     await wrapper.get('#inquiry-title').setValue('카드가 연동되지 않아요')
