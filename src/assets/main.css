@@ -188,6 +188,7 @@
   body,
   #app {
     @apply size-full;
+    touch-action: manipulation;
   }
 
   body {

@@ -47,6 +47,9 @@ describe('CardIssuerSelectView', () => {
     expect(issuerButtons).toHaveLength(9)
     expect(issuerButtons.every((button) => !button.classes().includes('shadow-btn'))).toBe(true)
     expect(issuerButtons.every((button) => button.classes().includes('border'))).toBe(true)
+    expect(issuerButtons.every((button) => button.classes().includes('border-primary/30'))).toBe(
+      true,
+    )
 
     await issuerButtons[0]?.trigger('click')
 
