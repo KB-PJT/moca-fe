@@ -36,7 +36,7 @@ const comparisonText = computed(() => {
       {{ comparisonText }}
     </p>
 
-    <div class="mt-3 flex items-center gap-10">
+    <div v-if="summary.breakdown.length > 0" class="mt-3 flex items-center gap-10">
       <BenefitDonutChart :breakdown="summary.breakdown" :size="donutSize" />
 
       <dl class="flex flex-1 flex-col space-y-2">
@@ -52,5 +52,6 @@ const comparisonText = computed(() => {
         </div>
       </dl>
     </div>
+    <p v-else class="mt-3 text-caption text-gray">이번 달 받은 혜택이 아직 없어요.</p>
   </div>
 </template>

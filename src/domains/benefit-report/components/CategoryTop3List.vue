@@ -77,5 +77,9 @@ const rest = computed(() => props.items.filter((item) => item.rank !== 1))
         </p>
       </div>
     </div>
+
+    <p v-if="items.length === 0" class="mt-3 text-caption text-gray">
+      이번 달 카테고리별 혜택 내역이 없어요.
+    </p>
   </div>
 </template>

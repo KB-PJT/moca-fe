@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { ChevronLeft, ChevronRight, Info, LoaderCircle } from '@lucide/vue'
+import {
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Info,
+  LoaderCircle,
+  TriangleAlert,
+} from '@lucide/vue'
 import {
   fetchMissedBenefits,
   type MissedBenefitItem,
@@ -110,19 +117,31 @@ function progressPercent(item: MissedBenefitItem) {
       <span v-if="currentCard" class="text-body font-bold text-primary">
         {{ formatAmountWithUnit(totalMissedAmount) }} 상당
       </span>
-      <Info class="size-3.5 text-gray" />
     </p>
 
-    <div v-if="isOwnedCardsPending" class="mt-3 flex items-center justify-center gap-2 py-6">
+    <div
+      v-if="isOwnedCardsPending"
+      class="mt-3 flex items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8"
+    >
       <LoaderCircle class="text-primary size-5 animate-spin" />
       <p class="text-caption text-gray">카드 정보를 불러오는 중...</p>
     </div>
 
-    <p v-else-if="isOwnedCardsError" class="mt-3 text-caption text-gray">
-      카드 정보를 불러오지 못했어요.
-    </p>
+    <div
+      v-else-if="isOwnedCardsError"
+      class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
+    >
+      <TriangleAlert class="size-6 text-gray" />
+      <p class="text-caption text-gray">카드 정보를 불러오지 못했어요.</p>
+    </div>
 
-    <p v-else-if="!currentCard" class="mt-3 text-caption text-gray">등록된 카드가 없어요.</p>
+    <div
+      v-else-if="!currentCard"
+      class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
+    >
+      <CreditCard class="size-6 text-gray" />
+      <p class="text-caption text-gray">등록된 카드가 없어요.</p>
+    </div>
 
     <template v-else>
       <div
@@ -158,17 +177,28 @@ function progressPercent(item: MissedBenefitItem) {
         </button>
       </div>
 
-      <div v-if="isMissedPending" class="mt-3 flex items-center justify-center gap-2 py-6">
+      <div
+        v-if="isMissedPending"
+        class="mt-3 flex items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8"
+      >
         <LoaderCircle class="text-primary size-5 animate-spin" />
       </div>
 
-      <p v-else-if="isMissedError" class="mt-3 text-caption text-gray">
-        놓친 혜택 정보를 불러오지 못했어요.
-      </p>
+      <div
+        v-else-if="isMissedError"
+        class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
+      >
+        <TriangleAlert class="size-6 text-gray" />
+        <p class="text-caption text-gray">놓친 혜택 정보를 불러오지 못했어요.</p>
+      </div>
 
-      <p v-else-if="benefits.length === 0" class="mt-3 text-caption text-gray">
-        이 카드는 이번 달 놓친 혜택이 없어요.
-      </p>
+      <div
+        v-else-if="benefits.length === 0"
+        class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
+      >
+        <Info class="size-6 text-gray" />
+        <p class="text-caption text-gray">이 카드는 이번 달 놓친 혜택이 없어요.</p>
+      </div>
 
       <Transition
         v-else
