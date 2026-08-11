@@ -69,7 +69,11 @@ describe('HomeView', () => {
       .find((link) => link.text() === '관리')
 
     expect(manageLink?.props('to')).toEqual({ name: 'card-manage', query: { from: 'home' } })
-    expect(wrapper.findAll('[data-owned-card]')).toHaveLength(4)
+    expect(
+      new Set(
+        wrapper.findAll('[data-owned-card]').map((card) => card.attributes('data-card-index')),
+      ).size,
+    ).toBe(4)
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
     expect(wrapper.get('[data-selected-card-info]').classes()).toContain('min-h-16')
     const expectedAccent = document.createElement('span')
@@ -102,6 +106,7 @@ describe('HomeView', () => {
     expect(detailLink?.props('to')).toEqual({
       name: 'card-detail',
       params: { id: 'home-kb-wesh' },
+      query: { from: 'home' },
     })
 
     const memoLink = wrapper
@@ -111,6 +116,7 @@ describe('HomeView', () => {
     expect(memoLink?.props('to')).toEqual({
       name: 'card-detail',
       params: { id: 'home-kb-wesh' },
+      query: { from: 'home' },
     })
     expect(wrapper.get('[data-card-memo]').text()).toContain('스타벅스, 폴바셋 10% 할인')
   })
@@ -161,15 +167,15 @@ describe('HomeView', () => {
     expect(detailSheet.props('item')).toMatchObject({ merchantName: '스타벅스' })
   })
 
-  it('카드를 넘기면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
+  it('옆 카드를 선택하면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
     const wrapper = mountView()
     await flushPromises()
-    const carousel = wrapper.get('[data-card-carousel]')
 
-    carousel.element.scrollLeft = 228
-    await carousel.trigger('scroll')
+    await wrapper.get('[data-owned-card][data-card-index="1"][tabindex="0"]').trigger('click')
 
-    expect(wrapper.findAll('[data-owned-card]')[1]?.attributes('aria-current')).toBe('true')
+    expect(
+      wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
+    ).toBe('1')
     expect(wrapper.findAll('[data-card-indicator]')[1]?.classes()).toContain('w-6')
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB국민 청춘대로 톡톡카드')
     expect(wrapper.get('[data-received-benefit]').text()).toBe('16,400원')
@@ -177,6 +183,96 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(80%)')
     expect(wrapper.get('[data-performance-remaining]').text()).toContain('59,000원')
     expect(wrapper.text()).toContain('이번 달 혜택 22,900원을 놓치고 있어요!')
+
+    const detailLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text().includes('상세보기'))
+    expect(detailLink?.props('to')).toEqual({
+      name: 'card-detail',
+      params: { id: 'home-kb-taptap' },
+      query: { from: 'home' },
+    })
+  })
+
+  it('첫 카드의 이전은 마지막 카드이고 마지막 카드의 다음은 첫 카드다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const carousel = wrapper.get('[data-card-carousel]')
+    const carouselElement = carousel.element as HTMLElement
+    carouselElement.setPointerCapture = vi.fn<(pointerId: number) => void>()
+    carouselElement.hasPointerCapture = vi.fn<(pointerId: number) => boolean>(() => true)
+    carouselElement.releasePointerCapture = vi.fn<(pointerId: number) => void>()
+
+    carouselElement.dispatchEvent(
+      new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 100 }),
+    )
+    carouselElement.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 160 }))
+    carouselElement.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: 160 }))
+    await flushPromises()
+
+    expect(
+      wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
+    ).toBe('3')
+    expect(wrapper.get('[data-selected-card-name]').text()).toBe('현대카드 ZERO Edition3')
+    const lastCardDetailLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text().includes('상세보기'))
+    expect(lastCardDetailLink?.props('to')).toEqual({
+      name: 'card-detail',
+      params: { id: 'home-hyundai-zero' },
+      query: { from: 'home' },
+    })
+
+    carouselElement.dispatchEvent(
+      new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 160 }),
+    )
+    carouselElement.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: 100 }))
+    carouselElement.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: 100 }))
+    await flushPromises()
+
+    expect(
+      wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
+    ).toBe('0')
+    expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
+  })
+
+  it('카드가 두 장이면 첫 카드와 마지막 카드에서 순환하지 않는다', async () => {
+    const response = createHomeCardsResponse()
+    response.cards = response.cards.slice(0, 2)
+    response.selectedUserCardId = response.cards[0]?.userCardId ?? null
+    fetchHomeCards.mockResolvedValue(response)
+
+    const wrapper = mountView()
+    await flushPromises()
+    const carousel = wrapper.get('[data-card-carousel]')
+    const carouselElement = carousel.element as HTMLElement
+    carouselElement.setPointerCapture = vi.fn<(pointerId: number) => void>()
+    carouselElement.hasPointerCapture = vi.fn<(pointerId: number) => boolean>(() => true)
+    carouselElement.releasePointerCapture = vi.fn<(pointerId: number) => void>()
+
+    const swipe = async (fromX: number, toX: number) => {
+      carouselElement.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: fromX }),
+      )
+      carouselElement.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientX: toX }))
+      carouselElement.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: toX }))
+      await flushPromises()
+    }
+
+    await swipe(100, 160)
+    expect(
+      wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
+    ).toBe('0')
+
+    await swipe(160, 100)
+    expect(
+      wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
+    ).toBe('1')
+
+    await swipe(160, 100)
+    expect(
+      wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
+    ).toBe('1')
   })
 
   it('상세 화면에서 수정한 카드 메모를 홈 카드 위에 표시한다', async () => {
@@ -250,6 +346,10 @@ describe('HomeView', () => {
     await flushPromises()
 
     expect(fetchHomeCards).toHaveBeenCalledTimes(2)
-    expect(wrapper.findAll('[data-owned-card]')).toHaveLength(4)
+    expect(
+      new Set(
+        wrapper.findAll('[data-owned-card]').map((card) => card.attributes('data-card-index')),
+      ).size,
+    ).toBe(4)
   })
 })

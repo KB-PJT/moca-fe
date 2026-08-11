@@ -45,8 +45,25 @@ const isCardLoading = ref(true)
 const cardError = ref('')
 let cardRequestId = 0
 
+const isFromHome = computed(() => route.query.from === 'home')
 const navigationCards = computed(() => {
-  if (cardManagementStore.activeCards.length > 0) return cardManagementStore.activeCards
+  const activeCards = cardManagementStore.activeCards
+
+  if (activeCards.length > 0) {
+    if (!isFromHome.value || cardManagementStore.detailNavigationCardIds.length === 0) {
+      return activeCards
+    }
+
+    const activeCardMap = new Map(activeCards.map((item) => [item.id, item]))
+    const orderedCards = cardManagementStore.detailNavigationCardIds.flatMap((id) => {
+      const orderedCard = activeCardMap.get(id)
+      if (!orderedCard) return []
+      activeCardMap.delete(id)
+      return [orderedCard]
+    })
+    return [...orderedCards, ...activeCardMap.values()]
+  }
+
   return card.value ? [{ id: card.value.userCardId }] : []
 })
 const cardIndex = computed(() =>
@@ -206,7 +223,11 @@ function moveCard(offset: number) {
   const nextCard = navigationCards.value[cardIndex.value + offset]
   if (!nextCard) return
 
-  void router.replace({ name: 'card-detail', params: { id: nextCard.id } })
+  void router.replace({
+    name: 'card-detail',
+    params: { id: nextCard.id },
+    ...(isFromHome.value ? { query: { from: 'home' } } : {}),
+  })
 }
 
 function startMemoEditing() {
@@ -400,7 +421,7 @@ async function confirmCardAction() {
             :alt="`${card.cardName} 카드 이미지`"
             :width="145"
             :height="234"
-            class="rounded-md shadow-card"
+            class="overflow-visible! rounded-none drop-shadow-[0_4px_10px_rgba(111,78,55,0.08)]"
           />
 
           <button

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
+import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
@@ -25,6 +26,7 @@ const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
 const authStore = useAuthStore()
+const cardManagementStore = useCardManagementStore()
 const cardMemoStore = useCardMemoStore()
 const nickname = computed(() => authStore.user?.nickname ?? '사용자')
 const missedBenefitAmount = computed(() =>
@@ -45,6 +47,7 @@ async function loadHomeCards() {
   try {
     const response = await fetchHomeCards()
     cards.value = response?.cards.map(toHomeOwnedCard) ?? []
+    cardManagementStore.setDetailNavigationCardIds(cards.value.map((card) => card.id))
 
     const selectedIndex = response?.selectedUserCardId
       ? cards.value.findIndex((card) => card.id === response.selectedUserCardId)
@@ -52,6 +55,7 @@ async function loadHomeCards() {
     activeCardIndex.value = selectedIndex >= 0 ? selectedIndex : 0
   } catch {
     cards.value = []
+    cardManagementStore.setDetailNavigationCardIds([])
     activeCardIndex.value = 0
     cardsError.value = '보유카드를 불러오지 못했어요.'
   } finally {
