@@ -72,8 +72,8 @@ describe('HomeView', () => {
     expect(
       new Set(
         wrapper.findAll('[data-owned-card]').map((card) => card.attributes('data-card-index')),
-      ),
-    ).toHaveLength(4)
+      ).size,
+    ).toBe(4)
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
     expect(wrapper.get('[data-selected-card-info]').classes()).toContain('min-h-16')
     const expectedAccent = document.createElement('span')
@@ -349,7 +349,7 @@ describe('HomeView', () => {
     expect(
       new Set(
         wrapper.findAll('[data-owned-card]').map((card) => card.attributes('data-card-index')),
-      ),
-    ).toHaveLength(4)
+      ).size,
+    ).toBe(4)
   })
 })
