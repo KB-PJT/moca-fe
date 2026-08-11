@@ -27,7 +27,7 @@ defineProps<Props>()
       {{ card.name }}
     </p>
     <RouterLink
-      :to="{ name: 'card-detail', params: { id: card.id } }"
+      :to="{ name: 'card-detail', params: { id: card.id }, query: { from: 'home' } }"
       class="flex shrink-0 items-center gap-0.5 text-body font-medium text-brown"
     >
       상세보기

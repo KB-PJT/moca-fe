@@ -28,9 +28,10 @@ vi.mock('@/domains/card/api/cardManagement', () => ({
 
 const replace = vi.fn<(location: unknown) => void>()
 const routeParams = { id: 'managed-kb-wesh' }
+const routeQuery: { from?: string } = {}
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: routeParams }),
+  useRoute: () => ({ params: routeParams, query: routeQuery }),
   useRouter: () => ({ replace }),
 }))
 
@@ -184,6 +185,7 @@ describe('CardDetailView', () => {
     })
     replace.mockClear()
     routeParams.id = 'managed-kb-wesh'
+    delete routeQuery.from
   })
 
   it('선택한 카드의 상세 정보와 주요 혜택을 API에서 조회해 표시한다', async () => {
@@ -241,6 +243,24 @@ describe('CardDetailView', () => {
       params: { id: 'managed-kb-taptap' },
     })
     expect(wrapper.get('button[aria-label="이전 카드"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('홈에서 진입하면 홈 캐러셀 순서로 다음 카드 상세를 연다', async () => {
+    routeQuery.from = 'home'
+    useCardManagementStore().setDetailNavigationCardIds([
+      'managed-kb-wesh',
+      'managed-shinhan-mrlife',
+      'managed-kb-taptap',
+    ])
+    const wrapper = await mountCardDetail()
+
+    await wrapper.get('button[aria-label="다음 카드"]').trigger('click')
+
+    expect(replace).toHaveBeenCalledWith({
+      name: 'card-detail',
+      params: { id: 'managed-shinhan-mrlife' },
+      query: { from: 'home' },
+    })
   })
 
   it('현재 카드가 활성 카드 목록에 없으면 카드 탐색을 비활성화한다', async () => {

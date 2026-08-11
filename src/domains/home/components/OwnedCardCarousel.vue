@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch, type CSSProperties } from 'vue'
 import { ChevronRight } from '@lucide/vue'
 import type { HomeOwnedCard } from '@/domains/home/api/homeCards'
 import CardImage from '@/shared/components/CardImage.vue'
 
-const CARD_WIDTH = 200
-const CARD_GAP = 28
+const CARD_WIDTH = 184
+const CARD_HEIGHT = 296
+const CARD_STEP = 170
+const SWIPE_THRESHOLD = 44
 
 interface Props {
   cards: HomeOwnedCard[]
@@ -23,87 +25,204 @@ const emit = defineEmits<{
 }>()
 
 const viewport = ref<HTMLElement | null>(null)
-const trackStyle = {
-  paddingInline: `calc(50% - ${CARD_WIDTH / 2}px)`,
-}
+const isDragging = ref(false)
+const dragOffsetX = ref(0)
+const virtualActiveIndex = ref(props.activeIndex)
 
-let isMouseDragging = false
+const renderedCards = computed(() => {
+  const cardCount = props.cards.length
+  if (cardCount === 0) return []
+  if (cardCount === 1) {
+    return [{ card: props.cards[0]!, cardIndex: 0, virtualIndex: virtualActiveIndex.value }]
+  }
+  if (cardCount === 2) {
+    return props.cards.map((card, cardIndex) => ({ card, cardIndex, virtualIndex: cardIndex }))
+  }
+
+  return [-2, -1, 0, 1, 2].map((offset) => {
+    const virtualIndex = virtualActiveIndex.value + offset
+    const cardIndex = normalizeIndex(virtualIndex)
+
+    return { card: props.cards[cardIndex]!, cardIndex, virtualIndex }
+  })
+})
+
+let didMouseDrag = false
 let dragStartX = 0
-let dragStartScrollLeft = 0
 
-function resolveActiveIndex() {
-  if (!viewport.value || props.cards.length === 0) return 0
-
-  const index = Math.round(viewport.value.scrollLeft / (CARD_WIDTH + CARD_GAP))
-  return Math.min(Math.max(index, 0), props.cards.length - 1)
+function normalizeIndex(index: number) {
+  const cardCount = props.cards.length
+  if (cardCount === 0) return 0
+  return ((index % cardCount) + cardCount) % cardCount
 }
 
-function updateActiveIndex() {
-  const index = resolveActiveIndex()
-  if (index !== props.activeIndex) emit('update:activeIndex', index)
+function resolveCardStyle(virtualIndex: number): CSSProperties {
+  const distance = virtualIndex - virtualActiveIndex.value + dragOffsetX.value / CARD_STEP
+  const absoluteDistance = Math.abs(distance)
+  const direction = Math.sign(distance)
+  const curvedDistance = Math.min(absoluteDistance, 2)
+  const translateX =
+    direction *
+    (curvedDistance <= 1 ? curvedDistance * CARD_STEP : CARD_STEP + (curvedDistance - 1) * 52)
+  const translateZ = 20 - curvedDistance * 90
+  const rotation = direction * Math.min(68, curvedDistance * 46)
+  const scale = Math.max(0.64, 1 - curvedDistance * 0.16)
+
+  return {
+    zIndex: Math.max(0, 100 - Math.round(absoluteDistance * 10)),
+    opacity: absoluteDistance >= 2 ? 0 : Math.max(0.5, 1 - absoluteDistance * 0.16),
+    visibility: absoluteDistance >= 2 ? 'hidden' : 'visible',
+    pointerEvents: absoluteDistance > 1.5 ? 'none' : 'auto',
+    transform: `translateX(calc(-50% + ${translateX}px)) translateZ(${translateZ}px) rotateY(${rotation}deg) scale(${scale})`,
+  }
 }
 
-function startMouseDrag(event: PointerEvent) {
-  if (event.pointerType !== 'mouse' || event.button !== 0 || !viewport.value) return
+function startDrag(event: PointerEvent) {
+  if ((event.pointerType === 'mouse' && event.button !== 0) || !viewport.value) return
   if ((event.target as HTMLElement).closest('a, button')) return
 
-  isMouseDragging = true
+  isDragging.value = true
+  didMouseDrag = false
   dragStartX = event.clientX
-  dragStartScrollLeft = viewport.value.scrollLeft
+  dragOffsetX.value = 0
   viewport.value.setPointerCapture(event.pointerId)
 }
 
-function moveMouseDrag(event: PointerEvent) {
-  if (!isMouseDragging || !viewport.value) return
+function moveDrag(event: PointerEvent) {
+  if (!isDragging.value || !viewport.value) return
 
-  viewport.value.scrollLeft = dragStartScrollLeft - (event.clientX - dragStartX)
+  let dragDistance = event.clientX - dragStartX
+  if (Math.abs(dragDistance) > 4) didMouseDrag = true
+  if (
+    props.cards.length <= 2 &&
+    ((virtualActiveIndex.value === 0 && dragDistance > 0) ||
+      (virtualActiveIndex.value === props.cards.length - 1 && dragDistance < 0))
+  ) {
+    dragDistance *= 0.24
+  }
+  dragOffsetX.value = Math.min(Math.max(dragDistance, -CARD_STEP), CARD_STEP)
 }
 
-function finishMouseDrag(event: PointerEvent) {
-  if (!isMouseDragging || !viewport.value) return
+function finishDrag(event: PointerEvent) {
+  if (!isDragging.value || !viewport.value) return
 
-  isMouseDragging = false
+  const completedOffset = dragOffsetX.value
+  isDragging.value = false
+  dragOffsetX.value = 0
   if (viewport.value.hasPointerCapture(event.pointerId)) {
     viewport.value.releasePointerCapture(event.pointerId)
   }
 
-  const index = resolveActiveIndex()
-  viewport.value.scrollTo({
-    left: index * (CARD_WIDTH + CARD_GAP),
-    behavior: 'smooth',
-  })
-  if (index !== props.activeIndex) emit('update:activeIndex', index)
+  if (Math.abs(completedOffset) < SWIPE_THRESHOLD) return
+  moveToVirtualCard(virtualActiveIndex.value + (completedOffset < 0 ? 1 : -1))
 }
+
+function cancelDrag(event: PointerEvent) {
+  if (!isDragging.value || !viewport.value) return
+
+  isDragging.value = false
+  dragOffsetX.value = 0
+  didMouseDrag = false
+  if (viewport.value.hasPointerCapture(event.pointerId)) {
+    viewport.value.releasePointerCapture(event.pointerId)
+  }
+}
+
+function selectVirtualCard(virtualIndex: number) {
+  if (didMouseDrag) {
+    didMouseDrag = false
+    return
+  }
+
+  moveToVirtualCard(virtualIndex)
+}
+
+function moveToVirtualCard(virtualIndex: number) {
+  if (props.cards.length <= 2 && (virtualIndex < 0 || virtualIndex >= props.cards.length)) return
+  if (virtualIndex === virtualActiveIndex.value) return
+
+  virtualActiveIndex.value = virtualIndex
+  emit('update:activeIndex', normalizeIndex(virtualIndex))
+}
+
+watch(
+  () => [props.activeIndex, props.cards.length] as const,
+  ([activeIndex]) => {
+    if (props.cards.length === 0) {
+      virtualActiveIndex.value = 0
+      return
+    }
+
+    const normalizedCurrentIndex = normalizeIndex(virtualActiveIndex.value)
+    const normalizedNextIndex = normalizeIndex(activeIndex)
+    if (normalizedCurrentIndex === normalizedNextIndex) return
+    if (props.cards.length <= 2) {
+      virtualActiveIndex.value = normalizedNextIndex
+      return
+    }
+
+    let distance = normalizedNextIndex - normalizedCurrentIndex
+    const half = props.cards.length / 2
+    if (distance > half) distance -= props.cards.length
+    if (distance < -half) distance += props.cards.length
+    virtualActiveIndex.value += distance
+  },
+)
 </script>
 
 <template>
   <div
     ref="viewport"
     data-card-carousel
-    class="scrollbar-hide touch-pan-x cursor-grab snap-x snap-mandatory scroll-smooth overflow-x-auto overscroll-x-contain select-none active:cursor-grabbing"
+    class="touch-pan-y relative h-[328px] cursor-grab overflow-hidden select-none active:cursor-grabbing"
     aria-label="보유 카드 목록"
-    @scroll.passive="updateActiveIndex"
-    @pointerdown="startMouseDrag"
-    @pointermove="moveMouseDrag"
-    @pointerup="finishMouseDrag"
-    @pointercancel="finishMouseDrag"
+    @pointerdown="startDrag"
+    @pointermove="moveDrag"
+    @pointerup="finishDrag"
+    @pointercancel="cancelDrag"
     @dragstart.prevent
   >
-    <ul class="flex w-max gap-7" :style="trackStyle">
+    <ul
+      class="relative h-full w-full"
+      :style="{ perspective: '650px', transformStyle: 'preserve-3d' }"
+    >
       <li
-        v-for="(card, index) in cards"
-        :key="card.id"
+        v-for="renderedCard in renderedCards"
+        :key="renderedCard.virtualIndex"
         data-owned-card
-        class="relative w-50 shrink-0 snap-center"
-        :aria-current="index === activeIndex ? 'true' : undefined"
+        :data-card-index="renderedCard.cardIndex"
+        class="absolute top-4 left-1/2 w-[184px] transform-gpu transition-[transform,opacity] will-change-transform [backface-visibility:hidden]"
+        :class="[
+          renderedCard.virtualIndex === virtualActiveIndex ? '' : 'cursor-pointer',
+          isDragging
+            ? 'duration-0'
+            : 'duration-500 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]',
+        ]"
+        :style="resolveCardStyle(renderedCard.virtualIndex)"
+        :aria-current="renderedCard.virtualIndex === virtualActiveIndex ? 'true' : undefined"
+        :aria-hidden="Math.abs(renderedCard.virtualIndex - virtualActiveIndex) >= 2 || undefined"
+        :aria-label="
+          renderedCard.virtualIndex === virtualActiveIndex
+            ? undefined
+            : `${renderedCard.card.name} 카드 선택`
+        "
+        :role="renderedCard.virtualIndex === virtualActiveIndex ? undefined : 'button'"
+        :tabindex="Math.abs(renderedCard.virtualIndex - virtualActiveIndex) === 1 ? 0 : undefined"
+        @click="selectVirtualCard(renderedCard.virtualIndex)"
+        @keydown.enter.prevent="selectVirtualCard(renderedCard.virtualIndex)"
+        @keydown.space.prevent="selectVirtualCard(renderedCard.virtualIndex)"
       >
         <CardImage
-          :src="card.imageUrl"
-          :alt="`${card.name} 카드 이미지`"
+          :src="renderedCard.card.imageUrl"
+          :alt="`${renderedCard.card.name} 카드 이미지`"
           :width="CARD_WIDTH"
-          :height="322"
-          class="rounded-lg shadow-card transition-[transform,opacity] duration-300 ease-out"
-          :class="index === activeIndex ? 'scale-100 opacity-100' : 'scale-95 opacity-75'"
+          :height="CARD_HEIGHT"
+          class="rounded-lg transition-[filter,box-shadow] duration-500 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
+          :class="
+            renderedCard.virtualIndex === virtualActiveIndex
+              ? 'drop-shadow-[0_0_8px_rgba(255,136,54,0.32)]'
+              : 'shadow-card'
+          "
         />
 
         <Transition
@@ -115,10 +234,14 @@ function finishMouseDrag(event: PointerEvent) {
           leave-to-class="translate-y-2 opacity-0"
         >
           <RouterLink
-            v-if="index === activeIndex"
-            :to="{ name: 'card-detail', params: { id: card.id } }"
-            class="absolute -left-2.5 bottom-0 flex min-h-16 w-55 items-center justify-between gap-2 rounded-sm bg-[#F7E9DF]/95 px-4 py-3 shadow-card backdrop-blur-sm"
-            :aria-label="`${card.name} 메모 확인하기`"
+            v-if="renderedCard.virtualIndex === virtualActiveIndex"
+            :to="{
+              name: 'card-detail',
+              params: { id: renderedCard.card.id },
+              query: { from: 'home' },
+            }"
+            class="absolute -left-2.5 bottom-0 flex min-h-16 w-[calc(100%+20px)] items-center justify-between gap-2 rounded-sm bg-[#F7E9DF]/95 px-4 py-3 shadow-card backdrop-blur-sm"
+            :aria-label="`${renderedCard.card.name} 메모 확인하기`"
           >
             <p
               data-card-memo
