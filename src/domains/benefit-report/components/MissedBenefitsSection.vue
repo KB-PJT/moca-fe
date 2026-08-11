@@ -29,6 +29,7 @@ const {
   data: ownedCardsResult,
   isPending: isOwnedCardsPending,
   isError: isOwnedCardsError,
+  refetch: refetchOwnedCards,
 } = useQuery({
   queryKey: ['cards', 'my-cards'],
   queryFn: fetchMyCards,
@@ -44,6 +45,7 @@ const {
   data: missedReport,
   isPending: isMissedPending,
   isError: isMissedError,
+  refetch: refetchMissed,
 } = useQuery({
   queryKey: computed(() => [
     'benefit-report',
@@ -114,7 +116,7 @@ function progressPercent(item: MissedBenefitItem) {
   <div ref="rootEl">
     <p class="flex items-center gap-1.5">
       <span class="text-subheading font-bold text-charcoal">이번 달 놓치고 있는 혜택</span>
-      <span v-if="currentCard" class="text-body font-bold text-primary">
+      <span v-if="missedReport" class="text-body font-bold text-primary">
         {{ formatAmountWithUnit(totalMissedAmount) }} 상당
       </span>
     </p>
@@ -133,6 +135,13 @@ function progressPercent(item: MissedBenefitItem) {
     >
       <TriangleAlert class="size-6 text-gray" />
       <p class="text-caption text-gray">카드 정보를 불러오지 못했어요.</p>
+      <button
+        type="button"
+        class="text-caption font-semibold text-primary"
+        @click="() => refetchOwnedCards()"
+      >
+        다시 시도
+      </button>
     </div>
 
     <div
@@ -149,6 +158,7 @@ function progressPercent(item: MissedBenefitItem) {
       >
         <button
           type="button"
+          aria-label="이전 카드"
           class="flex size-7 shrink-0 items-center justify-center text-gray disabled:opacity-30"
           :disabled="!canGoPrevCard"
           @click="goToPrevCard"
@@ -169,6 +179,7 @@ function progressPercent(item: MissedBenefitItem) {
 
         <button
           type="button"
+          aria-label="다음 카드"
           class="flex size-7 shrink-0 items-center justify-center text-gray disabled:opacity-30"
           :disabled="!canGoNextCard"
           @click="goToNextCard"
@@ -190,6 +201,13 @@ function progressPercent(item: MissedBenefitItem) {
       >
         <TriangleAlert class="size-6 text-gray" />
         <p class="text-caption text-gray">놓친 혜택 정보를 불러오지 못했어요.</p>
+        <button
+          type="button"
+          class="text-caption font-semibold text-primary"
+          @click="() => refetchMissed()"
+        >
+          다시 시도
+        </button>
       </div>
 
       <div

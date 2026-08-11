@@ -34,8 +34,8 @@ const pageTitle = computed(() => (activeTab.value === 'benefit' ? '혜택 리포
 const canGoNextMonth = computed(() => activeYearMonth.value < currentYearMonth())
 
 const monthLabel = computed(() => {
-  const [, month] = activeYearMonth.value.split('-')
-  return `${Number(month)}월`
+  const [year, month] = activeYearMonth.value.split('-')
+  return `${year}년 ${Number(month)}월`
 })
 
 function goToPrevMonth() {
@@ -53,6 +53,7 @@ const {
   data: benefitSummary,
   isPending: isSummaryPending,
   isError: isSummaryError,
+  refetch: refetchSummary,
 } = useQuery({
   queryKey: computed(() => ['benefit-report', 'summary', activeYearMonth.value]),
   queryFn: () => fetchBenefitSummary(activeYearMonth.value),
@@ -63,9 +64,10 @@ const {
   data: benefitCategories,
   isPending: isCategoriesPending,
   isError: isCategoriesError,
+  refetch: refetchCategories,
 } = useQuery({
   queryKey: computed(() => ['benefit-report', 'categories', activeYearMonth.value]),
-  queryFn: () => fetchBenefitCategories({ yearMonth: activeYearMonth.value }),
+  queryFn: () => fetchBenefitCategories({ yearMonth: activeYearMonth.value, limit: 3 }),
   enabled: isBenefitTabActive,
 })
 </script>
@@ -80,12 +82,13 @@ const {
         </div>
 
         <div class="flex items-center gap-1.5">
-          <button type="button" class="text-gray" @click="goToPrevMonth">
+          <button type="button" aria-label="이전 달" class="text-gray" @click="goToPrevMonth">
             <ChevronLeft class="size-4" />
           </button>
           <span class="text-body font-semibold text-primary">{{ monthLabel }}</span>
           <button
             type="button"
+            aria-label="다음 달"
             class="text-gray disabled:opacity-30"
             :disabled="!canGoNextMonth"
             @click="goToNextMonth"
@@ -120,17 +123,34 @@ const {
         <div v-if="isSummaryPending" class="flex items-center justify-center gap-2 py-10">
           <LoaderCircle class="text-primary size-6 animate-spin" />
         </div>
-        <p v-else-if="isSummaryError" class="text-caption text-gray">
-          혜택 요약을 불러오지 못했어요.
-        </p>
+        <div v-else-if="isSummaryError" class="flex flex-col items-center gap-2 py-6 text-center">
+          <p class="text-caption text-gray">혜택 요약을 불러오지 못했어요.</p>
+          <button
+            type="button"
+            class="text-caption font-semibold text-primary"
+            @click="() => refetchSummary()"
+          >
+            다시 시도
+          </button>
+        </div>
         <BenefitSummaryCard v-else-if="benefitSummary" :summary="benefitSummary" />
 
         <div v-if="isCategoriesPending" class="flex items-center justify-center gap-2 py-6">
           <LoaderCircle class="text-primary size-6 animate-spin" />
         </div>
-        <p v-else-if="isCategoriesError" class="text-caption text-gray">
-          카테고리별 혜택을 불러오지 못했어요.
-        </p>
+        <div
+          v-else-if="isCategoriesError"
+          class="flex flex-col items-center gap-2 py-6 text-center"
+        >
+          <p class="text-caption text-gray">카테고리별 혜택을 불러오지 못했어요.</p>
+          <button
+            type="button"
+            class="text-caption font-semibold text-primary"
+            @click="() => refetchCategories()"
+          >
+            다시 시도
+          </button>
+        </div>
         <CategoryTop3List v-else-if="benefitCategories" :items="benefitCategories.categories" />
 
         <MissedBenefitsSection :year-month="activeYearMonth" />
