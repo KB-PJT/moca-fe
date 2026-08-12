@@ -6,7 +6,6 @@ import type { CardDetailBenefitResponse, CardDetailResponse } from '@/domains/ca
 import type { MyCardItemResponse, MyCardsResponse } from '@/domains/card/api/cardManagement'
 import CardDetailView from '@/domains/card/views/CardDetailView.vue'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
-import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 
 const apiMocks = vi.hoisted(() => ({
   fetchCardDetail: vi.fn<(userCardId: string) => Promise<CardDetailResponse>>(),
@@ -115,7 +114,7 @@ function createCardDetail(
     issuerId: `${userCardId}-issuer`,
     issuerName,
     cardImageUrl: null,
-    memo: userCardId === 'managed-kb-wesh' ? '스타벅스, 폴바셋 10% 할인' : null,
+    memo: userCardId === 'managed-kb-wesh' ? '별도 저장 메모' : null,
     benefits,
     notices,
   }
@@ -419,14 +418,16 @@ describe('CardDetailView', () => {
     await flushPromises()
   })
 
-  it('메모를 수정하면 API와 카드별 메모 상태를 갱신한다', async () => {
+  it('상세 메모를 초깃값으로 사용하고 수정한다', async () => {
     const wrapper = await mountCardDetail()
 
     const editMemoButton = wrapper.get('button[aria-label="메모 수정"]')
     expect(editMemoButton.classes()).toContain('bg-screen')
 
     await editMemoButton.trigger('click')
-    await wrapper.get('textarea[aria-label="카드 메모"]').setValue('주말 카페 결제용 카드')
+    const memoTextarea = wrapper.get('textarea[aria-label="카드 메모"]')
+    expect((memoTextarea.element as HTMLTextAreaElement).value).toBe('별도 저장 메모')
+    await memoTextarea.setValue('주말 카페 결제용 카드')
     await wrapper
       .findAll('button')
       .find((button) => button.text() === '저장')
@@ -435,7 +436,6 @@ describe('CardDetailView', () => {
 
     expect(apiMocks.updateCardMemo).toHaveBeenCalledWith('managed-kb-wesh', '주말 카페 결제용 카드')
     expect(wrapper.text()).toContain('주말 카페 결제용 카드')
-    expect(useCardMemoStore().getMemo('managed-kb-wesh')).toBe('주말 카페 결제용 카드')
   })
 
   it('메모 저장 중 단축키를 반복해도 API를 한 번만 호출한다', async () => {

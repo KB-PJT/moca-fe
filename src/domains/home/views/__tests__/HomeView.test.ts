@@ -7,7 +7,6 @@ import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
 import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
 import HomeView from '@/domains/home/views/HomeView.vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
-import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
@@ -17,6 +16,13 @@ vi.mock('@/domains/home/api/homeCards', async (importOriginal) => ({
 }))
 
 function createHomeCardsResponse(): HomeCardsResponse {
+  const highlightBenefitTitles = [
+    '스타벅스, 폴바셋 10% 할인',
+    '대중교통 10% 청구 할인',
+    '공과금 10% 할인',
+    '국내외 가맹점 0.8% 할인',
+  ]
+
   return {
     yearMonth: '2026-08',
     orderMode: 'AUTO' as const,
@@ -27,7 +33,7 @@ function createHomeCardsResponse(): HomeCardsResponse {
       cardName: card.name,
       alias: null,
       cardImageUrl: card.imageUrl,
-      highlightBenefit: { title: '' },
+      highlightBenefit: { title: highlightBenefitTitles[index] ?? '' },
       summary: {
         receivedBenefitAmount: card.receivedBenefitAmount,
         availableBenefitAmount: card.availableBenefitAmount,
@@ -282,42 +288,48 @@ describe('HomeView', () => {
     ).toBe('1')
   })
 
-  it('상세 화면에서 수정한 카드 메모를 홈 카드 위에 표시한다', async () => {
-    const pinia = createPinia()
-    const cardMemoStore = useCardMemoStore(pinia)
-    cardMemoStore.setMemo('home-kb-wesh', '주말 카페 결제용 카드')
-
-    const wrapper = mountView(pinia)
-    await flushPromises()
-
-    expect(wrapper.get('[data-card-memo]').text()).toBe('주말 카페 결제용 카드')
-  })
-
-  it('저장된 빈 메모를 서버 메모로 덮어쓰지 않는다', async () => {
+  it('서버 alias가 있어도 대표 혜택을 표시한다', async () => {
     const response = createHomeCardsResponse()
     const firstCard = response.cards[0]
     if (!firstCard) throw new Error('test card is required')
 
     firstCard.userCardId = 'empty-memo-card-id'
     firstCard.alias = '서버 메모'
+    firstCard.highlightBenefit = { title: '온라인 쇼핑몰 10% 청구 할인' }
     response.selectedUserCardId = firstCard.userCardId
     fetchHomeCards.mockResolvedValue(response)
 
-    const pinia = createPinia()
-    useCardMemoStore(pinia).setMemo(firstCard.userCardId, '')
-    const wrapper = mountView(pinia)
+    const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.get('[data-card-memo]').text()).toBe('')
+    expect(wrapper.get('[data-card-memo]').text()).toBe('온라인 쇼핑몰 10% 청구 할인')
   })
 
-  it('서버 메모는 카드명이 아니라 카드 위 메모 영역에 표시한다', async () => {
+  it('서버 alias가 비어 있어도 대표 혜택을 표시한다', async () => {
+    const response = createHomeCardsResponse()
+    const firstCard = response.cards[0]
+    if (!firstCard) throw new Error('test card is required')
+
+    firstCard.userCardId = 'highlight-benefit-card-id'
+    firstCard.alias = null
+    firstCard.highlightBenefit = { title: '온라인 쇼핑몰 10% 청구 할인' }
+    response.selectedUserCardId = firstCard.userCardId
+    fetchHomeCards.mockResolvedValue(response)
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-card-memo]').text()).toBe('온라인 쇼핑몰 10% 청구 할인')
+  })
+
+  it('서버 alias는 카드명과 카드 위 대표 혜택에 사용하지 않는다', async () => {
     const response = createHomeCardsResponse()
     const firstCard = response.cards[0]
     if (!firstCard) throw new Error('test card is required')
 
     firstCard.userCardId = 'real-user-card-id'
     firstCard.alias = '슈퍼솔져'
+    firstCard.highlightBenefit = { title: '간편결제 10% 청구 할인' }
     response.selectedUserCardId = firstCard.userCardId
     fetchHomeCards.mockResolvedValue(response)
 
@@ -325,7 +337,7 @@ describe('HomeView', () => {
     await flushPromises()
 
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB My WE:SH')
-    expect(wrapper.get('[data-card-memo]').text()).toBe('슈퍼솔져')
+    expect(wrapper.get('[data-card-memo]').text()).toBe('간편결제 10% 청구 할인')
   })
 
   it('조회 결과가 없으면 보유카드 빈 상태를 표시한다', async () => {

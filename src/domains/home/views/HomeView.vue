@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
-import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import CardBenefitAmounts from '@/domains/home/components/CardBenefitAmounts.vue'
@@ -27,18 +26,11 @@ const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
 const authStore = useAuthStore()
 const cardManagementStore = useCardManagementStore()
-const cardMemoStore = useCardMemoStore()
 const nickname = computed(() => authStore.user?.nickname ?? '사용자')
 const missedBenefitAmount = computed(() =>
   cards.value.reduce((total, card) => total + card.availableBenefitAmount, 0),
 )
-const activeCardMemo = computed(() => {
-  if (!activeCard.value) return ''
-
-  return cardMemoStore.hasMemo(activeCard.value.id)
-    ? cardMemoStore.getMemo(activeCard.value.id)
-    : activeCard.value.memo || activeCard.value.highlightBenefitTitle
-})
+const activeCardMemo = computed(() => activeCard.value?.highlightBenefitTitle ?? '')
 
 async function loadHomeCards() {
   isCardsLoading.value = true
