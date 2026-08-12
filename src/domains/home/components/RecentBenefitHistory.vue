@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ChevronRight } from '@lucide/vue'
 import { computed } from 'vue'
+import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import BenefitHistoryList from '@/domains/home/components/BenefitHistoryList.vue'
-import type { RecentBenefitItem } from '@/domains/home/mocks/recentBenefits'
+import EmptyState from '@/shared/components/EmptyState.vue'
+import { Skeleton } from '@/shared/ui/skeleton'
 
 interface Props {
   items: RecentBenefitItem[]
+  isLoading?: boolean
+  error?: string
 }
 
 const props = defineProps<Props>()
@@ -17,6 +21,7 @@ const visibleItems = computed(() =>
 
 const emit = defineEmits<{
   select: [item: RecentBenefitItem]
+  retry: []
 }>()
 
 function parseOccurredAt(occurredAt: string) {
@@ -43,6 +48,21 @@ function parseOccurredAt(occurredAt: string) {
       </RouterLink>
     </div>
 
-    <BenefitHistoryList :items="visibleItems" @select="emit('select', $event)" />
+    <div v-if="isLoading" aria-label="최근 혜택 내역 로딩 중" class="space-y-2">
+      <Skeleton v-for="index in 3" :key="index" class="h-16.5 w-full rounded-md" />
+    </div>
+    <EmptyState
+      v-else-if="error"
+      :title="error"
+      description="잠시 후 다시 시도해 주세요."
+      action-label="다시 시도"
+      @action="emit('retry')"
+    />
+    <EmptyState
+      v-else-if="visibleItems.length === 0"
+      title="최근 혜택 내역이 없어요"
+      description="혜택이 확정되면 이곳에서 확인할 수 있어요."
+    />
+    <BenefitHistoryList v-else :items="visibleItems" @select="emit('select', $event)" />
   </section>
 </template>

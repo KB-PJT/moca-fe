@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RecentBenefitItem } from '@/domains/home/mocks/recentBenefits'
+import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 
 withDefaults(
   defineProps<{
@@ -45,7 +45,8 @@ function formatAmount(amount: number) {
               :class="{
                 'bg-[#FCF6F0] text-[#DC933C]': item.benefitType === '할인',
                 'bg-[#F1F8F3] text-benefit': item.benefitType === '캐시백',
-                'bg-[#F8F3EF] text-brown': item.benefitType === '포인트',
+                'bg-[#F8F3EF] text-brown':
+                  item.benefitType === '포인트' || item.benefitType === '마일리지',
               }"
             >
               {{ item.benefitType }}

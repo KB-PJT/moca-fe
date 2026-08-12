@@ -4,15 +4,36 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_ISSUERS } from '@/domains/card/constants/cardIssuers'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
+import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
 import HomeView from '@/domains/home/views/HomeView.vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
+const fetchRecentBenefits = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
 vi.mock('@/domains/home/api/homeCards', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/domains/home/api/homeCards')>()),
   fetchHomeCards,
+}))
+
+vi.mock('@/domains/home/api/recentBenefits', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/domains/home/api/recentBenefits')>()),
+  fetchRecentBenefits,
+}))
+
+const recentBenefits: RecentBenefitItem[] = Array.from({ length: 5 }, (_, index) => ({
+  id: `benefit-${index + 1}`,
+  merchantName: index === 0 ? '맥도날드' : index === 1 ? '스타벅스' : `가맹점 ${index + 1}`,
+  benefitType: index % 3 === 0 ? '할인' : index % 3 === 1 ? '캐시백' : '포인트',
+  description: index === 1 ? '카페 10% 할인' : '적용 혜택',
+  cardName: index === 0 ? 'KB국민 청춘대로 톡톡카드' : 'KB My WE:SH',
+  cardLastFour: '',
+  benefitAmount: index === 1 ? 1_500 : 1_000,
+  paymentAmount: 10_000,
+  occurredAt: `8월 ${12 - index}일 12:00`,
+  monthlyBenefitUsed: 0,
+  monthlyBenefitLimit: 0,
 }))
 
 function createHomeCardsResponse(): HomeCardsResponse {
@@ -52,6 +73,8 @@ describe('HomeView', () => {
     window.localStorage.clear()
     fetchHomeCards.mockReset()
     fetchHomeCards.mockResolvedValue(createHomeCardsResponse())
+    fetchRecentBenefits.mockReset()
+    fetchRecentBenefits.mockResolvedValue(recentBenefits)
   })
 
   function mountView(pinia = createPinia()) {
@@ -148,11 +171,11 @@ describe('HomeView', () => {
     expect(benefitHistoryLink?.props('to')).toEqual({ name: 'home-benefits' })
   })
 
-  it('최근 카드 승인 내역 5건을 표시한다', () => {
+  it('최근 혜택 API 내역 5건을 표시한다', async () => {
     const wrapper = mountView()
+    await flushPromises()
 
     expect(wrapper.text()).toContain('최근 전체 내역')
-    expect(wrapper.text()).toContain('혜택 없음')
     expect(wrapper.text()).toContain('맥도날드')
     expect(wrapper.text()).toContain('KB국민 청춘대로 톡톡카드')
     expect(wrapper.text()).toContain('스타벅스')
@@ -165,12 +188,29 @@ describe('HomeView', () => {
 
   it('최근 혜택을 선택하면 해당 혜택 상세 시트를 연다', async () => {
     const wrapper = mountView()
+    await flushPromises()
 
     await wrapper.get('button[aria-label="스타벅스 내역 상세 보기"]').trigger('click')
 
     const detailSheet = wrapper.getComponent(BenefitDetailSheet)
     expect(detailSheet.props('open')).toBe(true)
     expect(detailSheet.props('item')).toMatchObject({ merchantName: '스타벅스' })
+  })
+
+  it('최근 혜택 조회 실패 후 다시 시도할 수 있다', async () => {
+    fetchRecentBenefits.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('최근 혜택 내역을 불러오지 못했어요.')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '다시 시도')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(fetchRecentBenefits).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('스타벅스')
   })
 
   it('옆 카드를 선택하면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
