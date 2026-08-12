@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { logoutFromMoca } from '@/domains/auth/api/auth'
+import { fetchMyCards } from '@/domains/card/api/cardManagement'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import ListItem from '@/shared/components/ListItem.vue'
@@ -63,6 +64,11 @@ const { data: summary } = useQuery({
   queryFn: fetchMyPageSummary,
 })
 
+const { data: myCards } = useQuery({
+  queryKey: ['cards', 'my-cards'],
+  queryFn: fetchMyCards,
+})
+
 const { mutateAsync: updateLocationPermission, isPending: isLocationPermissionUpdating } =
   useMutation({
     mutationFn: updateLocationPermissionGranted,
@@ -72,9 +78,8 @@ const { mutateAsync: updateLocationPermission, isPending: isLocationPermissionUp
   })
 
 const nickname = computed(() => authStore.user?.nickname ?? '사용자')
-const connectedCardDescription = computed(
-  () => `등록한 카드 ${summary.value?.connectedCardCount ?? 0}개`,
-)
+const connectedCardCount = computed(() => myCards.value?.activeCards.length ?? 0)
+const connectedCardDescription = computed(() => `등록한 카드 ${connectedCardCount.value}개`)
 const locationPermissionGranted = computed(() => summary.value?.locationPermissionGranted ?? false)
 
 function navigateToCardManage() {
@@ -193,7 +198,7 @@ async function handleLogout() {
       <span class="mt-1 block text-caption font-semibold text-gray"> Google 계정으로 이용 중 </span>
       <span class="mt-2 flex items-center gap-1 text-label text-primary">
         <CreditCard class="size-3" />
-        연결 카드 {{ summary?.connectedCardCount ?? 0 }}개
+        연결 카드 {{ connectedCardCount }}개
       </span>
     </section>
 

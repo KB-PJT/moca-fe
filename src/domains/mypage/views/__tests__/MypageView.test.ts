@@ -10,11 +10,14 @@ vi.mock('vue-router', () => ({
 }))
 
 vi.mock('@tanstack/vue-query', () => ({
-  useQuery: () => ({
-    data: ref({
-      connectedCardCount: 4,
-      locationPermissionGranted: true,
-    }),
+  useQuery: ({ queryKey }: { queryKey: string[] }) => ({
+    data: ref(
+      queryKey[0] === 'cards'
+        ? { activeCards: [{ userCardId: '1' }, { userCardId: '2' }], inactiveCards: [] }
+        : {
+            locationPermissionGranted: true,
+          },
+    ),
   }),
   useQueryClient: () => ({
     setQueryData: vi.fn<() => void>(),
@@ -72,6 +75,7 @@ describe('MypageView', () => {
       name: 'card-manage',
       query: { from: 'mypage' },
     })
+    expect(wrapper.text()).toContain('연결 카드 2개')
   })
 
   it('문의하기 화면으로 이동한다', async () => {
