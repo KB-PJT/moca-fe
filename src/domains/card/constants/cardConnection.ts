@@ -84,8 +84,8 @@ const BIRTH_DATE_FIELD = {
 export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig> = {
   'kb-kookmin': {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
-    additionalFields: [],
-    additionalInputMode: 'none',
+    additionalFields: [CARD_NUMBER_FIELD, CARD_PASSWORD_FIELD],
+    additionalInputMode: 'always',
   },
   hyundai: {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
