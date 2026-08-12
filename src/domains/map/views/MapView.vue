@@ -103,6 +103,7 @@ const {
 
 const {
   data: nearbyMerchants,
+  isFetching: isNearbyFetching,
   isSuccess: isNearbySuccess,
   isError: isNearbyError,
   refetch: refetchNearby,
@@ -126,11 +127,17 @@ const filteredMerchants = computed(
 const isNoMerchantsToastVisible = ref(false)
 let noMerchantsToastTimer: ReturnType<typeof setTimeout> | undefined
 
-watch(nearbyMerchants, (list) => {
-  if (!isNearbySuccess.value || !list || list.length > 0) return
+watch([nearbyMerchants, isNearbyFetching, isNearbySuccess], ([list, fetching, success]) => {
+  if (noMerchantsToastTimer) {
+    clearTimeout(noMerchantsToastTimer)
+    noMerchantsToastTimer = undefined
+  }
 
-  isNoMerchantsToastVisible.value = true
-  if (noMerchantsToastTimer) clearTimeout(noMerchantsToastTimer)
+  const isEmptyResult = success && !fetching && !!list && list.length === 0
+  isNoMerchantsToastVisible.value = isEmptyResult
+
+  if (!isEmptyResult) return
+
   noMerchantsToastTimer = setTimeout(() => {
     isNoMerchantsToastVisible.value = false
   }, 2000)
