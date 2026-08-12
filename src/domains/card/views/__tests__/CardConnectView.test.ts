@@ -78,4 +78,15 @@ describe('CardConnectView', () => {
 
     expect(push).toHaveBeenCalledWith({ name: 'mypage' })
   })
+
+  it('비활성 카드가 있으면 카드 연동 화면에서 카드 관리로 돌아갈 수 있다', async () => {
+    routeQuery.required = 'activate'
+    const wrapper = mount(CardConnectView, {
+      global: { stubs: globalStubs },
+    })
+
+    await wrapper.get('button[aria-label="뒤로가기"]').trigger('click')
+
+    expect(replace).toHaveBeenCalledWith({ name: 'card-manage' })
+  })
 })
