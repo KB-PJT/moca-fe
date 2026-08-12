@@ -67,7 +67,6 @@ describe('homeCards API', () => {
     ).toMatchObject({
       id: 'card-1',
       name: 'KB My WE:SH',
-      memo: '카페 카드',
       imageUrl: 'https://example.com/card.png',
       accentColor: CARD_ISSUERS['kb-kookmin'].accentColor,
       highlightBenefitTitle: '카페 10% 할인',

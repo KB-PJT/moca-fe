@@ -58,7 +58,7 @@ const CARD_NUMBER_FIELD = {
   helperText: '16자리 카드번호를 입력해 주세요',
 } as const satisfies CardConnectionField
 
-const HYUNDAI_CARD_PASSWORD_FIELD = {
+const CARD_PASSWORD_FIELD = {
   key: 'cardPassword',
   label: '카드 비밀번호 4자리',
   placeholder: '4자리 입력',
@@ -72,13 +72,13 @@ const HYUNDAI_CARD_PASSWORD_FIELD = {
 const BIRTH_DATE_FIELD = {
   key: 'birthDate',
   label: '생년월일',
-  placeholder: 'YYYYMMDD',
+  placeholder: 'YYMMDD',
   inputType: 'text',
   autocomplete: 'off',
   numeric: true,
-  maxLength: 8,
-  exactLength: 8,
-  helperText: '생년월일 8자리를 입력해 주세요. 예: 19950101',
+  maxLength: 6,
+  exactLength: 6,
+  helperText: '생년월일 6자리를 입력해 주세요. 예: 950101',
 } as const satisfies CardConnectionField
 
 export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig> = {
@@ -89,7 +89,7 @@ export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig>
   },
   hyundai: {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
-    additionalFields: [CARD_NUMBER_FIELD, HYUNDAI_CARD_PASSWORD_FIELD, BIRTH_DATE_FIELD],
+    additionalFields: [CARD_NUMBER_FIELD, CARD_PASSWORD_FIELD, BIRTH_DATE_FIELD],
     additionalInputMode: 'always',
   },
   woori: {
@@ -104,8 +104,8 @@ export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig>
   },
   'nh-nonghyup': {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
-    additionalFields: [],
-    additionalInputMode: 'none',
+    additionalFields: [CARD_NUMBER_FIELD, CARD_PASSWORD_FIELD, BIRTH_DATE_FIELD],
+    additionalInputMode: 'always',
   },
   'bc-baro': {
     loginFields: HOMEPAGE_LOGIN_FIELDS,

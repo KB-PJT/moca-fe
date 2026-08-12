@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
-import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import CardBenefitAmounts from '@/domains/home/components/CardBenefitAmounts.vue'
@@ -27,18 +26,11 @@ const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
 const authStore = useAuthStore()
 const cardManagementStore = useCardManagementStore()
-const cardMemoStore = useCardMemoStore()
 const nickname = computed(() => authStore.user?.nickname ?? '사용자')
 const missedBenefitAmount = computed(() =>
   cards.value.reduce((total, card) => total + card.availableBenefitAmount, 0),
 )
-const activeCardMemo = computed(() => {
-  if (!activeCard.value) return ''
-
-  return cardMemoStore.hasMemo(activeCard.value.id)
-    ? cardMemoStore.getMemo(activeCard.value.id)
-    : activeCard.value.memo || activeCard.value.highlightBenefitTitle
-})
+const activeCardMemo = computed(() => activeCard.value?.highlightBenefitTitle ?? '')
 
 async function loadHomeCards() {
   isCardsLoading.value = true
@@ -49,10 +41,12 @@ async function loadHomeCards() {
     cards.value = response?.cards.map(toHomeOwnedCard) ?? []
     cardManagementStore.setDetailNavigationCardIds(cards.value.map((card) => card.id))
 
-    const selectedIndex = response?.selectedUserCardId
-      ? cards.value.findIndex((card) => card.id === response.selectedUserCardId)
+    const selectedCardId = cardManagementStore.homeSelectedCardId ?? response?.selectedUserCardId
+    const selectedIndex = selectedCardId
+      ? cards.value.findIndex((card) => card.id === selectedCardId)
       : -1
     activeCardIndex.value = selectedIndex >= 0 ? selectedIndex : 0
+    cardManagementStore.setHomeSelectedCardId(cards.value[activeCardIndex.value]?.id ?? null)
   } catch {
     cards.value = []
     cardManagementStore.setDetailNavigationCardIds([])
@@ -68,6 +62,11 @@ onMounted(loadHomeCards)
 function openBenefitDetail(item: RecentBenefitItem) {
   selectedBenefit.value = item
   isDetailSheetOpen.value = true
+}
+
+function selectCard(index: number) {
+  activeCardIndex.value = index
+  cardManagementStore.setHomeSelectedCardId(cards.value[index]?.id ?? null)
 }
 </script>
 
@@ -98,9 +97,10 @@ function openBenefitDetail(item: RecentBenefitItem) {
       />
       <template v-else>
         <OwnedCardCarousel
-          v-model:active-index="activeCardIndex"
+          :active-index="activeCardIndex"
           :cards="cards"
           :active-memo="activeCardMemo"
+          @update:active-index="selectCard"
         />
         <SelectedCardInfo v-if="activeCard" :card="activeCard" />
         <CardBenefitAmounts v-if="activeCard" :card="activeCard" />

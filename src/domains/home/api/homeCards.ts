@@ -48,7 +48,6 @@ interface HomeCardsApiResponse {
 export interface HomeOwnedCard {
   id: string
   name: string
-  memo: string
   imageUrl: string | null
   accentColor: string
   highlightBenefitTitle: string
@@ -83,7 +82,6 @@ export function toHomeOwnedCard(card: HomeCardResponse): HomeOwnedCard {
   return {
     id: card.userCardId,
     name: card.cardName,
-    memo: card.alias ?? '',
     imageUrl: card.cardImageUrl,
     accentColor: resolveHomeCardAccentColor(card),
     highlightBenefitTitle: card.highlightBenefit.title ?? '',

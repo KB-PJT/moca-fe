@@ -20,7 +20,6 @@ import {
 } from '@/domains/card/api/cardDetail'
 import { deactivateMyCard, disconnectMyCard, fetchMyCards } from '@/domains/card/api/cardManagement'
 import { resolveCardBenefitIcon } from '@/domains/card/constants/benefitCategories'
-import { useCardMemoStore } from '@/domains/card/stores/cardMemo'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import AppBar from '@/shared/components/AppBar.vue'
 import BottomBar from '@/shared/components/BottomBar.vue'
@@ -31,7 +30,6 @@ import { Skeleton } from '@/shared/ui/skeleton'
 
 const route = useRoute()
 const router = useRouter()
-const cardMemoStore = useCardMemoStore()
 const cardManagementStore = useCardManagementStore()
 
 type CardAction = 'deactivate' | 'disconnect'
@@ -179,7 +177,6 @@ async function loadCard(userCardId: string) {
     if (requestId !== cardRequestId) return
 
     card.value = response
-    cardMemoStore.setMemo(response.userCardId, response.memo ?? '')
   } catch {
     if (requestId !== cardRequestId) return
     card.value = null
@@ -252,7 +249,6 @@ async function saveMemo() {
   try {
     const updatedCard = await updateCardMemo(card.value.userCardId, nextMemo)
     card.value = { ...card.value, memo: updatedCard.memo }
-    cardMemoStore.setMemo(card.value.userCardId, updatedCard.memo ?? '')
     isEditingMemo.value = false
   } catch {
     memoError.value = '메모를 저장하지 못했어요. 다시 시도해 주세요.'
