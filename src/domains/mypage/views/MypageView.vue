@@ -64,7 +64,12 @@ const { data: summary } = useQuery({
   queryFn: fetchMyPageSummary,
 })
 
-const { data: myCards } = useQuery({
+const {
+  data: myCards,
+  isPending: isMyCardsPending,
+  isError: isMyCardsError,
+  refetch: refetchMyCards,
+} = useQuery({
   queryKey: ['cards', 'my-cards'],
   queryFn: fetchMyCards,
 })
@@ -79,11 +84,19 @@ const { mutateAsync: updateLocationPermission, isPending: isLocationPermissionUp
 
 const nickname = computed(() => authStore.user?.nickname ?? '사용자')
 const connectedCardCount = computed(() => myCards.value?.activeCards.length ?? 0)
-const connectedCardDescription = computed(() => `등록한 카드 ${connectedCardCount.value}개`)
+const connectedCardDescription = computed(() => {
+  if (isMyCardsPending.value) return '카드 정보를 불러오는 중'
+  if (isMyCardsError.value) return '카드 정보를 불러오지 못했어요'
+  return `등록한 카드 ${connectedCardCount.value}개`
+})
 const locationPermissionGranted = computed(() => summary.value?.locationPermissionGranted ?? false)
 
 function navigateToCardManage() {
   void router.push({ name: 'card-manage', query: { from: 'mypage' } })
+}
+
+function retryMyCards() {
+  void refetchMyCards()
 }
 
 function navigateToProfile() {
@@ -196,7 +209,24 @@ async function handleLogout() {
         </button>
       </div>
       <span class="mt-1 block text-caption font-semibold text-gray"> Google 계정으로 이용 중 </span>
-      <span class="mt-2 flex items-center gap-1 text-label text-primary">
+      <span
+        v-if="isMyCardsPending"
+        class="mt-2 flex items-center gap-1 text-label text-gray"
+        aria-live="polite"
+      >
+        <CreditCard class="size-3" />
+        연결 카드 조회 중
+      </span>
+      <div v-else-if="isMyCardsError" class="mt-2 flex items-center gap-2 text-label text-error">
+        <span class="flex items-center gap-1">
+          <CreditCard class="size-3" />
+          카드 조회 실패
+        </span>
+        <button type="button" class="font-semibold underline" @click="retryMyCards">
+          다시 시도
+        </button>
+      </div>
+      <span v-else class="mt-2 flex items-center gap-1 text-label text-primary">
         <CreditCard class="size-3" />
         연결 카드 {{ connectedCardCount }}개
       </span>
