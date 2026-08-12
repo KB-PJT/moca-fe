@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { List, LoaderCircle, Map as MapIcon, Search } from '@lucide/vue'
-import { Input } from '@/shared/ui/input'
+import { ChevronDown, List, LoaderCircle, LocateFixed, Map as MapIcon } from '@lucide/vue'
 import {
   fetchMerchantCategories,
+  fetchMerchantsByCategory,
   fetchNearbyMerchants,
   toMerchant,
 } from '@/domains/map/api/merchants'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 import { useLocationPermission } from '@/domains/map/composables/useLocationPermission'
 import { useMerchantSheet } from '@/domains/map/composables/useMerchantSheet'
+import CategoryPickerSheet from '@/domains/map/components/CategoryPickerSheet.vue'
 import LocationPermissionModal from '@/domains/map/components/LocationPermissionModal.vue'
 import MerchantBottomSheet from '@/domains/map/components/MerchantBottomSheet.vue'
 import PlaceListPanel from '@/domains/map/components/PlaceListPanel.vue'
@@ -48,12 +49,18 @@ const {
 })
 
 const activeCategoryId = ref<string | null>(null)
+const activeMerchantId = ref<string | null>(null)
+const isCategoryPickerOpen = ref(false)
 
-watch(categories, (list) => {
-  if (list?.length && !activeCategoryId.value) {
-    activeCategoryId.value = list[0]!.categoryId
-  }
-})
+watch(
+  categories,
+  (list) => {
+    if (list?.length && !activeCategoryId.value) {
+      activeCategoryId.value = list[0]!.categoryId
+    }
+  },
+  { immediate: true },
+)
 
 const activeCategoryName = computed(
   () =>
@@ -61,15 +68,46 @@ const activeCategoryName = computed(
       ?.categoryName ?? '',
 )
 
+function openCategoryPicker() {
+  onSheetClose()
+  isCategoryPickerOpen.value = true
+}
+
+function recenterToCurrentLocation() {
+  if (!currentLocation.value) return
+  kakaoMap.recenterTo(currentLocation.value)
+}
+
+function selectCategory(categoryId: string) {
+  activeCategoryId.value = categoryId
+  activeMerchantId.value = null
+}
+
+function toggleBrandFilter(merchantId: string) {
+  activeMerchantId.value = activeMerchantId.value === merchantId ? null : merchantId
+}
+
+const {
+  data: merchantBrands,
+  isPending: isBrandsPending,
+  isError: isBrandsError,
+  refetch: refetchBrands,
+} = useQuery({
+  queryKey: ['merchants', 'brands', activeCategoryId],
+  queryFn: () => fetchMerchantsByCategory(activeCategoryId.value!),
+  enabled: computed(() => Boolean(activeCategoryId.value)),
+})
+
 const {
   data: nearbyMerchants,
   isError: isNearbyError,
   refetch: refetchNearby,
 } = useQuery({
-  queryKey: ['merchants', 'nearby', activeCategoryId, currentLocation],
+  queryKey: ['merchants', 'nearby', activeCategoryId, activeMerchantId, currentLocation],
   queryFn: () =>
     fetchNearbyMerchants({
       categoryId: activeCategoryId.value!,
+      merchantId: activeMerchantId.value ?? undefined,
       latitude: currentLocation.value!.latitude,
       longitude: currentLocation.value!.longitude,
     }),
@@ -119,30 +157,41 @@ watch(currentLocation, (coordinates) => {
     <div ref="mapContainer" class="h-full w-full" />
 
     <div
-      v-if="viewMode === 'map' && isScreenReady"
-      class="bg-linear-to-b pointer-events-none absolute inset-x-0 top-0 z-10 h-40 from-black/35 to-transparent"
-    />
-
-    <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
       :class="
         viewMode === 'list' ? 'bg-card' : (!isScreenReady || isCategoriesPending) && 'bg-screen'
       "
     >
-      <div class="pointer-events-auto flex items-center gap-2 p-4 pb-0">
-        <div class="bg-card shadow-float flex flex-1 items-center gap-2 rounded-md px-3">
-          <Search class="text-gray size-4 shrink-0" />
-          <Input
-            placeholder="내 주변 혜택 가맹점"
-            class="border-0 px-0 shadow-none focus-visible:ring-0"
-            @focus="onSheetClose"
-          />
+      <div
+        class="pointer-events-auto flex items-center gap-2 border-b border-divider bg-card px-4 py-3"
+      >
+        <button
+          v-if="currentLocation"
+          type="button"
+          aria-label="내 위치로 이동"
+          class="text-gray shrink-0"
+          @click="recenterToCurrentLocation"
+        >
+          <LocateFixed class="size-5" />
+        </button>
+        <span v-else class="size-5 shrink-0" aria-hidden="true" />
+
+        <div class="flex flex-1 justify-center">
+          <button
+            v-if="activeCategoryId"
+            type="button"
+            class="flex items-center gap-1 py-1"
+            @click="openCategoryPicker"
+          >
+            <span class="text-body font-semibold text-charcoal">{{ activeCategoryName }}</span>
+            <ChevronDown class="text-gray size-4" />
+          </button>
         </div>
 
         <button
           v-if="isScreenReady"
           type="button"
-          class="text-caption bg-primary shadow-float flex shrink-0 items-center gap-1 rounded-full px-4 py-2.5 font-semibold text-white"
+          class="text-caption bg-primary flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 font-semibold text-white"
           @click="toggleViewMode"
         >
           <component :is="viewMode === 'map' ? List : MapIcon" class="size-4" />
@@ -151,7 +200,12 @@ watch(currentLocation, (coordinates) => {
       </div>
 
       <div
-        v-if="!isScreenReady || isCategoriesPending || isCategoriesError"
+        v-if="
+          !isScreenReady ||
+          isCategoriesPending ||
+          isCategoriesError ||
+          (categories && categories.length === 0)
+        "
         class="pointer-events-auto flex flex-1 flex-col items-center justify-center gap-2"
       >
         <template v-if="mapLoadError">
@@ -174,6 +228,16 @@ watch(currentLocation, (coordinates) => {
             다시 시도
           </button>
         </template>
+        <template v-else-if="isScreenReady && categories && categories.length === 0">
+          <p class="text-caption text-gray">표시할 카테고리가 없어요.</p>
+          <button
+            type="button"
+            class="text-caption bg-primary rounded-full px-4 py-1.5 text-white"
+            @click="() => refetchCategories()"
+          >
+            다시 시도
+          </button>
+        </template>
         <template v-else>
           <LoaderCircle class="text-primary size-6 animate-spin" />
           <p class="text-caption text-gray">
@@ -183,22 +247,42 @@ watch(currentLocation, (coordinates) => {
       </div>
 
       <template v-else>
-        <div class="pointer-events-auto space-y-3 p-4 pt-3">
-          <div ref="controlsRef" class="scrollbar-hide flex gap-2 overflow-x-auto">
+        <div ref="controlsRef" class="pointer-events-auto space-y-3 p-4 pt-3">
+          <div v-if="isBrandsPending" class="flex items-center gap-2 py-1.5">
+            <LoaderCircle class="text-primary size-4 animate-spin" />
+            <span class="text-caption text-gray">브랜드를 불러오는 중...</span>
+          </div>
+          <div
+            v-else-if="isBrandsError"
+            class="shadow-float flex items-center justify-between gap-2 rounded-md bg-card px-3 py-2"
+          >
+            <p class="text-caption text-gray">브랜드 정보를 불러오지 못했어요.</p>
             <button
-              v-for="category in categories ?? []"
-              :key="category.categoryId"
               type="button"
-              class="text-caption shrink-0 rounded-full px-3 py-1.5 whitespace-nowrap"
-              :class="
-                activeCategoryId === category.categoryId
-                  ? 'bg-primary text-white'
-                  : 'bg-card text-charcoal'
-              "
-              :aria-pressed="activeCategoryId === category.categoryId"
-              @click="activeCategoryId = category.categoryId"
+              class="text-caption text-primary font-semibold"
+              @click="() => refetchBrands()"
             >
-              {{ category.categoryName }}
+              다시 시도
+            </button>
+          </div>
+          <p v-else-if="(merchantBrands?.length ?? 0) === 0" class="text-caption text-gray">
+            이 카테고리엔 등록된 브랜드가 없어요.
+          </p>
+          <div v-else class="scrollbar-hide flex gap-2 overflow-x-auto">
+            <button
+              v-for="brand in merchantBrands"
+              :key="brand.merchantId"
+              type="button"
+              class="text-caption shrink-0 rounded-full border px-3 py-1.5 whitespace-nowrap"
+              :class="
+                activeMerchantId === brand.merchantId
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-divider bg-card text-charcoal'
+              "
+              :aria-pressed="activeMerchantId === brand.merchantId"
+              @click="toggleBrandFilter(brand.merchantId)"
+            >
+              {{ brand.name }}
             </button>
           </div>
 
@@ -250,6 +334,13 @@ watch(currentLocation, (coordinates) => {
       @update:open="isLocationModalOpen = $event"
       @allow="handleAllowLocation"
       @later="handleLaterLocation"
+    />
+
+    <CategoryPickerSheet
+      v-model:open="isCategoryPickerOpen"
+      :categories="categories ?? []"
+      :active-category-id="activeCategoryId"
+      @select="selectCategory"
     />
   </div>
 </template>

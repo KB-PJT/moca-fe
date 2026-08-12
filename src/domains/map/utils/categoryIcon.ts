@@ -1,4 +1,5 @@
 import {
+  Brush,
   Building2,
   Clapperboard,
   Coffee,
@@ -7,7 +8,6 @@ import {
   Fuel,
   ShoppingBag,
   ShoppingCart,
-  Sparkles,
   Utensils,
 } from '@lucide/vue'
 
@@ -20,7 +20,7 @@ export const categoryIcon: Record<string, typeof Utensils> = {
   카페: Coffee,
   편의점: ShoppingBag,
   마트: ShoppingCart,
-  뷰티: Sparkles,
+  뷰티: Brush,
   주유소: Fuel,
   테마파크: FerrisWheel,
   백화점: Building2,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { ChartBar, House, MapPin, User } from '@lucide/vue'
+import { House, MapPin, Sparkles, User } from '@lucide/vue'
 
 interface Props {
   activePath?: string
@@ -12,7 +12,7 @@ const route = useRoute()
 const tabs = [
   { label: '홈', to: '/home', icon: House },
   { label: '지도', to: '/map', icon: MapPin },
-  { label: '혜택', to: '/report', icon: ChartBar },
+  { label: '혜택', to: '/report', icon: Sparkles },
   { label: '마이페이지', to: '/mypage', icon: User },
 ]
 
