@@ -5,11 +5,14 @@ import {
   fetchMyCards,
   reorderMyCards,
   resolveCardAccessState,
+  syncMyCards,
   type MyCardsResponse,
+  type SyncMyCardsResponse,
 } from '../cardManagement'
 
 const apiClientMocks = vi.hoisted(() => ({
   get: vi.fn<(url: string, config?: unknown) => Promise<unknown>>(),
+  post: vi.fn<(url: string, data?: unknown) => Promise<unknown>>(),
   patch: vi.fn<(url: string, data?: unknown) => Promise<unknown>>(),
   delete: vi.fn<(url: string) => Promise<unknown>>(),
 }))
@@ -83,6 +86,19 @@ describe('cardManagement API', () => {
     expect(apiClientMocks.patch).toHaveBeenCalledWith('/api/v1/me/cards/order', {
       userCardIds: ['card-2', 'card-1'],
     })
+  })
+
+  it('활성 보유 카드의 승인내역과 실적을 동기화한다', async () => {
+    const responseData: SyncMyCardsResponse = {
+      syncedCardCount: 1,
+      syncedApprovalCount: 3,
+      syncedPerformanceCount: 1,
+      syncedAt: '2026-08-12T10:30:00+09:00',
+    }
+    apiClientMocks.post.mockResolvedValue({ data: { success: true, data: responseData } })
+
+    await expect(syncMyCards()).resolves.toEqual(responseData)
+    expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/me/cards/sync')
   })
 
   it('선택한 보유 카드의 연결을 해제한다', async () => {

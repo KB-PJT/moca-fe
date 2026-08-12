@@ -12,9 +12,23 @@ describe('CardIssuerConnectCompleteView', () => {
     const store = useDirectCardConnectionStore()
     store.beginLookup('kb-kookmin')
     store.completeLookup([
-      { id: 'card-1', issuer: 'kb-kookmin', name: 'KB 카드 1', last4: '1111' },
-      { id: 'card-2', issuer: 'kb-kookmin', name: 'KB 카드 2', last4: '2222' },
+      {
+        id: 'card-1',
+        userCardId: 'card-1',
+        issuer: 'kb-kookmin',
+        name: 'KB 카드 1',
+        last4: '1111',
+      },
+      {
+        id: 'card-2',
+        userCardId: 'card-2',
+        issuer: 'kb-kookmin',
+        name: 'KB 카드 2',
+        last4: '2222',
+      },
     ])
+    store.completeActivation(['card-1', 'card-2'])
+    store.setApprovalSyncStatus('skipped')
 
     const router = createRouter({
       history: createMemoryHistory(),
@@ -57,6 +71,7 @@ describe('CardIssuerConnectCompleteView', () => {
 
     expect(wrapper.text()).toContain('연동을 완료했어요')
     expect(wrapper.text()).toContain('KB국민카드 카드 2개')
+    expect(wrapper.text()).toContain('승인내역은 다음 자동 동기화 때 반영돼요')
     expect(wrapper.findAll('li')).toHaveLength(2)
   })
 })
