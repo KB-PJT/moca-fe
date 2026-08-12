@@ -1,7 +1,6 @@
 import apiClient from '@/shared/api/client'
 
 export interface MyPageSummary {
-  connectedCardCount: number
   locationPermissionGranted: boolean
 }
 
@@ -39,13 +38,7 @@ export async function deleteMocaAccount(reason?: string): Promise<void> {
 }
 
 export const MOCK_MYPAGE_SUMMARY: MyPageSummary = {
-  connectedCardCount: 3,
   locationPermissionGranted: true,
-}
-
-export const MOCK_MYPAGE_SUMMARY_EMPTY: MyPageSummary = {
-  connectedCardCount: 0,
-  locationPermissionGranted: false,
 }
 
 export async function fetchMyPageSummary(): Promise<MyPageSummary> {
