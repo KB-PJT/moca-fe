@@ -9,6 +9,7 @@ import MocaButton from '@/shared/components/MocaButton.vue'
 
 const route = useRoute()
 const router = useRouter()
+const isMissingCardRequired = computed(() => route.query.required === 'true')
 const isRequiredConnection = computed(
   () => route.query.required === 'true' || route.query.required === 'activate',
 )
@@ -31,7 +32,7 @@ function openAccountSupport() {
 </script>
 
 <template>
-  <CardPageLayout bg="screen" :show-back="!isRequiredConnection" @back="returnToCardManage">
+  <CardPageLayout bg="screen" :show-back="!isMissingCardRequired" @back="returnToCardManage">
     <div class="flex min-h-148 flex-col">
       <section class="px-1 pt-1">
         <h1 class="text-display text-charcoal">
