@@ -88,7 +88,7 @@ describe('cardLink payload', () => {
         homepagePassword: 'secret',
         cardNumber: '1234123412341234',
         cardPassword: '12',
-        birthDate: '19950101',
+        birthDate: '950101',
       }),
     ).toEqual({
       institutionCode: '0301',
@@ -115,13 +115,13 @@ describe('cardLink payload', () => {
       buildCreateCardLinkRequest('woori', {
         homepageId: 'moca-user',
         homepagePassword: 'secret',
-        birthDate: '19950101',
+        birthDate: '950101',
       }),
     ).toEqual({
       institutionCode: '0309',
       id: 'moca-user',
       password: 'secret',
-      birthDate: '19950101',
+      birthDate: '950101',
     })
   })
 
@@ -132,7 +132,7 @@ describe('cardLink payload', () => {
         homepagePassword: 'secret',
         cardNumber: '1234123412341234',
         cardPassword: '1234',
-        birthDate: '19950101',
+        birthDate: '950101',
       }),
     ).toEqual({
       institutionCode: '0302',
@@ -140,7 +140,26 @@ describe('cardLink payload', () => {
       password: 'secret',
       cardNo: '1234123412341234',
       cardPassword: '1234',
-      birthDate: '19950101',
+      birthDate: '950101',
+    })
+  })
+
+  it('NH농협카드 요청에 카드번호, 카드 비밀번호, 생년월일을 포함한다', () => {
+    expect(
+      buildCreateCardLinkRequest('nh-nonghyup', {
+        homepageId: 'moca-user',
+        homepagePassword: 'secret',
+        cardNumber: '1234123412341234',
+        cardPassword: '1234',
+        birthDate: '950101',
+      }),
+    ).toEqual({
+      institutionCode: '0304',
+      id: 'moca-user',
+      password: 'secret',
+      cardNo: '1234123412341234',
+      cardPassword: '1234',
+      birthDate: '950101',
     })
   })
 

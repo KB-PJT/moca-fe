@@ -8,12 +8,14 @@ import CardIssuerConnectView from '@/domains/card/views/CardIssuerConnectView.vu
 
 const cardLinkApiMocks = vi.hoisted(() => ({
   createCardLink: vi.fn<() => Promise<CardLinkResponse>>(),
+  discoverCardLinkCards: vi.fn<() => Promise<CardLinkResponse>>(),
   syncCardLinkCards: vi.fn<() => Promise<SyncOwnedCardsResponse>>(),
 }))
 
 vi.mock('@/domains/card/api/cardLinks', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/domains/card/api/cardLinks')>()),
   createCardLink: cardLinkApiMocks.createCardLink,
+  discoverCardLinkCards: cardLinkApiMocks.discoverCardLinkCards,
   syncCardLinkCards: cardLinkApiMocks.syncCardLinkCards,
 }))
 
@@ -81,6 +83,8 @@ describe('CardIssuerConnectView', () => {
   beforeEach(() => {
     cardLinkApiMocks.createCardLink.mockReset()
     cardLinkApiMocks.createCardLink.mockReturnValue(new Promise(() => {}))
+    cardLinkApiMocks.discoverCardLinkCards.mockReset()
+    cardLinkApiMocks.discoverCardLinkCards.mockReturnValue(new Promise(() => {}))
     cardLinkApiMocks.syncCardLinkCards.mockReset()
     cardLinkApiMocks.syncCardLinkCards.mockRejectedValue({
       isAxiosError: true,
@@ -133,7 +137,7 @@ describe('CardIssuerConnectView', () => {
 
     await wrapper.get('#card-connection-cardNumber').setValue('1234-5678-abcd-9012-3456')
     await wrapper.get('#card-connection-cardPassword').setValue('1a2b34')
-    await wrapper.get('#card-connection-birthDate').setValue('1995-01-01abc')
+    await wrapper.get('#card-connection-birthDate').setValue('95-01-01abc')
 
     expect(wrapper.get<HTMLInputElement>('#card-connection-cardNumber').element.value).toBe(
       '1234 5678 9012 3456',
@@ -141,9 +145,33 @@ describe('CardIssuerConnectView', () => {
     expect(wrapper.get<HTMLInputElement>('#card-connection-cardPassword').element.value).toBe(
       '1234',
     )
-    expect(wrapper.get<HTMLInputElement>('#card-connection-birthDate').element.value).toBe(
-      '19950101',
-    )
+    expect(wrapper.get<HTMLInputElement>('#card-connection-birthDate').element.value).toBe('950101')
+  })
+
+  it('현대카드는 연동 생성 후 카드번호로 보유카드를 조회한다', async () => {
+    const { wrapper } = await mountAt('hyundai')
+    cardLinkApiMocks.createCardLink.mockResolvedValue({
+      linkId: 'hyundai-link-id',
+      institutionCode: '0302',
+      status: 'PENDING_CARD_ACTIVATION',
+      cards: [],
+    })
+    cardLinkApiMocks.discoverCardLinkCards.mockResolvedValue({
+      linkId: 'hyundai-link-id',
+      institutionCode: '0302',
+      status: 'PENDING_CARD_ACTIVATION',
+      cards: [],
+    })
+
+    await wrapper.get('#card-connection-homepageId').setValue('moca-user')
+    await wrapper.get('#card-connection-homepagePassword').setValue('password')
+    await wrapper.get('#card-connection-cardNumber').setValue('1234123412341234')
+    await wrapper.get('#card-connection-cardPassword').setValue('1234')
+    await wrapper.get('#card-connection-birthDate').setValue('950101')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(cardLinkApiMocks.discoverCardLinkCards).toHaveBeenCalledWith('hyundai-link-id')
   })
 
   it('추가 인증이 없는 기관은 홈페이지 로그인 정보만 입력받는다', async () => {
@@ -158,6 +186,47 @@ describe('CardIssuerConnectView', () => {
 
     expect(wrapper.findAll('input')).toHaveLength(2)
     expect(wrapper.find('#card-connection-birthDate').exists()).toBe(false)
+  })
+
+  it('NH농협카드는 카드번호, 카드 비밀번호, 생년월일을 필수로 입력받아 전송한다', async () => {
+    const { wrapper } = await mountAt('nh-nonghyup')
+    cardLinkApiMocks.createCardLink.mockResolvedValue({
+      linkId: 'nh-link-id',
+      institutionCode: '0304',
+      status: 'PENDING_CARD_ACTIVATION',
+      cards: [],
+    })
+    cardLinkApiMocks.discoverCardLinkCards.mockResolvedValue({
+      linkId: 'nh-link-id',
+      institutionCode: '0304',
+      status: 'PENDING_CARD_ACTIVATION',
+      cards: [],
+    })
+
+    expect(wrapper.findAll('input')).toHaveLength(5)
+    expect(wrapper.text()).not.toContain('추가 인증 정보 없이 조회할 수 있어요')
+    expect(wrapper.get('footer button').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('#card-connection-homepageId').setValue('moca-user')
+    await wrapper.get('#card-connection-homepagePassword').setValue('password')
+    await wrapper.get('#card-connection-cardNumber').setValue('1234-1234-1234-1234')
+    await wrapper.get('#card-connection-cardPassword').setValue('1234')
+    await wrapper.get('#card-connection-birthDate').setValue('95-01-01')
+
+    expect(wrapper.get('footer button').attributes('disabled')).toBeUndefined()
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(cardLinkApiMocks.createCardLink).toHaveBeenCalledWith({
+      institutionCode: '0304',
+      id: 'moca-user',
+      password: 'password',
+      cardNo: '1234123412341234',
+      cardPassword: '1234',
+      birthDate: '950101',
+    })
+    expect(cardLinkApiMocks.discoverCardLinkCards).toHaveBeenCalledWith('nh-link-id')
   })
 
   it('실제 공통 버튼으로 footer에서 기관 입력 form을 제출하고 조회 화면으로 이동한다', async () => {
@@ -334,9 +403,7 @@ describe('CardIssuerConnectView', () => {
     expect(wrapper.get<HTMLInputElement>('#card-connection-homepageId').element.value).toBe('')
     expect(wrapper.text()).not.toContain('16자리로 입력해 주세요')
 
-    await wrapper.get('#card-connection-birthDate').setValue('1995-01-01abc')
-    expect(wrapper.get<HTMLInputElement>('#card-connection-birthDate').element.value).toBe(
-      '19950101',
-    )
+    await wrapper.get('#card-connection-birthDate').setValue('95-01-01abc')
+    expect(wrapper.get<HTMLInputElement>('#card-connection-birthDate').element.value).toBe('950101')
   })
 })
