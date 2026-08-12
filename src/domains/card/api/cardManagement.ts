@@ -16,11 +16,23 @@ export interface MyCardsResponse {
   inactiveCards?: MyCardItemResponse[]
 }
 
+export interface SyncMyCardsResponse {
+  syncedCardCount: number
+  syncedApprovalCount: number
+  syncedPerformanceCount: number
+  syncedAt: string
+}
+
 export type CardAccessState = 'none' | 'inactive-only' | 'active'
 
 interface MyCardsApiResponse {
   success: boolean
   data: MyCardsResponse
+}
+
+interface SyncMyCardsApiResponse {
+  success: boolean
+  data: SyncMyCardsResponse
 }
 
 interface SuccessApiResponse {
@@ -48,6 +60,12 @@ export async function reorderMyCards(userCardIds: string[]): Promise<MyCardsResp
   const response = await apiClient.patch<MyCardsApiResponse>('/api/v1/me/cards/order', {
     userCardIds,
   })
+
+  return response.data.data
+}
+
+export async function syncMyCards(): Promise<SyncMyCardsResponse> {
+  const response = await apiClient.post<SyncMyCardsApiResponse>('/api/v1/me/cards/sync')
 
   return response.data.data
 }

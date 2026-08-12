@@ -65,6 +65,11 @@ const router = createRouter({
           component: () => import('@/domains/card/views/CardIssuerCardSelectView.vue'),
         },
         {
+          path: 'connect/select/:issuerId/sync',
+          name: 'card-issuer-sync-progress',
+          component: () => import('@/domains/card/views/CardIssuerSyncView.vue'),
+        },
+        {
           path: 'connect/select/:issuerId/complete',
           name: 'card-issuer-connect-complete',
           component: () => import('@/domains/card/views/CardIssuerConnectCompleteView.vue'),

@@ -45,10 +45,10 @@ const globalStubs = {
     template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
   },
   Checkbox: {
-    props: ['modelValue'],
+    props: ['modelValue', 'disabled'],
     emits: ['update:modelValue'],
     template:
-      '<button type="button" @click="$emit(\'update:modelValue\', modelValue === true ? false : true)" />',
+      '<button type="button" :disabled="disabled" @click="$emit(\'update:modelValue\', modelValue === true ? false : true)" />',
   },
   CardImage: {
     props: ['src', 'alt'],
@@ -135,7 +135,59 @@ describe('CardIssuerCardSelectView', () => {
     expect(directStore.lookupStatus).toBe('idle')
   })
 
-  it('카드 활성화 중에는 뒤로가지 않고 요청 시작 시점의 선택 카드로 완료 처리한다', async () => {
+  it('활성화가 끝난 선택 화면에 재진입하면 동기화 화면으로 대체한다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const directStore = useDirectCardConnectionStore()
+    directStore.beginLookup('kb-kookmin')
+    directStore.completeLookup([
+      {
+        id: 'selected-card',
+        userCardId: 'selected-card',
+        issuer: 'kb-kookmin',
+        name: 'KB 카드',
+        last4: '4710',
+      },
+    ])
+    directStore.completeActivation(['selected-card'])
+
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        {
+          path: '/cards/connect/select/:issuerId/cards',
+          name: 'card-issuer-card-select',
+          component: CardIssuerCardSelectView,
+        },
+        {
+          path: '/cards/connect/select/:issuerId/sync',
+          name: 'card-issuer-sync-progress',
+          component: { template: '<div />' },
+        },
+        {
+          path: '/cards/connect/select/:issuerId',
+          name: 'card-issuer-connect',
+          component: { template: '<div />' },
+        },
+        {
+          path: '/cards/connect/select',
+          name: 'card-issuer-select',
+          component: { template: '<div />' },
+        },
+      ],
+    })
+    await router.push({ name: 'card-issuer-card-select', params: { issuerId: 'kb-kookmin' } })
+    await router.isReady()
+
+    mount(CardIssuerCardSelectView, {
+      global: { plugins: [pinia, router], stubs: globalStubs },
+    })
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('card-issuer-sync-progress')
+  })
+
+  it('카드 활성화 중에는 선택과 뒤로가기를 잠그고 시작 시점의 카드로 동기화 화면에 이동한다', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const directStore = useDirectCardConnectionStore()
@@ -169,8 +221,8 @@ describe('CardIssuerCardSelectView', () => {
           component: CardIssuerCardSelectView,
         },
         {
-          path: '/cards/connect/select/:issuerId/complete',
-          name: 'card-issuer-connect-complete',
+          path: '/cards/connect/select/:issuerId/sync',
+          name: 'card-issuer-sync-progress',
           component: { template: '<div />' },
         },
         {
@@ -193,6 +245,10 @@ describe('CardIssuerCardSelectView', () => {
     })
 
     await wrapper.get('footer button').trigger('click')
+    expect(wrapper.get('button[aria-label="전체 카드 선택"]').attributes('disabled')).toBeDefined()
+    expect(
+      wrapper.get('button[aria-label="KB 스냅샷 카드 선택"]').attributes('disabled'),
+    ).toBeDefined()
     await wrapper.get('button[aria-label="뒤로가기"]').trigger('click')
 
     expect(router.currentRoute.value.name).toBe('card-issuer-card-select')
@@ -209,7 +265,8 @@ describe('CardIssuerCardSelectView', () => {
     expect(ownedCardsStore.ownedCards.some((card) => card.id === 'activation-snapshot-card')).toBe(
       true,
     )
-    expect(router.currentRoute.value.name).toBe('card-issuer-connect-complete')
+    expect(directStore.activationCompleted).toBe(true)
+    expect(router.currentRoute.value.name).toBe('card-issuer-sync-progress')
   })
 
   it('모든 카드를 기본 선택하고 선택한 카드만 보유카드에 추가한다', async () => {
@@ -248,8 +305,8 @@ describe('CardIssuerCardSelectView', () => {
           component: CardIssuerCardSelectView,
         },
         {
-          path: '/cards/connect/select/:issuerId/complete',
-          name: 'card-issuer-connect-complete',
+          path: '/cards/connect/select/:issuerId/sync',
+          name: 'card-issuer-sync-progress',
           component: { template: '<div />' },
         },
         {
@@ -296,7 +353,8 @@ describe('CardIssuerCardSelectView', () => {
     expect(ownedCardsStore.ownedCards[ownedCardsStore.ownedCards.length - 1]?.id).toBe(
       'selected-card-1',
     )
-    expect(router.currentRoute.value.name).toBe('card-issuer-connect-complete')
+    expect(directStore.activationCompleted).toBe(true)
+    expect(router.currentRoute.value.name).toBe('card-issuer-sync-progress')
   })
 
   it('카드 활성화 API가 실패하면 현재 화면에서 오류를 표시한다', async () => {
@@ -414,8 +472,8 @@ describe('CardIssuerCardSelectView', () => {
           component: CardIssuerCardSelectView,
         },
         {
-          path: '/cards/connect/select/:issuerId/complete',
-          name: 'card-issuer-connect-complete',
+          path: '/cards/connect/select/:issuerId/sync',
+          name: 'card-issuer-sync-progress',
           component: { template: '<div />' },
         },
         {
@@ -468,7 +526,7 @@ describe('CardIssuerCardSelectView', () => {
       cardPassword: '1234',
     })
     expect(cardLinkApiMocks.activateCardLinkCards).toHaveBeenCalledTimes(2)
-    expect(router.currentRoute.value.name).toBe('card-issuer-connect-complete')
+    expect(router.currentRoute.value.name).toBe('card-issuer-sync-progress')
   })
 
   it('선택형 카드의 옵션을 모두 고른 뒤에만 불러오기 버튼을 활성화한다', async () => {

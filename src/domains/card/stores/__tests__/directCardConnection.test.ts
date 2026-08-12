@@ -96,6 +96,38 @@ describe('useDirectCardConnectionStore', () => {
     expect(store.hasCompleteOptionSelections).toBe(true)
   })
 
+  it('활성화된 카드 선택을 확정하고 승인내역 동기화 상태를 관리한다', () => {
+    const store = useDirectCardConnectionStore()
+    store.beginLookup('kb-kookmin')
+    store.completeLookup([
+      {
+        id: 'card-1',
+        userCardId: 'user-card-1',
+        issuer: 'kb-kookmin',
+        name: '카드 1',
+        last4: '1111',
+      },
+      {
+        id: 'card-2',
+        userCardId: 'user-card-2',
+        issuer: 'kb-kookmin',
+        name: '카드 2',
+        last4: '2222',
+      },
+    ])
+
+    store.completeActivation(['user-card-2'])
+    store.setApprovalSyncStatus('syncing')
+
+    expect(store.activationCompleted).toBe(true)
+    expect(store.selectedCardIds).toEqual(['card-2'])
+    expect(store.approvalSyncStatus).toBe('syncing')
+
+    store.reset()
+    expect(store.activationCompleted).toBe(false)
+    expect(store.approvalSyncStatus).toBe('idle')
+  })
+
   it('카드 연동 API 응답을 화면 모델로 변환하고 linkId를 보관한다', () => {
     const store = useDirectCardConnectionStore()
 

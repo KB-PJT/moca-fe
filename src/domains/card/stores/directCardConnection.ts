@@ -34,6 +34,7 @@ export interface DirectCardLookupError {
 }
 
 export type DirectCardLookupStatus = 'idle' | 'looking-up' | 'success' | 'failed'
+export type ApprovalSyncStatus = 'idle' | 'syncing' | 'success' | 'failed' | 'skipped'
 
 export const useDirectCardConnectionStore = defineStore('directCardConnection', () => {
   const issuerId = ref<CardIssuerId | null>(null)
@@ -43,6 +44,8 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
   const discoveredCards = ref<DiscoveredCard[]>([])
   const selectedCardIds = ref<string[]>([])
   const optionSelections = ref<Record<string, Record<string, string>>>({})
+  const activationCompleted = ref(false)
+  const approvalSyncStatus = ref<ApprovalSyncStatus>('idle')
 
   const selectableCards = computed(() =>
     discoveredCards.value.filter(
@@ -71,6 +74,8 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     discoveredCards.value = []
     selectedCardIds.value = []
     optionSelections.value = {}
+    activationCompleted.value = false
+    approvalSyncStatus.value = 'idle'
   }
 
   function completeLookup(cards: DiscoveredCard[]) {
@@ -145,6 +150,19 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     }
   }
 
+  function completeActivation(activatedUserCardIds: string[]) {
+    const activatedIds = new Set(activatedUserCardIds)
+    selectedCardIds.value = selectableCards.value
+      .filter((card) => card.userCardId && activatedIds.has(card.userCardId))
+      .map((card) => card.id)
+    activationCompleted.value = true
+    approvalSyncStatus.value = 'idle'
+  }
+
+  function setApprovalSyncStatus(status: ApprovalSyncStatus) {
+    approvalSyncStatus.value = status
+  }
+
   function failLookup(error?: DirectCardLookupError) {
     linkId.value = null
     lookupStatus.value = 'failed'
@@ -152,6 +170,8 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     discoveredCards.value = []
     selectedCardIds.value = []
     optionSelections.value = {}
+    activationCompleted.value = false
+    approvalSyncStatus.value = 'idle'
   }
 
   function setCardSelected(cardId: string, selected: boolean) {
@@ -192,6 +212,8 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     discoveredCards.value = []
     selectedCardIds.value = []
     optionSelections.value = {}
+    activationCompleted.value = false
+    approvalSyncStatus.value = 'idle'
   }
 
   return {
@@ -205,11 +227,15 @@ export const useDirectCardConnectionStore = defineStore('directCardConnection', 
     selectedCards,
     optionSelections,
     hasCompleteOptionSelections,
+    activationCompleted,
+    approvalSyncStatus,
     beginLookup,
     completeLookup,
     completeCardLink,
     completeCardLinkCards,
     updateCardLinkCard,
+    completeActivation,
+    setApprovalSyncStatus,
     failLookup,
     setCardSelected,
     setAllSelected,

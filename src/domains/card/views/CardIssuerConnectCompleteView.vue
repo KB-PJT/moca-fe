@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check } from '@lucide/vue'
+import { Check, TriangleAlert } from '@lucide/vue'
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
@@ -34,13 +34,11 @@ onMounted(() => {
     !issuerId.value ||
     directCardConnectionStore.issuerId !== issuerId.value ||
     directCardConnectionStore.lookupStatus !== 'success' ||
+    !directCardConnectionStore.activationCompleted ||
     connectedCards.value.length === 0
   ) {
     directCardConnectionStore.reset()
-    void router.replace({
-      name: issuerId.value ? 'card-issuer-connect' : 'card-issuer-select',
-      ...(issuerId.value ? { params: { issuerId: issuerId.value } } : {}),
-    })
+    void router.replace({ name: 'home' })
   }
 })
 </script>
@@ -63,6 +61,14 @@ onMounted(() => {
           {{ issuer.name }} 카드 {{ connectedCards.length }}개를<br />MOCA에 추가했어요
         </p>
       </section>
+
+      <div
+        v-if="directCardConnectionStore.approvalSyncStatus === 'skipped'"
+        class="mt-5 flex items-start gap-2 rounded-md border border-warning/20 bg-warning/6 px-4 py-3 text-warning"
+      >
+        <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <p class="text-caption leading-5">승인내역은 다음 자동 동기화 때 반영돼요.</p>
+      </div>
 
       <ul class="mt-6 overflow-hidden rounded-md bg-card shadow-tile" aria-label="추가된 카드">
         <li

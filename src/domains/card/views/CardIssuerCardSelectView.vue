@@ -44,6 +44,12 @@ const issuerId = computed(() => {
 const issuer = computed(() => (issuerId.value ? CARD_ISSUERS[issuerId.value] : null))
 const selectedCount = computed(() => directCardConnectionStore.selectedCards.length)
 const selectableCount = computed(() => directCardConnectionStore.selectableCards.length)
+const isSelectionLocked = computed(
+  () =>
+    isSubmitting.value ||
+    isSubmittingCredentials.value ||
+    directCardConnectionStore.activationCompleted,
+)
 const credentialTargetCard = computed(() => {
   const userCardId = credentialCardIds.value[0]
   return userCardId
@@ -79,7 +85,7 @@ function returnToIssuerForm() {
 }
 
 function returnToIssuerSelect() {
-  if (isSubmitting.value || isSubmittingCredentials.value) return
+  if (isSelectionLocked.value) return
 
   directCardConnectionStore.reset()
   void router.replace({ name: 'card-issuer-select' })
@@ -94,7 +100,7 @@ async function addSelectedCards() {
     !linkIdSnapshot ||
     selectedCardsSnapshot.length === 0 ||
     hasIncompleteOptions.value ||
-    isSubmitting.value
+    isSelectionLocked.value
   )
     return
 
@@ -117,7 +123,7 @@ async function addSelectedCards() {
       return
     }
 
-    directCardConnectionStore.selectedCardIds = activatedCards.map((card) => card.id)
+    directCardConnectionStore.completeActivation(response.activatedUserCardIds)
     ownedCardsStore.addOwnedCards(
       activatedCards.map(({ id, issuer: cardIssuer, name, last4, imageUrl }) => ({
         id,
@@ -127,8 +133,8 @@ async function addSelectedCards() {
         imageUrl,
       })),
     )
-    await router.push({
-      name: 'card-issuer-connect-complete',
+    await router.replace({
+      name: 'card-issuer-sync-progress',
       params: { issuerId: issuerId.value },
     })
   } catch (error) {
@@ -216,6 +222,14 @@ onMounted(() => {
     directCardConnectionStore.lookupStatus !== 'success'
   ) {
     returnToIssuerForm()
+    return
+  }
+
+  if (directCardConnectionStore.activationCompleted) {
+    void router.replace({
+      name: 'card-issuer-sync-progress',
+      params: { issuerId: issuerId.value },
+    })
   }
 })
 </script>
@@ -248,11 +262,17 @@ onMounted(() => {
           v-if="directCardConnectionStore.discoveredCards.length > 0"
           class="mt-2 overflow-hidden rounded-md bg-card shadow-tile"
         >
-          <label class="flex h-12 cursor-pointer items-center gap-3 border-b border-divider px-4">
+          <label
+            class="flex h-12 items-center gap-3 border-b border-divider px-4"
+            :class="isSelectionLocked ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'"
+          >
             <Checkbox
               :model-value="allSelectionState"
+              :disabled="isSelectionLocked"
               aria-label="전체 카드 선택"
-              @update:model-value="directCardConnectionStore.setAllSelected($event === true)"
+              @update:model-value="
+                !isSelectionLocked && directCardConnectionStore.setAllSelected($event === true)
+              "
             />
             <span class="flex-1 text-body font-semibold text-charcoal">전체 선택</span>
             <span class="text-caption text-gray">{{ selectableCount }}개 선택 가능</span>
@@ -267,7 +287,9 @@ onMounted(() => {
               <label
                 class="flex min-h-18 items-center gap-3 px-4 py-3"
                 :class="
-                  isCardSelectable(card.id) ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                  isCardSelectable(card.id) && !isSelectionLocked
+                    ? 'cursor-pointer'
+                    : 'cursor-not-allowed opacity-60'
                 "
               >
                 <CardImage
@@ -291,10 +313,11 @@ onMounted(() => {
                 </div>
                 <Checkbox
                   :model-value="isCardSelected(card.id)"
-                  :disabled="!isCardSelectable(card.id)"
+                  :disabled="!isCardSelectable(card.id) || isSelectionLocked"
                   :aria-label="`${card.name} 선택`"
                   class="size-5 rounded-full"
                   @update:model-value="
+                    !isSelectionLocked &&
                     directCardConnectionStore.setCardSelected(card.id, $event === true)
                   "
                 />
@@ -322,6 +345,7 @@ onMounted(() => {
                       <input
                         type="radio"
                         class="peer sr-only"
+                        :disabled="isSelectionLocked"
                         :name="`${card.id}-${group.optionGroupId}`"
                         :value="choice.optionChoiceId"
                         :checked="
@@ -330,6 +354,7 @@ onMounted(() => {
                           ] === choice.optionChoiceId
                         "
                         @change="
+                          !isSelectionLocked &&
                           directCardConnectionStore.setOptionSelection(
                             card.id,
                             group.optionGroupId,
@@ -368,7 +393,7 @@ onMounted(() => {
         </p>
         <MocaButton
           block
-          :disabled="selectedCount === 0 || hasIncompleteOptions || isSubmitting"
+          :disabled="selectedCount === 0 || hasIncompleteOptions || isSelectionLocked"
           :loading="isSubmitting"
           class="h-14 text-subheading!"
           @click="addSelectedCards"
