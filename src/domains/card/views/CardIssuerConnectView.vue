@@ -5,7 +5,6 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   createCardLink,
-  discoverCardLinkCards,
   syncCardLinkCards,
   type CardLinkErrorResponse,
 } from '@/domains/card/api/cardLinks'
@@ -144,8 +143,7 @@ async function connectIssuer() {
   }
 
   try {
-    const createdLink = await createCardLink(request)
-    const response = request.cardNo ? await discoverCardLinkCards(createdLink.linkId) : createdLink
+    const response = await createCardLink(request)
     if (directCardConnectionStore.issuerId === targetIssuerId) {
       directCardConnectionStore.completeCardLink(response)
     }

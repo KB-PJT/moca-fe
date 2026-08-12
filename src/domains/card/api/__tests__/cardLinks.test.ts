@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   activateCardLinkCards,
   createCardLink,
-  discoverCardLinkCards,
   submitCardCredentials,
   syncCardLinkCards,
   type ActivateCardLinkCardsResponse,
@@ -74,19 +73,6 @@ describe('cardLinks API', () => {
     expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/card-links/cards/sync', undefined, {
       params: { institutionCode: '0302' },
     })
-  })
-
-  it('생성된 연동의 보유카드를 linkId로 조회한다', async () => {
-    const responseData: CardLinkResponse = {
-      linkId: 'link/id',
-      institutionCode: '0302',
-      status: 'PENDING_CARD_ACTIVATION',
-      cards: [],
-    }
-    apiClientMocks.post.mockResolvedValue({ data: { success: true, data: responseData } })
-
-    await expect(discoverCardLinkCards('link/id')).resolves.toEqual(responseData)
-    expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/card-links/link%2Fid/cards/discover')
   })
 
   it('카드사를 생략하면 모든 기존 연동의 보유카드를 재조회한다', async () => {

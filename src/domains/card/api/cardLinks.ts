@@ -115,13 +115,6 @@ export async function createCardLink(request: CreateCardLinkRequest): Promise<Ca
   return response.data.data
 }
 
-export async function discoverCardLinkCards(linkId: string): Promise<CardLinkResponse> {
-  const response = await apiClient.post<CardLinkApiResponse>(
-    `/api/v1/card-links/${encodeURIComponent(linkId)}/cards/discover`,
-  )
-  return response.data.data
-}
-
 export async function syncCardLinkCards(institutionCode?: string): Promise<SyncOwnedCardsResponse> {
   const response = await apiClient.post<SyncOwnedCardsApiResponse>(
     '/api/v1/card-links/cards/sync',
