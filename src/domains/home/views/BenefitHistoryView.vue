@@ -36,6 +36,7 @@ const historySummary = ref<BenefitHistorySummary>(emptySummary())
 const totalCount = ref(0)
 const isLoading = ref(true)
 const loadError = ref('')
+let historyRequestId = 0
 const cardFilterDetails = ref<HTMLDetailsElement | null>(null)
 const sortDetails = ref<HTMLDetailsElement | null>(null)
 const sortOrder = ref<'latest' | 'oldest'>('latest')
@@ -83,23 +84,28 @@ function openBenefitDetail(item: RecentBenefitItem) {
 async function loadHistory() {
   if (!selectedCardId.value) return
 
+  const requestId = ++historyRequestId
+  const requestYearMonth = yearMonth.value
+  const requestCardId = selectedCardId.value
   isLoading.value = true
   loadError.value = ''
   try {
     const result = await fetchBenefitHistory({
-      yearMonth: yearMonth.value,
-      userCardId: selectedCardId.value,
+      yearMonth: requestYearMonth,
+      userCardId: requestCardId,
     })
+    if (requestId !== historyRequestId) return
     historyItems.value = result.items
     historySummary.value = result.summary
     totalCount.value = result.totalCount
   } catch {
+    if (requestId !== historyRequestId) return
     historyItems.value = []
     historySummary.value = emptySummary()
     totalCount.value = 0
     loadError.value = '혜택 내역을 불러오지 못했어요.'
   } finally {
-    isLoading.value = false
+    if (requestId === historyRequestId) isLoading.value = false
   }
 }
 
@@ -114,7 +120,10 @@ async function loadCardsAndHistory() {
         name: card.cardName,
         accentColor: resolveHomeCardAccentColor(card),
       })) ?? []
-    selectedCardId.value = cards.value[0]?.id ?? ''
+    const responseSelectedCardId = response?.selectedUserCardId
+    selectedCardId.value = cards.value.some((card) => card.id === responseSelectedCardId)
+      ? (responseSelectedCardId ?? '')
+      : (cards.value[0]?.id ?? '')
     if (selectedCardId.value) await loadHistory()
     else isLoading.value = false
   } catch {
@@ -140,6 +149,15 @@ function changeMonth(offset: number) {
 function selectSort(order: 'latest' | 'oldest') {
   sortOrder.value = order
   sortDetails.value?.removeAttribute('open')
+}
+
+function retryHistory() {
+  if (selectedCardId.value) {
+    void loadHistory()
+    return
+  }
+
+  void loadCardsAndHistory()
 }
 
 onMounted(loadCardsAndHistory)
@@ -212,7 +230,7 @@ onMounted(loadCardsAndHistory)
         :title="loadError"
         description="잠시 후 다시 시도해 주세요."
         action-label="다시 시도"
-        @action="loadCardsAndHistory"
+        @action="retryHistory"
       />
 
       <section v-else class="px-5" aria-labelledby="monthly-benefit-title">

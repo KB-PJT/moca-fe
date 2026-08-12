@@ -24,6 +24,7 @@ const cardsError = ref('')
 const recentBenefits = ref<RecentBenefitItem[]>([])
 const isRecentBenefitsLoading = ref(true)
 const recentBenefitsError = ref('')
+let recentBenefitsRequestId = 0
 const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
@@ -61,16 +62,20 @@ async function loadHomeCards() {
 }
 
 async function loadRecentBenefits() {
+  const requestId = ++recentBenefitsRequestId
   isRecentBenefitsLoading.value = true
   recentBenefitsError.value = ''
 
   try {
-    recentBenefits.value = await fetchRecentBenefits(5)
+    const result = await fetchRecentBenefits(5)
+    if (requestId !== recentBenefitsRequestId) return
+    recentBenefits.value = result
   } catch {
+    if (requestId !== recentBenefitsRequestId) return
     recentBenefits.value = []
     recentBenefitsError.value = '최근 혜택 내역을 불러오지 못했어요.'
   } finally {
-    isRecentBenefitsLoading.value = false
+    if (requestId === recentBenefitsRequestId) isRecentBenefitsLoading.value = false
   }
 }
 

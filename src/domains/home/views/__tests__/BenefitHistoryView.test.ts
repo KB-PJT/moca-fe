@@ -36,6 +36,23 @@ const cardsResponse: HomeCardsResponse = {
         performanceRemainingAmount: 0,
       },
     },
+    {
+      userCardId: 'card-2',
+      order: 2,
+      cardName: '신한 Deep Dream',
+      alias: null,
+      cardImageUrl: null,
+      highlightBenefit: {},
+      summary: {
+        receivedBenefitAmount: 0,
+        availableBenefitAmount: 0,
+        maximumMonthlyBenefitAmount: 0,
+        performanceCurrentAmount: 0,
+        performanceTargetAmount: 0,
+        performanceRate: 0,
+        performanceRemainingAmount: 0,
+      },
+    },
   ],
 }
 
@@ -104,6 +121,18 @@ describe('BenefitHistoryView', () => {
     expect(wrapper.get('[data-detail-sheet]').attributes('data-open')).toBe('true')
   })
 
+  it('서버가 선택한 카드로 첫 혜택 내역을 조회한다', async () => {
+    fetchHomeCards.mockResolvedValueOnce({ ...cardsResponse, selectedUserCardId: 'card-2' })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(fetchBenefitHistory).toHaveBeenCalledWith({
+      yearMonth: expect.any(String),
+      userCardId: 'card-2',
+    })
+    expect(wrapper.text()).toContain('신한 Deep Dream')
+  })
+
   it('월을 변경하면 변경한 월로 다시 조회한다', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -130,5 +159,54 @@ describe('BenefitHistoryView', () => {
 
     expect(fetchBenefitHistory).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('스타벅스')
+  })
+
+  it('선택한 카드의 조회 실패를 재시도해도 현재 카드를 유지한다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    fetchBenefitHistory.mockRejectedValueOnce(new Error('network error'))
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '신한 Deep Dream')
+      ?.trigger('click')
+    await flushPromises()
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '다시 시도')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(fetchHomeCards).toHaveBeenCalledOnce()
+    expect(fetchBenefitHistory).toHaveBeenLastCalledWith({
+      yearMonth: expect.any(String),
+      userCardId: 'card-2',
+    })
+  })
+
+  it('이전 조회가 늦게 끝나도 최신 카드의 결과를 유지한다', async () => {
+    let resolveFirstRequest: ((result: BenefitHistoryResult) => void) | undefined
+    fetchBenefitHistory.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstRequest = resolve
+        }),
+    )
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '신한 Deep Dream')
+      ?.trigger('click')
+    await flushPromises()
+    resolveFirstRequest?.({
+      ...historyResult,
+      items: [{ ...historyResult.items[0]!, merchantName: '이전 요청 가맹점' }],
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('스타벅스')
+    expect(wrapper.text()).not.toContain('이전 요청 가맹점')
   })
 })

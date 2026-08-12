@@ -213,6 +213,26 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('스타벅스')
   })
 
+  it('재시도 결과가 먼저 끝나면 지연된 이전 요청이 화면을 덮어쓰지 않는다', async () => {
+    let resolveFirstRequest: ((items: RecentBenefitItem[]) => void) | undefined
+    fetchRecentBenefits.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirstRequest = resolve
+        }),
+    )
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.getComponent({ name: 'RecentBenefitHistory' }).vm.$emit('retry')
+    await flushPromises()
+    resolveFirstRequest?.([{ ...recentBenefits[0]!, merchantName: '이전 요청 가맹점' }])
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('스타벅스')
+    expect(wrapper.text()).not.toContain('이전 요청 가맹점')
+  })
+
   it('옆 카드를 선택하면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
     const wrapper = mountView()
     await flushPromises()
