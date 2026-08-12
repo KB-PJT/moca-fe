@@ -8,6 +8,7 @@ import {
   fetchNearbyMerchants,
   toMerchant,
 } from '@/domains/map/api/merchants'
+import { sortByCategoryOrder } from '@/domains/map/utils/categoryIcon'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 import { useLocationPermission } from '@/domains/map/composables/useLocationPermission'
 import { useMerchantSheet } from '@/domains/map/composables/useMerchantSheet'
@@ -52,10 +53,12 @@ const activeCategoryId = ref<string | null>(null)
 const activeMerchantId = ref<string | null>(null)
 const isCategoryPickerOpen = ref(false)
 
+const orderedCategories = computed(() => sortByCategoryOrder(categories.value ?? []))
+
 watch(
-  categories,
+  orderedCategories,
   (list) => {
-    if (list?.length && !activeCategoryId.value) {
+    if (list.length && !activeCategoryId.value) {
       activeCategoryId.value = list[0]!.categoryId
     }
   },
@@ -338,7 +341,7 @@ watch(currentLocation, (coordinates) => {
 
     <CategoryPickerSheet
       v-model:open="isCategoryPickerOpen"
-      :categories="categories ?? []"
+      :categories="orderedCategories"
       :active-category-id="activeCategoryId"
       @select="selectCategory"
     />

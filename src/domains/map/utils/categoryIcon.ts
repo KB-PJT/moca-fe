@@ -27,3 +27,29 @@ export const categoryIcon: Record<string, typeof Utensils> = {
   영화: Clapperboard,
   베이커리: Croissant,
 }
+
+// 자주 쓰는 카테고리를 앞에, 테마파크는 맨 뒤에 두는 화면 표시 순서.
+// 이 목록에 없는(=API에 새로 추가된) 카테고리는 원래 순서를 유지한 채 뒤로 밀린다.
+const CATEGORY_DISPLAY_ORDER = [
+  '편의점',
+  '음식점',
+  '카페',
+  '뷰티',
+  '베이커리',
+  '마트',
+  '주유소',
+  '백화점',
+  '영화',
+  '테마파크',
+]
+
+export function sortByCategoryOrder<T extends { categoryName: string }>(categories: T[]): T[] {
+  return [...categories].sort((a, b) => {
+    const orderA = CATEGORY_DISPLAY_ORDER.indexOf(a.categoryName)
+    const orderB = CATEGORY_DISPLAY_ORDER.indexOf(b.categoryName)
+    if (orderA === -1 && orderB === -1) return 0
+    if (orderA === -1) return 1
+    if (orderB === -1) return -1
+    return orderA - orderB
+  })
+}
