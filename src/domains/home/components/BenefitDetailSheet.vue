@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { RecentBenefitItem } from '@/domains/home/mocks/recentBenefits'
+import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/sheet'
 
 const props = defineProps<{ item: RecentBenefitItem | null }>()
@@ -37,25 +37,21 @@ function formatAmount(amount: number) {
       </div>
 
       <template v-if="item">
-        <section
-          class="flex min-h-18.5 items-center justify-between rounded-md bg-screen px-4 py-3.5"
-        >
+        <section class="min-h-18.5 rounded-md bg-screen px-4 py-3.5">
           <div>
             <p class="text-caption text-[#8C7F74]">{{ item.occurredAt }}</p>
             <strong class="mt-1 block text-heading font-bold text-charcoal">
               {{ item.merchantName }}
             </strong>
           </div>
-          <span class="rounded-full bg-[#F0FDFA] px-2 py-1 text-label text-[#00786F]">
-            {{ item.status }}
-          </span>
         </section>
 
         <dl class="mt-5 divide-y divide-divider">
           <div class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">사용 카드</dt>
             <dd class="text-body font-semibold text-charcoal">
-              {{ item.cardName }} •••• {{ item.cardLastFour }}
+              {{ item.cardName }}
+              <template v-if="item.cardLastFour">•••• {{ item.cardLastFour }}</template>
             </dd>
           </div>
           <div v-if="item.benefitType" class="flex items-center justify-between py-3">

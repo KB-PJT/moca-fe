@@ -1,17 +1,42 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronLeft, ChevronRight } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { fetchBenefitHistory, type BenefitHistorySummary } from '@/domains/home/api/benefitHistory'
+import { fetchHomeCards, resolveHomeCardAccentColor } from '@/domains/home/api/homeCards'
+import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import BenefitHistoryList from '@/domains/home/components/BenefitHistoryList.vue'
-import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
-import type { RecentBenefitItem } from '@/domains/home/mocks/recentBenefits'
-import { MOCK_RECENT_BENEFITS } from '@/domains/home/mocks/recentBenefits'
+import EmptyState from '@/shared/components/EmptyState.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
+import { Skeleton } from '@/shared/ui/skeleton'
+
+interface CardOption {
+  id: string
+  name: string
+  accentColor: string
+}
+
+const now = new Date()
+const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+const emptySummary = (): BenefitHistorySummary => ({
+  totalBenefitAmount: 0,
+  discountAmount: 0,
+  cashbackAmount: 0,
+  pointAmount: 0,
+  mileageAmount: 0,
+})
 
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
-const selectedCardName = ref(MOCK_HOME_OWNED_CARDS[0]?.name ?? '')
-const displayedMonth = ref(7)
+const cards = ref<CardOption[]>([])
+const selectedCardId = ref('')
+const yearMonth = ref(currentYearMonth)
+const historyItems = ref<RecentBenefitItem[]>([])
+const historySummary = ref<BenefitHistorySummary>(emptySummary())
+const totalCount = ref(0)
+const isLoading = ref(true)
+const loadError = ref('')
+let historyRequestId = 0
 const cardFilterDetails = ref<HTMLDetailsElement | null>(null)
 const sortDetails = ref<HTMLDetailsElement | null>(null)
 const sortOrder = ref<'latest' | 'oldest'>('latest')
@@ -21,41 +46,23 @@ const sortOptions = [
   { value: 'oldest', label: '과거순' },
 ] as const
 
-const cardNames = computed(() => MOCK_HOME_OWNED_CARDS.map((card) => card.name))
-const selectedCard = computed(() =>
-  MOCK_HOME_OWNED_CARDS.find((card) => card.name === selectedCardName.value),
-)
-const filteredBenefits = computed(() => {
-  if (displayedMonth.value !== 7) return []
-
-  return MOCK_RECENT_BENEFITS.filter((item) => item.cardName === selectedCardName.value)
-})
-const monthlyBenefitTotal = computed(() =>
-  filteredBenefits.value.reduce((total, item) => total + item.benefitAmount, 0),
-)
+const displayedMonth = computed(() => Number(yearMonth.value.slice(5, 7)))
+const selectedCard = computed(() => cards.value.find((card) => card.id === selectedCardId.value))
+const monthlyBenefitTotal = computed(() => historySummary.value.totalBenefitAmount)
 const monthlyPaymentTotal = computed(() =>
-  filteredBenefits.value
-    .filter((item) => item.benefitAmount > 0)
-    .reduce((total, item) => total + item.paymentAmount, 0),
+  historyItems.value.reduce((total, item) => total + item.paymentAmount, 0),
 )
 const benefitSummary = computed(() => {
-  const types = ['할인', '캐시백', '포인트'] as const
-
-  return types.map((type) => {
-    const amount = filteredBenefits.value
-      .filter((item) => item.benefitType === type)
-      .reduce((total, item) => total + item.benefitAmount, 0)
-
-    return {
-      type,
-      amount,
-      ratio: monthlyBenefitTotal.value ? (amount / monthlyBenefitTotal.value) * 100 : 0,
-    }
-  })
+  return [
+    { type: '할인' as const, amount: historySummary.value.discountAmount },
+    { type: '캐시백' as const, amount: historySummary.value.cashbackAmount },
+    { type: '포인트' as const, amount: historySummary.value.pointAmount },
+    { type: '마일리지' as const, amount: historySummary.value.mileageAmount },
+  ]
 })
 const groupedBenefits = computed(() => {
   const groups = new Map<string, RecentBenefitItem[]>()
-  const benefits = [...filteredBenefits.value]
+  const benefits = [...historyItems.value]
 
   if (sortOrder.value === 'oldest') benefits.reverse()
 
@@ -74,19 +81,86 @@ function openBenefitDetail(item: RecentBenefitItem) {
   isDetailSheetOpen.value = true
 }
 
-function selectCard(cardName: string) {
-  selectedCardName.value = cardName
+async function loadHistory() {
+  if (!selectedCardId.value) return
+
+  const requestId = ++historyRequestId
+  const requestYearMonth = yearMonth.value
+  const requestCardId = selectedCardId.value
+  isLoading.value = true
+  loadError.value = ''
+  try {
+    const result = await fetchBenefitHistory({
+      yearMonth: requestYearMonth,
+      userCardId: requestCardId,
+    })
+    if (requestId !== historyRequestId) return
+    historyItems.value = result.items
+    historySummary.value = result.summary
+    totalCount.value = result.totalCount
+  } catch {
+    if (requestId !== historyRequestId) return
+    historyItems.value = []
+    historySummary.value = emptySummary()
+    totalCount.value = 0
+    loadError.value = '혜택 내역을 불러오지 못했어요.'
+  } finally {
+    if (requestId === historyRequestId) isLoading.value = false
+  }
+}
+
+async function loadCardsAndHistory() {
+  isLoading.value = true
+  loadError.value = ''
+  try {
+    const response = await fetchHomeCards()
+    cards.value =
+      response?.cards.map((card) => ({
+        id: card.userCardId,
+        name: card.cardName,
+        accentColor: resolveHomeCardAccentColor(card),
+      })) ?? []
+    const responseSelectedCardId = response?.selectedUserCardId
+    selectedCardId.value = cards.value.some((card) => card.id === responseSelectedCardId)
+      ? (responseSelectedCardId ?? '')
+      : (cards.value[0]?.id ?? '')
+    if (selectedCardId.value) await loadHistory()
+    else isLoading.value = false
+  } catch {
+    cards.value = []
+    isLoading.value = false
+    loadError.value = '혜택 내역을 불러오지 못했어요.'
+  }
+}
+
+function selectCard(cardId: string) {
+  selectedCardId.value = cardId
   cardFilterDetails.value?.removeAttribute('open')
+  void loadHistory()
 }
 
 function changeMonth(offset: number) {
-  displayedMonth.value = Math.min(Math.max(displayedMonth.value + offset, 1), 12)
+  const [year, month] = yearMonth.value.split('-').map(Number)
+  const date = new Date(year ?? now.getFullYear(), (month ?? 1) - 1 + offset, 1)
+  yearMonth.value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  void loadHistory()
 }
 
 function selectSort(order: 'latest' | 'oldest') {
   sortOrder.value = order
   sortDetails.value?.removeAttribute('open')
 }
+
+function retryHistory() {
+  if (selectedCardId.value) {
+    void loadHistory()
+    return
+  }
+
+  void loadCardsAndHistory()
+}
+
+onMounted(loadCardsAndHistory)
 </script>
 
 <template>
@@ -103,7 +177,7 @@ function selectSort(order: 'latest' | 'oldest') {
               aria-hidden="true"
             />
             <strong class="min-w-0 flex-1 truncate text-caption font-semibold text-charcoal">
-              {{ selectedCardName }}
+              {{ selectedCard?.name ?? '카드 선택' }}
             </strong>
             <ChevronDown class="size-4 shrink-0 text-gray" aria-hidden="true" />
           </summary>
@@ -112,16 +186,14 @@ function selectSort(order: 'latest' | 'oldest') {
             class="absolute top-[calc(100%+0.5rem)] left-0 z-20 w-full overflow-hidden rounded-md border border-divider bg-card py-1 shadow-card"
           >
             <button
-              v-for="cardName in cardNames"
-              :key="cardName"
+              v-for="card in cards"
+              :key="card.id"
               type="button"
               class="block w-full truncate px-3 py-3 text-left text-caption transition-colors hover:bg-screen"
-              :class="
-                cardName === selectedCardName ? 'font-semibold text-primary' : 'text-charcoal'
-              "
-              @click="selectCard(cardName)"
+              :class="card.id === selectedCardId ? 'font-semibold text-primary' : 'text-charcoal'"
+              @click="selectCard(card.id)"
             >
-              {{ cardName }}
+              {{ card.name }}
             </button>
           </div>
         </details>
@@ -149,7 +221,19 @@ function selectSort(order: 'latest' | 'oldest') {
         </div>
       </div>
 
-      <section class="px-5" aria-labelledby="monthly-benefit-title">
+      <div v-if="isLoading" class="space-y-4 px-5" aria-label="혜택 내역 로딩 중">
+        <Skeleton class="h-64 w-full rounded-md" />
+        <Skeleton v-for="index in 3" :key="index" class="h-18 w-full rounded-md" />
+      </div>
+      <EmptyState
+        v-else-if="loadError"
+        :title="loadError"
+        description="잠시 후 다시 시도해 주세요."
+        action-label="다시 시도"
+        @action="retryHistory"
+      />
+
+      <section v-else class="px-5" aria-labelledby="monthly-benefit-title">
         <div class="rounded-md border border-divider bg-card px-5 py-4 shadow-card">
           <div>
             <h2 id="monthly-benefit-title" class="text-body font-semibold text-brown">
@@ -169,7 +253,7 @@ function selectSort(order: 'latest' | 'oldest') {
               :class="{
                 'bg-[#FCF6F0]': item.type === '할인',
                 'bg-[#F1F8F3]': item.type === '캐시백',
-                'bg-[#F8F3EF]': item.type === '포인트',
+                'bg-[#F8F3EF]': item.type === '포인트' || item.type === '마일리지',
               }"
             >
               <dt
@@ -177,7 +261,7 @@ function selectSort(order: 'latest' | 'oldest') {
                 :class="{
                   'text-[#DC933C]': item.type === '할인',
                   'text-[#69A86E]': item.type === '캐시백',
-                  'text-brown': item.type === '포인트',
+                  'text-brown': item.type === '포인트' || item.type === '마일리지',
                 }"
               >
                 <span
@@ -185,7 +269,7 @@ function selectSort(order: 'latest' | 'oldest') {
                   :class="{
                     'bg-[#E8A54F]': item.type === '할인',
                     'bg-[#75B27D]': item.type === '캐시백',
-                    'bg-brown': item.type === '포인트',
+                    'bg-brown': item.type === '포인트' || item.type === '마일리지',
                   }"
                 />
                 {{ item.type }}
@@ -208,11 +292,9 @@ function selectSort(order: 'latest' | 'oldest') {
         </div>
       </section>
 
-      <div v-if="groupedBenefits.length" class="px-7 pt-5 pb-6">
+      <div v-if="!isLoading && !loadError && groupedBenefits.length" class="px-7 pt-5 pb-6">
         <div class="mb-2 flex items-center justify-between">
-          <strong class="text-caption font-semibold text-gray"
-            >총 {{ filteredBenefits.length }}건</strong
-          >
+          <strong class="text-caption font-semibold text-gray">총 {{ totalCount }}건</strong>
           <details ref="sortDetails" class="relative">
             <summary
               class="flex cursor-pointer list-none items-center gap-1 text-caption font-semibold text-brown [&::-webkit-details-marker]:hidden"
@@ -246,7 +328,10 @@ function selectSort(order: 'latest' | 'oldest') {
         </section>
       </div>
 
-      <p v-else class="px-5 py-20 text-center text-body text-[#8C7F74]">
+      <p
+        v-else-if="!isLoading && !loadError"
+        class="px-5 py-20 text-center text-body text-[#8C7F74]"
+      >
         해당 월의 혜택 내역이 없어요.
       </p>
     </div>

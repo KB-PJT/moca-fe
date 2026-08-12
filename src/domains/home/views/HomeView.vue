@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
+import { fetchRecentBenefits, type RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import CardBenefitAmounts from '@/domains/home/components/CardBenefitAmounts.vue'
 import CardPerformance from '@/domains/home/components/CardPerformance.vue'
@@ -11,7 +12,6 @@ import OwnedCardCarousel from '@/domains/home/components/OwnedCardCarousel.vue'
 import OwnedCardSection from '@/domains/home/components/OwnedCardSection.vue'
 import RecentBenefitHistory from '@/domains/home/components/RecentBenefitHistory.vue'
 import SelectedCardInfo from '@/domains/home/components/SelectedCardInfo.vue'
-import { MOCK_RECENT_BENEFITS, type RecentBenefitItem } from '@/domains/home/mocks/recentBenefits'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
@@ -21,6 +21,10 @@ const activeCardIndex = ref(0)
 const cards = ref<HomeOwnedCard[]>([])
 const isCardsLoading = ref(true)
 const cardsError = ref('')
+const recentBenefits = ref<RecentBenefitItem[]>([])
+const isRecentBenefitsLoading = ref(true)
+const recentBenefitsError = ref('')
+let recentBenefitsRequestId = 0
 const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
@@ -57,7 +61,28 @@ async function loadHomeCards() {
   }
 }
 
-onMounted(loadHomeCards)
+async function loadRecentBenefits() {
+  const requestId = ++recentBenefitsRequestId
+  isRecentBenefitsLoading.value = true
+  recentBenefitsError.value = ''
+
+  try {
+    const result = await fetchRecentBenefits(5)
+    if (requestId !== recentBenefitsRequestId) return
+    recentBenefits.value = result
+  } catch {
+    if (requestId !== recentBenefitsRequestId) return
+    recentBenefits.value = []
+    recentBenefitsError.value = '최근 혜택 내역을 불러오지 못했어요.'
+  } finally {
+    if (requestId === recentBenefitsRequestId) isRecentBenefitsLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void loadHomeCards()
+  void loadRecentBenefits()
+})
 
 function openBenefitDetail(item: RecentBenefitItem) {
   selectedBenefit.value = item
@@ -108,7 +133,13 @@ function selectCard(index: number) {
       </template>
     </OwnedCardSection>
 
-    <RecentBenefitHistory :items="MOCK_RECENT_BENEFITS" @select="openBenefitDetail" />
+    <RecentBenefitHistory
+      :items="recentBenefits"
+      :is-loading="isRecentBenefitsLoading"
+      :error="recentBenefitsError"
+      @select="openBenefitDetail"
+      @retry="loadRecentBenefits"
+    />
   </PageLayout>
 
   <BenefitDetailSheet v-model:open="isDetailSheetOpen" :item="selectedBenefit" />
