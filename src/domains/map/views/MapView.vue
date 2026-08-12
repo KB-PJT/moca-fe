@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { ChevronDown, List, LoaderCircle, LocateFixed, Map as MapIcon } from '@lucide/vue'
+import { ChevronDown, Info, List, LoaderCircle, LocateFixed, Map as MapIcon } from '@lucide/vue'
 import {
   fetchMerchantCategories,
   fetchMerchantsByCategory,
   fetchNearbyMerchants,
   toMerchant,
 } from '@/domains/map/api/merchants'
+import { sortByCategoryOrder } from '@/domains/map/utils/categoryIcon'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 import { useLocationPermission } from '@/domains/map/composables/useLocationPermission'
 import { useMerchantSheet } from '@/domains/map/composables/useMerchantSheet'
@@ -52,10 +53,12 @@ const activeCategoryId = ref<string | null>(null)
 const activeMerchantId = ref<string | null>(null)
 const isCategoryPickerOpen = ref(false)
 
+const orderedCategories = computed(() => sortByCategoryOrder(categories.value ?? []))
+
 watch(
-  categories,
+  orderedCategories,
   (list) => {
-    if (list?.length && !activeCategoryId.value) {
+    if (list.length && !activeCategoryId.value) {
       activeCategoryId.value = list[0]!.categoryId
     }
   },
@@ -100,6 +103,8 @@ const {
 
 const {
   data: nearbyMerchants,
+  isFetching: isNearbyFetching,
+  isSuccess: isNearbySuccess,
   isError: isNearbyError,
   refetch: refetchNearby,
 } = useQuery({
@@ -110,6 +115,7 @@ const {
       merchantId: activeMerchantId.value ?? undefined,
       latitude: currentLocation.value!.latitude,
       longitude: currentLocation.value!.longitude,
+      radiusMeters: 300,
     }),
   enabled: computed(() => Boolean(activeCategoryId.value && currentLocation.value)),
 })
@@ -117,6 +123,29 @@ const {
 const filteredMerchants = computed(
   () => nearbyMerchants.value?.map((item) => toMerchant(item, activeCategoryName.value)) ?? [],
 )
+
+const isNoMerchantsToastVisible = ref(false)
+let noMerchantsToastTimer: ReturnType<typeof setTimeout> | undefined
+
+watch([nearbyMerchants, isNearbyFetching, isNearbySuccess], ([list, fetching, success]) => {
+  if (noMerchantsToastTimer) {
+    clearTimeout(noMerchantsToastTimer)
+    noMerchantsToastTimer = undefined
+  }
+
+  const isEmptyResult = success && !fetching && !!list && list.length === 0
+  isNoMerchantsToastVisible.value = isEmptyResult
+
+  if (!isEmptyResult) return
+
+  noMerchantsToastTimer = setTimeout(() => {
+    isNoMerchantsToastVisible.value = false
+  }, 2000)
+})
+
+onBeforeUnmount(() => {
+  if (noMerchantsToastTimer) clearTimeout(noMerchantsToastTimer)
+})
 
 const {
   sheet,
@@ -155,6 +184,29 @@ watch(currentLocation, (coordinates) => {
 <template>
   <div class="relative h-full w-full overflow-hidden">
     <div ref="mapContainer" class="h-full w-full" />
+
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-2 opacity-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-to-class="translate-y-2 opacity-0"
+    >
+      <div
+        v-if="isNoMerchantsToastVisible"
+        role="status"
+        class="bg-charcoal absolute inset-x-5 bottom-[max(1rem,var(--safe-area-bottom))] z-50 flex items-center gap-2 rounded-2xl px-4 py-3 text-white shadow-lg"
+      >
+        <Info class="size-4 shrink-0 text-white/70" />
+        <p class="flex-1 text-caption">탐색 범위 내에 가맹점이 없어요.</p>
+        <button
+          type="button"
+          class="text-primary shrink-0 text-caption font-semibold"
+          @click="isNoMerchantsToastVisible = false"
+        >
+          닫기
+        </button>
+      </div>
+    </Transition>
 
     <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
@@ -338,7 +390,7 @@ watch(currentLocation, (coordinates) => {
 
     <CategoryPickerSheet
       v-model:open="isCategoryPickerOpen"
-      :categories="categories ?? []"
+      :categories="orderedCategories"
       :active-category-id="activeCategoryId"
       @select="selectCategory"
     />
