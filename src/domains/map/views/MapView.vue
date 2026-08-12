@@ -87,7 +87,12 @@ function toggleBrandFilter(merchantId: string) {
   activeMerchantId.value = activeMerchantId.value === merchantId ? null : merchantId
 }
 
-const { data: merchantBrands } = useQuery({
+const {
+  data: merchantBrands,
+  isPending: isBrandsPending,
+  isError: isBrandsError,
+  refetch: refetchBrands,
+} = useQuery({
   queryKey: ['merchants', 'brands', activeCategoryId],
   queryFn: () => fetchMerchantsByCategory(activeCategoryId.value!),
   enabled: computed(() => Boolean(activeCategoryId.value)),
@@ -195,7 +200,12 @@ watch(currentLocation, (coordinates) => {
       </div>
 
       <div
-        v-if="!isScreenReady || isCategoriesPending || isCategoriesError"
+        v-if="
+          !isScreenReady ||
+          isCategoriesPending ||
+          isCategoriesError ||
+          (categories && categories.length === 0)
+        "
         class="pointer-events-auto flex flex-1 flex-col items-center justify-center gap-2"
       >
         <template v-if="mapLoadError">
@@ -218,6 +228,16 @@ watch(currentLocation, (coordinates) => {
             다시 시도
           </button>
         </template>
+        <template v-else-if="isScreenReady && categories && categories.length === 0">
+          <p class="text-caption text-gray">표시할 카테고리가 없어요.</p>
+          <button
+            type="button"
+            class="text-caption bg-primary rounded-full px-4 py-1.5 text-white"
+            @click="() => refetchCategories()"
+          >
+            다시 시도
+          </button>
+        </template>
         <template v-else>
           <LoaderCircle class="text-primary size-6 animate-spin" />
           <p class="text-caption text-gray">
@@ -227,10 +247,30 @@ watch(currentLocation, (coordinates) => {
       </div>
 
       <template v-else>
-        <div class="pointer-events-auto space-y-3 p-4 pt-3">
-          <div ref="controlsRef" class="scrollbar-hide flex gap-2 overflow-x-auto">
+        <div ref="controlsRef" class="pointer-events-auto space-y-3 p-4 pt-3">
+          <div v-if="isBrandsPending" class="flex items-center gap-2 py-1.5">
+            <LoaderCircle class="text-primary size-4 animate-spin" />
+            <span class="text-caption text-gray">브랜드를 불러오는 중...</span>
+          </div>
+          <div
+            v-else-if="isBrandsError"
+            class="shadow-float flex items-center justify-between gap-2 rounded-md bg-card px-3 py-2"
+          >
+            <p class="text-caption text-gray">브랜드 정보를 불러오지 못했어요.</p>
             <button
-              v-for="brand in merchantBrands ?? []"
+              type="button"
+              class="text-caption text-primary font-semibold"
+              @click="() => refetchBrands()"
+            >
+              다시 시도
+            </button>
+          </div>
+          <p v-else-if="(merchantBrands?.length ?? 0) === 0" class="text-caption text-gray">
+            이 카테고리엔 등록된 브랜드가 없어요.
+          </p>
+          <div v-else class="scrollbar-hide flex gap-2 overflow-x-auto">
+            <button
+              v-for="brand in merchantBrands"
               :key="brand.merchantId"
               type="button"
               class="text-caption shrink-0 rounded-full border px-3 py-1.5 whitespace-nowrap"
