@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { ChevronDown, List, LoaderCircle, LocateFixed, Map as MapIcon } from '@lucide/vue'
+import { ChevronDown, Info, List, LoaderCircle, LocateFixed, Map as MapIcon } from '@lucide/vue'
 import {
   fetchMerchantCategories,
   fetchMerchantsByCategory,
@@ -103,6 +103,7 @@ const {
 
 const {
   data: nearbyMerchants,
+  isSuccess: isNearbySuccess,
   isError: isNearbyError,
   refetch: refetchNearby,
 } = useQuery({
@@ -113,6 +114,7 @@ const {
       merchantId: activeMerchantId.value ?? undefined,
       latitude: currentLocation.value!.latitude,
       longitude: currentLocation.value!.longitude,
+      radiusMeters: 300,
     }),
   enabled: computed(() => Boolean(activeCategoryId.value && currentLocation.value)),
 })
@@ -120,6 +122,23 @@ const {
 const filteredMerchants = computed(
   () => nearbyMerchants.value?.map((item) => toMerchant(item, activeCategoryName.value)) ?? [],
 )
+
+const isNoMerchantsToastVisible = ref(false)
+let noMerchantsToastTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(nearbyMerchants, (list) => {
+  if (!isNearbySuccess.value || !list || list.length > 0) return
+
+  isNoMerchantsToastVisible.value = true
+  if (noMerchantsToastTimer) clearTimeout(noMerchantsToastTimer)
+  noMerchantsToastTimer = setTimeout(() => {
+    isNoMerchantsToastVisible.value = false
+  }, 2000)
+})
+
+onBeforeUnmount(() => {
+  if (noMerchantsToastTimer) clearTimeout(noMerchantsToastTimer)
+})
 
 const {
   sheet,
@@ -158,6 +177,29 @@ watch(currentLocation, (coordinates) => {
 <template>
   <div class="relative h-full w-full overflow-hidden">
     <div ref="mapContainer" class="h-full w-full" />
+
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-2 opacity-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-to-class="translate-y-2 opacity-0"
+    >
+      <div
+        v-if="isNoMerchantsToastVisible"
+        role="status"
+        class="bg-charcoal absolute inset-x-5 bottom-[max(1rem,var(--safe-area-bottom))] z-50 flex items-center gap-2 rounded-2xl px-4 py-3 text-white shadow-lg"
+      >
+        <Info class="size-4 shrink-0 text-white/70" />
+        <p class="flex-1 text-caption">탐색 범위 내에 가맹점이 없어요.</p>
+        <button
+          type="button"
+          class="text-primary shrink-0 text-caption font-semibold"
+          @click="isNoMerchantsToastVisible = false"
+        >
+          닫기
+        </button>
+      </div>
+    </Transition>
 
     <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
