@@ -41,10 +41,12 @@ async function loadHomeCards() {
     cards.value = response?.cards.map(toHomeOwnedCard) ?? []
     cardManagementStore.setDetailNavigationCardIds(cards.value.map((card) => card.id))
 
-    const selectedIndex = response?.selectedUserCardId
-      ? cards.value.findIndex((card) => card.id === response.selectedUserCardId)
+    const selectedCardId = cardManagementStore.homeSelectedCardId ?? response?.selectedUserCardId
+    const selectedIndex = selectedCardId
+      ? cards.value.findIndex((card) => card.id === selectedCardId)
       : -1
     activeCardIndex.value = selectedIndex >= 0 ? selectedIndex : 0
+    cardManagementStore.setHomeSelectedCardId(cards.value[activeCardIndex.value]?.id ?? null)
   } catch {
     cards.value = []
     cardManagementStore.setDetailNavigationCardIds([])
@@ -60,6 +62,11 @@ onMounted(loadHomeCards)
 function openBenefitDetail(item: RecentBenefitItem) {
   selectedBenefit.value = item
   isDetailSheetOpen.value = true
+}
+
+function selectCard(index: number) {
+  activeCardIndex.value = index
+  cardManagementStore.setHomeSelectedCardId(cards.value[index]?.id ?? null)
 }
 </script>
 
@@ -90,9 +97,10 @@ function openBenefitDetail(item: RecentBenefitItem) {
       />
       <template v-else>
         <OwnedCardCarousel
-          v-model:active-index="activeCardIndex"
+          :active-index="activeCardIndex"
           :cards="cards"
           :active-memo="activeCardMemo"
+          @update:active-index="selectCard"
         />
         <SelectedCardInfo v-if="activeCard" :card="activeCard" />
         <CardBenefitAmounts v-if="activeCard" :card="activeCard" />

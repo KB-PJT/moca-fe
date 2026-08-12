@@ -200,6 +200,24 @@ describe('HomeView', () => {
     })
   })
 
+  it('카드 상세에서 홈으로 돌아오면 이전에 선택한 카드를 복원한다', async () => {
+    const pinia = createPinia()
+    const firstVisit = mountView(pinia)
+    await flushPromises()
+
+    await firstVisit.get('[data-owned-card][data-card-index="1"][tabindex="0"]').trigger('click')
+    expect(firstVisit.get('[data-selected-card-name]').text()).toBe('KB국민 청춘대로 톡톡카드')
+    firstVisit.unmount()
+
+    const returnedVisit = mountView(pinia)
+    await flushPromises()
+
+    expect(
+      returnedVisit.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
+    ).toBe('1')
+    expect(returnedVisit.get('[data-selected-card-name]').text()).toBe('KB국민 청춘대로 톡톡카드')
+  })
+
   it('첫 카드의 이전은 마지막 카드이고 마지막 카드의 다음은 첫 카드다', async () => {
     const wrapper = mountView()
     await flushPromises()
