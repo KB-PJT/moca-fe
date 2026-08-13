@@ -234,7 +234,7 @@ onMounted(loadCardsAndHistory)
       />
 
       <section v-else class="px-5" aria-labelledby="monthly-benefit-title">
-        <div class="rounded-md border border-divider bg-card px-5 py-4 shadow-card">
+        <div class="rounded-md border border-divider bg-card px-5 py-4">
           <div>
             <h2 id="monthly-benefit-title" class="text-body font-semibold text-brown">
               {{ displayedMonth }}월 받은 혜택
@@ -253,7 +253,8 @@ onMounted(loadCardsAndHistory)
               :class="{
                 'bg-[#FCF6F0]': item.type === '할인',
                 'bg-[#F1F8F3]': item.type === '캐시백',
-                'bg-[#F8F3EF]': item.type === '포인트' || item.type === '마일리지',
+                'bg-[#F8F3EF]': item.type === '포인트',
+                'bg-[#EDF7FC]': item.type === '마일리지',
               }"
             >
               <dt
@@ -261,7 +262,8 @@ onMounted(loadCardsAndHistory)
                 :class="{
                   'text-[#DC933C]': item.type === '할인',
                   'text-[#69A86E]': item.type === '캐시백',
-                  'text-brown': item.type === '포인트' || item.type === '마일리지',
+                  'text-brown': item.type === '포인트',
+                  'text-[#4B9CC6]': item.type === '마일리지',
                 }"
               >
                 <span
@@ -269,7 +271,8 @@ onMounted(loadCardsAndHistory)
                   :class="{
                     'bg-[#E8A54F]': item.type === '할인',
                     'bg-[#75B27D]': item.type === '캐시백',
-                    'bg-brown': item.type === '포인트' || item.type === '마일리지',
+                    'bg-brown': item.type === '포인트',
+                    'bg-[#4B9CC6]': item.type === '마일리지',
                   }"
                 />
                 {{ item.type }}
@@ -287,7 +290,7 @@ onMounted(loadCardsAndHistory)
             </strong>
           </div>
           <div class="mt-2 h-2 overflow-hidden rounded-full bg-divider" aria-hidden="true">
-            <div class="h-full w-3/4 rounded-full bg-[#EEDBCB]" />
+            <div class="h-full w-3/4 rounded-full bg-primary" />
           </div>
         </div>
       </section>
