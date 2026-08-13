@@ -219,10 +219,18 @@ function toggleViewMode() {
   openListView()
 }
 
+// GPS 갱신(mypage summary 재조회 등)마다 currentLocation이 다시 세팅될 수 있는데,
+// 그때마다 recenterTo를 부르면 사용자가 드래그해둔 위치가 GPS 위치로 강제로 되돌아가
+// searchCenter 분리 기능이 무력화된다. 최초 1회만 자동 재중심화하고, 이후에는 마커만 갱신한다.
+let hasCenteredOnCurrentLocation = false
+
 watch(currentLocation, (coordinates) => {
   if (!coordinates) return
-  kakaoMap.recenterTo(coordinates)
   kakaoMap.renderCurrentLocationMarker(coordinates)
+
+  if (hasCenteredOnCurrentLocation) return
+  hasCenteredOnCurrentLocation = true
+  kakaoMap.recenterTo(coordinates)
 })
 </script>
 
