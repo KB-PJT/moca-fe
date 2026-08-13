@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { onUnmounted, ref, watch, type Ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
 import { requestCurrentPosition, type Coordinates } from '@/domains/map/composables/currentLocation'
@@ -24,6 +24,29 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
   const locationPermissionError = ref('')
   const isLocationCheckComplete = ref(false)
 
+  // 위치가 한 번 확보되면 그 뒤로는 1회성 조회 대신 watchPosition으로 계속 갱신해서
+  // 지도 위 "내 위치" 마커가 네이버지도처럼 실시간으로 움직이게 한다. 화면을 나가면(onUnmounted) 해제.
+  let watchId: number | null = null
+
+  function startWatchingPosition() {
+    if (watchId !== null || !navigator.geolocation) return
+
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        currentLocation.value = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }
+      },
+      () => {},
+      { enableHighAccuracy: false, maximumAge: 0, timeout: 10_000 },
+    )
+  }
+
+  onUnmounted(() => {
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId)
+  })
+
   async function handleAllowLocation() {
     locationPermissionError.value = ''
     isRequestingLocation.value = true
@@ -37,6 +60,7 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
     }
 
     currentLocation.value = coordinates
+    startWatchingPosition()
     await updateLocationPermission(true)
     isRequestingLocation.value = false
     isLocationModalOpen.value = false
@@ -54,6 +78,7 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
 
       if (summary.locationPermissionGranted) {
         currentLocation.value = await requestCurrentPosition()
+        if (currentLocation.value) startWatchingPosition()
         isLocationCheckComplete.value = true
         return
       }
