@@ -163,7 +163,10 @@ export function toMerchant(item: NearbyMerchant, categoryName: string): Merchant
   const supplement = mockSupplementByMerchantId.get(item.merchantId)
 
   return {
-    placeId: item.merchantId,
+    // merchantId는 개별 매장이 아니라 브랜드 ID라, 검색 중심이 바뀌면 같은 merchantId가 전혀
+    // 다른 지점을 가리킬 수 있다(예: GS25 A지점 -> GS25 B지점). 좌표까지 합쳐서 "이 특정 매장"을
+    // 가리키는 고유 ID로 써야, 재검색 시 선택 상태가 엉뚱한 매장으로 조용히 바뀌지 않는다.
+    placeId: `${item.merchantId}:${item.latitude}:${item.longitude}`,
     name: item.name,
     // 카테고리는 이미 어떤 categoryId로 조회했는지 알고 있으니 API 응답이 항상 우선이다.
     // mock category로 덮어쓰면 백엔드 카테고리가 바뀌었을 때 화면이 실제와 어긋난다.

@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { ChevronDown, Info, List, LoaderCircle, LocateFixed, Map as MapIcon } from '@lucide/vue'
+import {
+  ChevronDown,
+  Info,
+  List,
+  LoaderCircle,
+  LocateFixed,
+  Map as MapIcon,
+  RefreshCw,
+} from '@lucide/vue'
 import {
   fetchMerchantCategories,
   fetchMerchantsByCategory,
@@ -9,6 +17,7 @@ import {
   toMerchant,
 } from '@/domains/map/api/merchants'
 import { sortByCategoryOrder } from '@/domains/map/utils/categoryIcon'
+import { distanceMeters, type Coordinates } from '@/domains/map/composables/currentLocation'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 import { useLocationPermission } from '@/domains/map/composables/useLocationPermission'
 import { useMerchantSheet } from '@/domains/map/composables/useMerchantSheet'
@@ -23,9 +32,20 @@ const sheetRef = ref<HTMLElement | null>(null)
 
 const viewMode = ref<'map' | 'list'>('map')
 
+// GPS로 얻은 currentLocation과 별개로, 가맹점 조회 기준이 되는 좌표.
+// 지도를 드래그해서 벗어나면 "현 지도에서 검색"을 누르기 전까진 GPS 위치를 따라가지 않는다.
+const searchCenter = ref<Coordinates | null>(null)
+const isMapMoved = ref(false)
+const MOVE_THRESHOLD_METERS = 150
+const SEARCH_RADIUS_METERS = 500
+
 let onBackgroundClick = () => {}
 const kakaoMap = useKakaoMap(mapContainer, controlsRef, sheetRef, {
   onMapClick: () => onBackgroundClick(),
+  onDragEnd: (coordinates) => {
+    if (!searchCenter.value) return
+    isMapMoved.value = distanceMeters(searchCenter.value, coordinates) > MOVE_THRESHOLD_METERS
+  },
 })
 const { isMapReady, mapLoadError, loadKakaoMaps } = kakaoMap
 
@@ -38,6 +58,29 @@ const {
   handleAllowLocation,
   handleLaterLocation,
 } = useLocationPermission(isMapReady)
+
+watch(
+  currentLocation,
+  (coordinates) => {
+    if (coordinates && !searchCenter.value) searchCenter.value = coordinates
+  },
+  { immediate: true },
+)
+
+function searchCurrentMapArea() {
+  const center = kakaoMap.getCenter()
+  if (!center) return
+  searchCenter.value = center
+  isMapMoved.value = false
+}
+
+watch(
+  () => [searchCenter.value, isMapReady.value] as const,
+  ([center, ready]) => {
+    if (!center || !ready) return
+    kakaoMap.renderSearchRadiusCircle(center, SEARCH_RADIUS_METERS)
+  },
+)
 
 const {
   data: categories,
@@ -79,6 +122,8 @@ function openCategoryPicker() {
 function recenterToCurrentLocation() {
   if (!currentLocation.value) return
   kakaoMap.recenterTo(currentLocation.value)
+  searchCenter.value = currentLocation.value
+  isMapMoved.value = false
 }
 
 function selectCategory(categoryId: string) {
@@ -108,16 +153,16 @@ const {
   isError: isNearbyError,
   refetch: refetchNearby,
 } = useQuery({
-  queryKey: ['merchants', 'nearby', activeCategoryId, activeMerchantId, currentLocation],
+  queryKey: ['merchants', 'nearby', activeCategoryId, activeMerchantId, searchCenter],
   queryFn: () =>
     fetchNearbyMerchants({
       categoryId: activeCategoryId.value!,
       merchantId: activeMerchantId.value ?? undefined,
-      latitude: currentLocation.value!.latitude,
-      longitude: currentLocation.value!.longitude,
-      radiusMeters: 300,
+      latitude: searchCenter.value!.latitude,
+      longitude: searchCenter.value!.longitude,
+      radiusMeters: SEARCH_RADIUS_METERS,
     }),
-  enabled: computed(() => Boolean(activeCategoryId.value && currentLocation.value)),
+  enabled: computed(() => Boolean(activeCategoryId.value && searchCenter.value)),
 })
 
 const filteredMerchants = computed(
@@ -174,10 +219,18 @@ function toggleViewMode() {
   openListView()
 }
 
+// GPS 갱신(mypage summary 재조회 등)마다 currentLocation이 다시 세팅될 수 있는데,
+// 그때마다 recenterTo를 부르면 사용자가 드래그해둔 위치가 GPS 위치로 강제로 되돌아가
+// searchCenter 분리 기능이 무력화된다. 최초 1회만 자동 재중심화하고, 이후에는 마커만 갱신한다.
+let hasCenteredOnCurrentLocation = false
+
 watch(currentLocation, (coordinates) => {
   if (!coordinates) return
-  kakaoMap.recenterTo(coordinates)
   kakaoMap.renderCurrentLocationMarker(coordinates)
+
+  if (hasCenteredOnCurrentLocation) return
+  hasCenteredOnCurrentLocation = true
+  kakaoMap.recenterTo(coordinates)
 })
 </script>
 
@@ -352,6 +405,27 @@ watch(currentLocation, (coordinates) => {
             </button>
           </div>
         </div>
+
+        <Transition
+          enter-active-class="transition duration-150 ease-out"
+          enter-from-class="-translate-y-1 opacity-0"
+          leave-active-class="transition duration-100 ease-in"
+          leave-to-class="-translate-y-1 opacity-0"
+        >
+          <div
+            v-if="isMapMoved && viewMode === 'map'"
+            class="pointer-events-none flex justify-center px-4 pt-1"
+          >
+            <button
+              type="button"
+              class="bg-charcoal pointer-events-auto flex items-center gap-1.5 rounded-full px-4 py-2 text-caption font-semibold text-white shadow-lg"
+              @click="searchCurrentMapArea"
+            >
+              <RefreshCw class="size-3.5" />
+              현 지도에서 검색
+            </button>
+          </div>
+        </Transition>
 
         <PlaceListPanel
           v-if="viewMode === 'list'"

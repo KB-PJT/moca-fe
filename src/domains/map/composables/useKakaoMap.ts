@@ -9,13 +9,16 @@ import type { Coordinates } from '@/domains/map/composables/currentLocation'
 
 interface UseKakaoMapOptions {
   onMapClick: () => void
+  // 사용자가 지도를 드래그해서 손을 뗀 시점에만 호출된다. panTo()로 프로그램이
+  // 지도를 옮기는 경우(마커 포커싱, recenterTo 등)에는 dragend가 발생하지 않는다.
+  onDragEnd?: (coordinates: Coordinates) => void
 }
 
 export function useKakaoMap(
   mapContainer: Ref<HTMLElement | null>,
   controlsRef: Ref<HTMLElement | null>,
   sheetRef: Ref<HTMLElement | null>,
-  { onMapClick }: UseKakaoMapOptions,
+  { onMapClick, onDragEnd }: UseKakaoMapOptions,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mapInstance: any = null
@@ -29,6 +32,8 @@ export function useKakaoMap(
   let selectedMerchantCategory: string | null = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentLocationMarker: any = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let searchRadiusCircle: any = null
   let script: HTMLScriptElement | null = null
 
   const isMapReady = ref(false)
@@ -129,6 +134,12 @@ export function useKakaoMap(
     mapInstance.setCenter(new window.kakao.maps.LatLng(coordinates.latitude, coordinates.longitude))
   }
 
+  function getCenter(): Coordinates | null {
+    if (!mapInstance) return null
+    const center = mapInstance.getCenter()
+    return { latitude: center.getLat(), longitude: center.getLng() }
+  }
+
   function renderCurrentLocationMarker(coordinates: Coordinates) {
     if (!mapInstance) return
 
@@ -147,6 +158,30 @@ export function useKakaoMap(
     currentLocationMarker.setMap(mapInstance)
   }
 
+  function renderSearchRadiusCircle(coordinates: Coordinates, radiusMeters: number) {
+    if (!mapInstance) return
+
+    const position = new window.kakao.maps.LatLng(coordinates.latitude, coordinates.longitude)
+
+    if (searchRadiusCircle) {
+      searchRadiusCircle.setPosition(position)
+      searchRadiusCircle.setRadius(radiusMeters)
+      return
+    }
+
+    searchRadiusCircle = new window.kakao.maps.Circle({
+      center: position,
+      radius: radiusMeters,
+      strokeWeight: 1,
+      strokeColor: '#ef4444',
+      strokeOpacity: 0.4,
+      strokeStyle: 'solid',
+      fillColor: '#ef4444',
+      fillOpacity: 0.12,
+    })
+    searchRadiusCircle.setMap(mapInstance)
+  }
+
   function initMap() {
     if (!mapContainer.value) return
 
@@ -159,6 +194,13 @@ export function useKakaoMap(
     })
 
     window.kakao.maps.event.addListener(mapInstance, 'click', onMapClick)
+
+    if (onDragEnd) {
+      window.kakao.maps.event.addListener(mapInstance, 'dragend', () => {
+        const newCenter = getCenter()
+        if (newCenter) onDragEnd(newCenter)
+      })
+    }
 
     isMapReady.value = true
   }
@@ -197,6 +239,8 @@ export function useKakaoMap(
     clearSelectedMarker,
     focusMarker,
     recenterTo,
+    getCenter,
     renderCurrentLocationMarker,
+    renderSearchRadiusCircle,
   }
 }
