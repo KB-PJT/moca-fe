@@ -34,6 +34,7 @@ export const useCardManagementStore = defineStore('cardManagement', () => {
   const cards = ref<ManagedCard[]>([])
   const detailNavigationCardIds = ref<string[]>([])
   const homeSelectedCardId = ref<string | null>(null)
+  const activationNotice = ref('')
   let shouldPreserveCardsOnNextLoad = false
 
   const activeCards = computed(() => cards.value.filter((card) => card.isActive))
@@ -65,6 +66,16 @@ export const useCardManagementStore = defineStore('cardManagement', () => {
 
   function setHomeSelectedCardId(cardId: string | null) {
     homeSelectedCardId.value = cardId
+  }
+
+  function setActivationNotice(message: string) {
+    activationNotice.value = message
+  }
+
+  function consumeActivationNotice() {
+    const message = activationNotice.value
+    activationNotice.value = ''
+    return message
   }
 
   function consumePreserveCardsOnNextLoad() {
@@ -127,6 +138,8 @@ export const useCardManagementStore = defineStore('cardManagement', () => {
     disconnectCard,
     setDetailNavigationCardIds,
     setHomeSelectedCardId,
+    setActivationNotice,
+    consumeActivationNotice,
     preserveCardsOnNextLoad,
     consumePreserveCardsOnNextLoad,
     setActiveCardOrder,

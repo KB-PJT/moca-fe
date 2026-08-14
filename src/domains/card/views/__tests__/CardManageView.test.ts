@@ -14,11 +14,13 @@ const apiMocks = vi.hoisted(() => ({
   reorderMyCards: vi.fn<(userCardIds: string[]) => Promise<unknown>>(),
   syncCardLinkCards: vi.fn<() => Promise<unknown>>(),
   activateCardLinkCards: vi.fn<() => Promise<unknown>>(),
+  submitCardCredentials: vi.fn<() => Promise<unknown>>(),
 }))
 
 vi.mock('@/domains/card/api/cardLinks', () => ({
   syncCardLinkCards: apiMocks.syncCardLinkCards,
   activateCardLinkCards: apiMocks.activateCardLinkCards,
+  submitCardCredentials: apiMocks.submitCardCredentials,
 }))
 
 vi.mock('@/domains/card/api/cardManagement', () => ({
@@ -101,6 +103,26 @@ const globalStubs = {
       </div>
     `,
   },
+  CardCredentialDialog: {
+    props: ['open', 'cardName', 'cardNo', 'errors', 'loading'],
+    emits: ['update:open', 'submit'],
+    template: `
+      <div v-if="open" data-credential-dialog>
+        <p>{{ cardName }}</p>
+        <p v-if="errors.form" role="alert">{{ errors.form }}</p>
+        <button
+          type="button"
+          :disabled="loading"
+          @click="$emit('submit', { cardNo: '1234567890125678', cardPassword: '1234' })"
+        >
+          인증정보 제출
+        </button>
+        <button type="button" :disabled="loading" @click="$emit('update:open', false)">
+          취소
+        </button>
+      </div>
+    `,
+  },
 }
 
 async function mountView() {
@@ -157,6 +179,20 @@ describe('CardManageView', () => {
       linkId: 'shinhan-link-id',
       activatedUserCardIds: ['managed-shinhan-deep-dream'],
       activatedCount: 1,
+    })
+    apiMocks.submitCardCredentials.mockReset()
+    apiMocks.submitCardCredentials.mockResolvedValue({
+      userCardId: 'managed-kb-wesh-disabled',
+      cardId: 'kb-wesh',
+      cardName: 'KB My WE:SH',
+      cardNo: '123456******4321',
+      institutionCode: '0301',
+      issuerName: 'KB국민카드',
+      cardType: 'CREDIT',
+      cardImageUrl: null,
+      matched: true,
+      supported: true,
+      optionGroups: [],
     })
     for (const key of Object.keys(routeQuery)) delete routeQuery[key]
   })
@@ -253,6 +289,9 @@ describe('CardManageView', () => {
     })
     expect(wrapper.text()).toContain('등록된 카드 3개')
     expect(wrapper.text()).toContain('비활성화 된 카드 1개')
+    expect(wrapper.get('[data-card-activation-status]').text()).toContain(
+      '승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.',
+    )
   })
 
   it('옵션 선택이 필요한 카드는 기존 선택 화면에서 이어서 활성화한다', async () => {
@@ -307,6 +346,192 @@ describe('CardManageView', () => {
       name: 'card-issuer-card-select',
       params: { issuerId: 'kb-kookmin' },
     })
+  })
+
+  it('활성화에 카드정보가 필요하면 입력받은 뒤 활성화를 다시 요청한다', async () => {
+    apiMocks.syncCardLinkCards.mockResolvedValueOnce({
+      results: [
+        {
+          linkId: 'kb-link-id',
+          institutionCode: '0301',
+          success: true,
+          cards: [
+            {
+              userCardId: 'managed-kb-wesh-disabled',
+              cardId: 'kb-wesh',
+              cardName: 'KB My WE:SH',
+              cardNo: '123456******4321',
+              institutionCode: '0301',
+              issuerName: 'KB국민카드',
+              cardType: 'CREDIT',
+              cardImageUrl: null,
+              matched: true,
+              supported: true,
+              optionGroups: [],
+            },
+          ],
+        },
+      ],
+    })
+    apiMocks.activateCardLinkCards
+      .mockRejectedValueOnce({
+        isAxiosError: true,
+        response: {
+          data: {
+            success: false,
+            data: null,
+            error: {
+              code: 'CARD_CREDENTIAL_REQUIRED',
+              message: '카드 활성화에 필요한 카드번호/비밀번호가 없습니다.',
+              fields: { userCardId: 'managed-kb-wesh-disabled' },
+            },
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        linkId: 'kb-link-id',
+        activatedUserCardIds: ['managed-kb-wesh-disabled'],
+        activatedCount: 1,
+      })
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="KB My WE:SH 활성화"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-credential-dialog]').text()).toContain('KB My WE:SH')
+
+    await wrapper.get('[data-credential-dialog] button').trigger('click')
+    await flushPromises()
+
+    expect(apiMocks.submitCardCredentials).toHaveBeenCalledWith('managed-kb-wesh-disabled', {
+      cardNo: '1234567890125678',
+      cardPassword: '1234',
+    })
+    expect(apiMocks.activateCardLinkCards).toHaveBeenCalledTimes(2)
+    expect(apiMocks.activateCardLinkCards).toHaveBeenLastCalledWith('kb-link-id', {
+      activeUserCardIds: ['managed-kb-wesh-disabled'],
+    })
+    expect(wrapper.find('[data-credential-dialog]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('등록된 카드 4개')
+    expect(wrapper.text()).toContain('비활성화 된 카드 0개')
+    expect(wrapper.get('[data-card-activation-status]').text()).toContain(
+      '승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.',
+    )
+  })
+
+  it('카드정보 확인에 실패하면 입력창을 유지하고 서버 오류를 안내한다', async () => {
+    apiMocks.syncCardLinkCards.mockResolvedValueOnce({
+      results: [
+        {
+          linkId: 'kb-link-id',
+          institutionCode: '0301',
+          success: true,
+          cards: [
+            {
+              userCardId: 'managed-kb-wesh-disabled',
+              cardId: 'kb-wesh',
+              cardName: 'KB My WE:SH',
+              cardNo: '123456******4321',
+              institutionCode: '0301',
+              issuerName: 'KB국민카드',
+              cardType: 'CREDIT',
+              cardImageUrl: null,
+              matched: true,
+              supported: true,
+              optionGroups: [],
+            },
+          ],
+        },
+      ],
+    })
+    apiMocks.activateCardLinkCards.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        data: {
+          success: false,
+          data: null,
+          error: {
+            code: 'CARD_CREDENTIAL_REQUIRED',
+            message: '카드 활성화에 필요한 카드번호/비밀번호가 없습니다.',
+            fields: { userCardId: 'managed-kb-wesh-disabled' },
+          },
+        },
+      },
+    })
+    apiMocks.submitCardCredentials.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        data: {
+          success: false,
+          data: null,
+          error: {
+            code: 'CODEF_INVALID_CREDENTIALS',
+            message: '카드 정보를 다시 확인해 주세요.',
+          },
+        },
+      },
+    })
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="KB My WE:SH 활성화"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-credential-dialog] button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-credential-dialog]').text()).toContain(
+      '카드 정보를 다시 확인해 주세요.',
+    )
+    expect(wrapper.text()).toContain('비활성화 된 카드 1개')
+  })
+
+  it('카드정보 입력을 취소하면 비활성 상태를 유지한다', async () => {
+    apiMocks.syncCardLinkCards.mockResolvedValueOnce({
+      results: [
+        {
+          linkId: 'kb-link-id',
+          institutionCode: '0301',
+          success: true,
+          cards: [
+            {
+              userCardId: 'managed-kb-wesh-disabled',
+              cardId: 'kb-wesh',
+              cardName: 'KB My WE:SH',
+              cardNo: '123456******4321',
+              institutionCode: '0301',
+              issuerName: 'KB국민카드',
+              cardType: 'CREDIT',
+              cardImageUrl: null,
+              matched: true,
+              supported: true,
+              optionGroups: [],
+            },
+          ],
+        },
+      ],
+    })
+    apiMocks.activateCardLinkCards.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        data: {
+          success: false,
+          data: null,
+          error: {
+            code: 'CARD_CREDENTIAL_REQUIRED',
+            message: '카드 활성화에 필요한 카드번호/비밀번호가 없습니다.',
+            fields: { userCardId: 'managed-kb-wesh-disabled' },
+          },
+        },
+      },
+    })
+    const wrapper = await mountView()
+
+    await wrapper.get('button[aria-label="KB My WE:SH 활성화"]').trigger('click')
+    await flushPromises()
+    await wrapper.findAll('[data-credential-dialog] button')[1]?.trigger('click')
+
+    expect(wrapper.find('[data-credential-dialog]').exists()).toBe(false)
+    expect(apiMocks.submitCardCredentials).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('비활성화 된 카드 1개')
   })
 
   it('카드 활성화 요청 중 버튼을 반복해서 눌러도 동기화를 한 번만 실행한다', async () => {
@@ -587,6 +812,9 @@ describe('CardManageView', () => {
     await flushPromises()
 
     expect(replace).toHaveBeenCalledWith({ name: 'home' })
+    expect(useCardManagementStore().consumeActivationNotice()).toContain(
+      '승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.',
+    )
   })
 
   it('마지막 활성 카드를 비활성화하면 재활성화 모드로 전환한다', async () => {

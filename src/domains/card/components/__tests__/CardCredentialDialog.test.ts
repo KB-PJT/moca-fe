@@ -27,9 +27,13 @@ describe('CardCredentialDialog', () => {
     expect(wrapper.get('header p span').classes()).toContain('text-primary')
     expect(wrapper.get('#card-credential-number').classes()).toContain('rounded-sm!')
     expect(wrapper.get('input[type="password"]').classes()).toContain('rounded-sm!')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
 
     await wrapper.get('#card-credential-number').setValue('1234-5678-abcd-9012-3456')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+
     await wrapper.get('input[type="password"]').setValue('1a2b34')
+    expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeUndefined()
     await wrapper.get('form').trigger('submit')
 
     expect(wrapper.emitted('submit')?.[0]).toEqual([

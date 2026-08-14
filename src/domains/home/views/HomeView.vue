@@ -32,6 +32,7 @@ const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
 const cardManagementStore = useCardManagementStore()
+const activationNotice = ref(cardManagementStore.consumeActivationNotice())
 const activeCardMemo = computed(() => activeCard.value?.highlightBenefitTitle ?? '')
 
 async function loadHomeGreeting() {
@@ -113,6 +114,15 @@ function selectCard(index: number) {
     <div class="px-5">
       <MainHeader title="MOCA" />
     </div>
+
+    <p
+      v-if="activationNotice"
+      data-card-activation-notice
+      class="mx-5 mb-4 rounded-md bg-primary/8 px-4 py-3 text-caption text-primary"
+      role="status"
+    >
+      {{ activationNotice }}
+    </p>
 
     <HomeBenefitHeader
       :nickname="greeting?.nickname ?? ''"
