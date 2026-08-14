@@ -83,6 +83,7 @@ export async function fetchBenefitHistory({
   return {
     items: items.map((item) =>
       toRecentBenefitItem({
+        approvalId: item.benefitHistoryId,
         benefitHistoryId: item.benefitHistoryId,
         merchantName: item.merchantName,
         benefitType: item.benefitType,
@@ -90,6 +91,9 @@ export async function fetchBenefitHistory({
         cardName: item.cardName,
         paymentAmount: item.paymentAmount,
         benefitAmount: item.benefitAmount,
+        missedBenefitAmount: 0,
+        calculationStatus: 'APPLIED',
+        rejectionReason: null,
         occurredAt: item.approvedAt,
       }),
     ),

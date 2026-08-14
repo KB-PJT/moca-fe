@@ -14,6 +14,7 @@ vi.mock('@/shared/api/client', () => ({
 }))
 
 const benefit: RecentBenefitResponse = {
+  approvalId: 'approval-1',
   benefitHistoryId: 'benefit-1',
   merchantName: '스타벅스',
   benefitType: 'DISCOUNT',
@@ -21,7 +22,25 @@ const benefit: RecentBenefitResponse = {
   cardName: 'KB My WE:SH',
   paymentAmount: 15_000,
   benefitAmount: 1_500,
+  missedBenefitAmount: 0,
+  calculationStatus: 'APPLIED',
+  rejectionReason: null,
   occurredAt: '2026-08-12T06:08:47.909Z',
+}
+
+const generalPayment: RecentBenefitResponse = {
+  approvalId: 'approval-2',
+  benefitHistoryId: null,
+  merchantName: '다이소',
+  benefitType: null,
+  benefitTitle: null,
+  cardName: 'KB My WE:SH',
+  paymentAmount: 7_000,
+  benefitAmount: 0,
+  missedBenefitAmount: 0,
+  calculationStatus: 'NOT_APPLIED',
+  rejectionReason: null,
+  occurredAt: '2026-08-12T05:00:00.000Z',
 }
 
 describe('recentBenefits API', () => {
@@ -29,21 +48,34 @@ describe('recentBenefits API', () => {
 
   it('최근 혜택 5건을 요청하고 화면 모델로 변환한다', async () => {
     apiClientMocks.get.mockResolvedValue({
-      data: { success: true, data: { benefits: [benefit] } },
+      data: { success: true, data: { history: [benefit, generalPayment] } },
     })
 
-    await expect(fetchRecentBenefits()).resolves.toEqual([toRecentBenefitItem(benefit)])
-    expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/home/recent-benefits', {
+    await expect(fetchRecentBenefits()).resolves.toEqual([
+      toRecentBenefitItem(benefit),
+      toRecentBenefitItem(generalPayment),
+    ])
+    expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/home/recent-history', {
       params: { limit: 5 },
     })
   })
 
   it('서버 혜택 유형과 발생 시각을 화면 형식으로 변환한다', () => {
     expect(toRecentBenefitItem(benefit)).toMatchObject({
-      id: 'benefit-1',
+      id: 'approval-1',
       benefitType: '할인',
       description: '카페 10% 할인',
       occurredAt: '8월 12일 15:08',
+    })
+  })
+
+  it('혜택이 없는 승인 내역을 일반 결제로 변환한다', () => {
+    expect(toRecentBenefitItem(generalPayment)).toMatchObject({
+      id: 'approval-2',
+      benefitType: null,
+      description: '일반 결제',
+      benefitAmount: 0,
+      paymentAmount: 7_000,
     })
   })
 })

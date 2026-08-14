@@ -39,6 +39,13 @@ const recentBenefits: RecentBenefitItem[] = Array.from({ length: 5 }, (_, index)
   monthlyBenefitLimit: 0,
 }))
 
+recentBenefits[0] = {
+  ...recentBenefits[0]!,
+  benefitType: null,
+  description: '일반 결제',
+  benefitAmount: 0,
+}
+
 const homeGreeting: HomeGreetingResponse = {
   nickname: '지민',
   yearMonth: '2026-08',
@@ -201,6 +208,8 @@ describe('HomeView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('최근 전체 내역')
+    expect(wrapper.text()).toContain('혜택 없음')
+    expect(wrapper.text()).toContain('일반 결제')
     expect(wrapper.text()).toContain('맥도날드')
     expect(wrapper.text()).toContain('KB국민 청춘대로 톡톡카드')
     expect(wrapper.text()).toContain('스타벅스')
@@ -227,7 +236,7 @@ describe('HomeView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('최근 혜택 내역을 불러오지 못했어요.')
+    expect(wrapper.text()).toContain('최근 결제 내역을 불러오지 못했어요.')
     await wrapper
       .findAll('button')
       .find((button) => button.text() === '다시 시도')

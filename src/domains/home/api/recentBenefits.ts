@@ -1,22 +1,27 @@
 import apiClient from '@/shared/api/client'
 
 export type BenefitType = 'DISCOUNT' | 'CASHBACK' | 'POINT' | 'MILEAGE'
+export type CalculationStatus = 'APPLIED' | 'PARTIALLY_APPLIED' | 'NOT_APPLIED' | 'UNCALCULATED'
 
 export interface RecentBenefitResponse {
-  benefitHistoryId: string
+  approvalId: string
+  benefitHistoryId: string | null
   merchantName: string
-  benefitType: BenefitType
-  benefitTitle: string
+  benefitType: BenefitType | null
+  benefitTitle: string | null
   cardName: string
   paymentAmount: number
   benefitAmount: number
+  missedBenefitAmount: number
+  calculationStatus: CalculationStatus
+  rejectionReason: string | null
   occurredAt: string
 }
 
 interface RecentBenefitsApiResponse {
   success: boolean
   data: {
-    benefits: RecentBenefitResponse[]
+    history: RecentBenefitResponse[]
   }
 }
 
@@ -60,11 +65,13 @@ function formatOccurredAt(value: string): string {
 }
 
 export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenefitItem {
+  const hasBenefit = Boolean(benefit.benefitType && benefit.benefitAmount > 0)
+
   return {
-    id: benefit.benefitHistoryId,
+    id: benefit.approvalId,
     merchantName: benefit.merchantName,
-    benefitType: benefitTypeLabels[benefit.benefitType] ?? null,
-    description: benefit.benefitTitle,
+    benefitType: hasBenefit && benefit.benefitType ? benefitTypeLabels[benefit.benefitType] : null,
+    description: hasBenefit ? (benefit.benefitTitle ?? '적용 혜택') : '일반 결제',
     cardName: benefit.cardName,
     cardLastFour: '',
     benefitAmount: benefit.benefitAmount,
@@ -76,9 +83,9 @@ export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenef
 }
 
 export async function fetchRecentBenefits(limit = 5): Promise<RecentBenefitItem[]> {
-  const response = await apiClient.get<RecentBenefitsApiResponse>('/api/v1/home/recent-benefits', {
+  const response = await apiClient.get<RecentBenefitsApiResponse>('/api/v1/home/recent-history', {
     params: { limit },
   })
 
-  return response.data.data.benefits.map(toRecentBenefitItem)
+  return response.data.data.history.map(toRecentBenefitItem)
 }
