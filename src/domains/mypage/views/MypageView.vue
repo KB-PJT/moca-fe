@@ -188,7 +188,7 @@ async function handleLogout() {
 
     <section
       aria-labelledby="mypage-profile-heading"
-      class="mb-6 w-full rounded-lg border border-divider/50 bg-card p-5 shadow-card"
+      class="mb-6 w-full rounded-lg border border-divider/50 bg-card p-5"
     >
       <div class="flex items-center">
         <strong id="mypage-profile-heading" class="text-subheading text-charcoal">
@@ -201,7 +201,7 @@ async function handleLogout() {
           @click="navigateToProfile"
         >
           <span
-            class="flex size-7 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
+            class="flex size-7 items-center justify-center rounded-full bg-screen text-primary"
             aria-hidden="true"
           >
             <Pencil class="size-4" />
@@ -233,10 +233,7 @@ async function handleLogout() {
     </section>
 
     <h2 class="mb-2 px-1 text-body font-semibold text-gray">내 서비스 관리</h2>
-    <SectionCard
-      flush
-      class="overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
-    >
+    <SectionCard flush class="overflow-hidden rounded-lg border border-divider/50 bg-card">
       <ListItem
         title="내 카드 관리"
         :description="connectedCardDescription"
@@ -244,9 +241,7 @@ async function handleLogout() {
         @click="navigateToCardManage"
       >
         <template #left>
-          <span
-            class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
-          >
+          <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
             <CreditCard class="size-4" />
           </span>
         </template>
@@ -260,9 +255,7 @@ async function handleLogout() {
         @click="navigateToNotificationSettings"
       >
         <template #left>
-          <span
-            class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
-          >
+          <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
             <Bell class="size-4" />
           </span>
         </template>
@@ -276,9 +269,7 @@ async function handleLogout() {
         "
       >
         <template #left>
-          <span
-            class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
-          >
+          <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
             <MapPin class="size-4" />
           </span>
         </template>
@@ -295,15 +286,10 @@ async function handleLogout() {
     </SectionCard>
 
     <h2 class="mb-2 px-1 text-body font-semibold text-gray">고객지원</h2>
-    <SectionCard
-      flush
-      class="overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
-    >
+    <SectionCard flush class="overflow-hidden rounded-lg border border-divider/50 bg-card">
       <ListItem title="공지사항" clickable @click="navigateToNotices">
         <template #left>
-          <span
-            class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
-          >
+          <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
             <Megaphone class="size-4" />
           </span>
         </template>
@@ -312,9 +298,7 @@ async function handleLogout() {
 
       <ListItem title="문의하기" clickable @click="navigateToInquiry">
         <template #left>
-          <span
-            class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
-          >
+          <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
             <MessageSquare class="size-4" />
           </span>
         </template>
@@ -323,15 +307,10 @@ async function handleLogout() {
     </SectionCard>
 
     <h2 class="mb-2 px-1 text-body font-semibold text-gray">계정 관리</h2>
-    <SectionCard
-      flush
-      class="overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
-    >
+    <SectionCard flush class="overflow-hidden rounded-lg border border-divider/50 bg-card">
       <ListItem title="로그아웃" clickable @click="isLogoutDialogOpen = true">
         <template #left>
-          <span
-            class="flex size-8 items-center justify-center rounded-full bg-[#F0EDFE] text-primary"
-          >
+          <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
             <LogOut class="size-4" />
           </span>
         </template>
