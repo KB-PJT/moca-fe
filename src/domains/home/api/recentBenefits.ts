@@ -1,7 +1,7 @@
 import apiClient from '@/shared/api/client'
 
 export type BenefitType = 'DISCOUNT' | 'CASHBACK' | 'POINT' | 'MILEAGE'
-export type CalculationStatus = 'APPLIED' | 'PARTIALLY_APPLIED' | 'NOT_APPLIED' | 'UNCALCULATED'
+export type CalculationStatus = 'APPLIED' | 'PARTIALLY_APPLIED' | 'NOT_APPLIED' | 'NOT_CALCULATED'
 
 export interface PerformanceShortfall {
   requiredAmount: number

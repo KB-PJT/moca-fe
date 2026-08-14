@@ -49,10 +49,10 @@ const sortOptions = [
 const displayedMonth = computed(() => Number(yearMonth.value.slice(5, 7)))
 const selectedCard = computed(() => cards.value.find((card) => card.id === selectedCardId.value))
 const monthlyBenefitTotal = computed(() => historySummary.value.totalBenefitAmount)
-const monthlyPaymentTotal = computed(() =>
+const totalPaymentAmount = computed(() =>
   historyItems.value.reduce((total, item) => total + item.paymentAmount, 0),
 )
-const benefitPaymentTotal = computed(() =>
+const benefitPaymentAmount = computed(() =>
   historyItems.value.reduce(
     (total, item) =>
       item.benefitAmount > 0 &&
@@ -63,8 +63,8 @@ const benefitPaymentTotal = computed(() =>
   ),
 )
 const benefitPaymentRate = computed(() => {
-  if (monthlyPaymentTotal.value <= 0) return 0
-  return Math.min(Math.round((benefitPaymentTotal.value / monthlyPaymentTotal.value) * 100), 100)
+  if (totalPaymentAmount.value <= 0) return 0
+  return Math.min(Math.round((benefitPaymentAmount.value / totalPaymentAmount.value) * 100), 100)
 })
 const benefitSummary = computed(() => {
   return [
@@ -298,7 +298,7 @@ onMounted(loadCardsAndHistory)
           <div class="mt-4 flex items-center justify-between">
             <span class="text-caption text-gray">혜택에 해당하는 결제</span>
             <strong class="text-body font-bold text-charcoal">
-              {{ currencyFormatter.format(monthlyPaymentTotal) }}원
+              {{ currencyFormatter.format(benefitPaymentAmount) }}원
             </strong>
           </div>
           <div

@@ -119,4 +119,54 @@ describe('benefitHistory API', () => {
       },
     })
   })
+
+  it('혜택이 없는 일반 결제도 전체 내역 항목으로 변환한다', async () => {
+    apiClientMocks.get.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          data: [
+            {
+              benefitHistoryId: null,
+              merchantName: '그린팜마트군자점',
+              approvedAt: '2026-08-13T17:42:56+09:00',
+              paymentAmount: 20_970,
+              benefitAmount: 0,
+              missedBenefitAmount: 0,
+              benefitType: null,
+              benefitTitle: null,
+              userCardId: 'card-1',
+              cardName: '올바른POINT체크카드',
+              calculationStatus: 'NOT_CALCULATED',
+              rejectionReason: null,
+              performanceShortfall: null,
+            },
+          ],
+          summary: {
+            totalBenefitAmount: 0,
+            discountAmount: 0,
+            cashbackAmount: 0,
+            pointAmount: 0,
+            mileageAmount: 0,
+          },
+          meta: { page: 1, size: 100, totalCount: 1, hasNext: false },
+        },
+      },
+    })
+
+    const result = await fetchBenefitHistory({
+      yearMonth: '2026-08',
+      userCardId: 'card-1',
+    })
+
+    expect(result.items[0]).toMatchObject({
+      id: 'card-1-2026-08-13T17:42:56+09:00-그린팜마트군자점-0',
+      merchantName: '그린팜마트군자점',
+      benefitType: null,
+      description: '일반 결제',
+      paymentAmount: 20_970,
+      benefitAmount: 0,
+      calculationStatus: 'NOT_CALCULATED',
+    })
+  })
 })

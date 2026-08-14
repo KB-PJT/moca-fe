@@ -153,6 +153,7 @@ describe('BenefitHistoryView', () => {
     await flushPromises()
 
     const progress = wrapper.get('[role="progressbar"]')
+    expect(wrapper.text()).toContain('15,000원')
     expect(progress.attributes('aria-valuenow')).toBe('75')
     expect(progress.get('div').attributes('style')).toContain('width: 75%')
   })

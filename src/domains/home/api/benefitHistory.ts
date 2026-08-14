@@ -6,17 +6,17 @@ import {
 } from '@/domains/home/api/recentBenefits'
 
 interface BenefitHistoryResponseItem {
-  benefitHistoryId: string
+  benefitHistoryId: string | null
   merchantName: string
   approvedAt: string
   paymentAmount: number
   benefitAmount: number
   missedBenefitAmount: number
-  benefitType: BenefitType
-  benefitTitle: string
+  benefitType: BenefitType | null
+  benefitTitle: string | null
   userCardId: string
   cardName: string
-  calculationStatus: 'APPLIED' | 'PARTIALLY_APPLIED' | 'NOT_APPLIED' | 'UNCALCULATED'
+  calculationStatus: 'APPLIED' | 'PARTIALLY_APPLIED' | 'NOT_APPLIED' | 'NOT_CALCULATED'
   rejectionReason: string | null
   performanceShortfall: {
     requiredAmount: number
@@ -91,9 +91,11 @@ export async function fetchBenefitHistory({
   }
 
   return {
-    items: items.map((item) =>
+    items: items.map((item, index) =>
       toRecentBenefitItem({
-        approvalId: item.benefitHistoryId,
+        approvalId:
+          item.benefitHistoryId ??
+          `${item.userCardId}-${item.approvedAt}-${item.merchantName}-${index}`,
         benefitHistoryId: item.benefitHistoryId,
         merchantName: item.merchantName,
         benefitType: item.benefitType,
