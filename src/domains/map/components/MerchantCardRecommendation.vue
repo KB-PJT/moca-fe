@@ -109,13 +109,20 @@ watch(merchantId, () => {
 
 <template>
   <div>
-    <div v-if="isPending" class="mt-4 flex items-center gap-2 py-1">
+    <div
+      v-if="isPending"
+      role="status"
+      aria-live="polite"
+      class="mt-4 flex items-center gap-2 py-1"
+    >
       <LoaderCircle class="text-primary size-4 animate-spin" />
       <span class="text-caption text-gray">추천 카드를 불러오는 중...</span>
     </div>
 
+    <!-- recommendedCard가 이미 있으면(결제 금액 재계산 실패 등) 전체를 지우지 않고 카드 안에서 인라인으로 알린다. -->
     <div
-      v-else-if="isError"
+      v-else-if="isError && !recommendedCard"
+      role="alert"
       class="bg-accent mt-4 flex items-center justify-between gap-2 rounded-md px-3 py-2"
     >
       <p class="text-caption text-gray">추천 카드를 불러오지 못했어요.</p>
@@ -161,7 +168,19 @@ watch(merchantId, () => {
         </div>
 
         <template v-if="hasPerformanceRequirement(recommendedCard.requiredPreviousSpendKrw)">
-          <div class="bg-divider relative h-3 rounded-full">
+          <div
+            class="bg-divider relative h-3 rounded-full"
+            role="progressbar"
+            aria-label="전월 실적 달성률"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-valuenow="
+              gaugeFillPercent(
+                recommendedCard.previousMonthSpendKrw,
+                recommendedCard.requiredPreviousSpendKrw,
+              )
+            "
+          >
             <div
               class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
               :style="{
@@ -218,9 +237,18 @@ watch(merchantId, () => {
             />
             <p
               v-if="isFetching && appliedAmount !== null"
+              role="status"
+              aria-live="polite"
               class="text-caption text-gray text-center"
             >
               계산 중...
+            </p>
+            <p
+              v-else-if="isError && appliedAmount !== null"
+              role="alert"
+              class="text-caption text-error text-center"
+            >
+              계산에 실패했어요. 다시 시도해주세요.
             </p>
             <p v-else-if="appliedAmount !== null" class="text-caption text-primary text-center">
               예상 혜택 {{ formatAmountWithUnit(recommendedCard.estimatedValueKrw) }}

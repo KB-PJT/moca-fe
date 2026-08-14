@@ -162,8 +162,8 @@ export async function fetchMerchantCardRecommendations(
   paymentAmount?: number,
 ): Promise<MerchantCardRecommendation> {
   const response = await apiClient.get<ApiResponse<MerchantCardRecommendation>>(
-    `/api/v1/merchants/${merchantId}/card-recommendations`,
-    { params: paymentAmount ? { paymentAmount } : undefined },
+    `/api/v1/merchants/${encodeURIComponent(merchantId)}/card-recommendations`,
+    { params: paymentAmount != null ? { paymentAmount } : undefined },
   )
   return response.data.data
 }

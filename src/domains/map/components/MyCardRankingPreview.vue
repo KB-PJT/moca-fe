@@ -54,7 +54,14 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
             <p v-if="detailed && item.issuerName" class="text-label text-gray truncate">
               {{ item.issuerName }}
             </p>
-            <div class="bg-divider mt-1.5 h-1 rounded-full">
+            <div
+              class="bg-divider mt-1.5 h-1 rounded-full"
+              role="progressbar"
+              :aria-label="`${item.cardName} 실적 달성률`"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-valuenow="performanceRate(item)"
+            >
               <div
                 class="bg-primary h-full rounded-full"
                 :style="{ width: `${performanceRate(item)}%` }"
