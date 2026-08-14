@@ -98,7 +98,9 @@ describe('cardManagement API', () => {
     apiClientMocks.post.mockResolvedValue({ data: { success: true, data: responseData } })
 
     await expect(syncMyCards()).resolves.toEqual(responseData)
-    expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/me/cards/sync')
+    expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/me/cards/sync', undefined, {
+      timeout: 80_000,
+    })
   })
 
   it('선택한 보유 카드의 연결을 해제한다', async () => {
