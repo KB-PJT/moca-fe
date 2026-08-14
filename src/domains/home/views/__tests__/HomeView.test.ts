@@ -4,18 +4,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_ISSUERS } from '@/domains/card/constants/cardIssuers'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
+import type { HomeGreetingResponse } from '@/domains/home/api/homeGreeting'
 import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import { MOCK_HOME_OWNED_CARDS } from '@/domains/home/mocks/ownedCards'
 import HomeView from '@/domains/home/views/HomeView.vue'
-import { useAuthStore } from '@/domains/auth/stores/auth'
 
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
+const fetchHomeGreeting = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 const fetchRecentBenefits = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
 vi.mock('@/domains/home/api/homeCards', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/domains/home/api/homeCards')>()),
   fetchHomeCards,
 }))
+
+vi.mock('@/domains/home/api/homeGreeting', () => ({ fetchHomeGreeting }))
 
 vi.mock('@/domains/home/api/recentBenefits', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/domains/home/api/recentBenefits')>()),
@@ -35,6 +38,13 @@ const recentBenefits: RecentBenefitItem[] = Array.from({ length: 5 }, (_, index)
   monthlyBenefitUsed: 0,
   monthlyBenefitLimit: 0,
 }))
+
+const homeGreeting: HomeGreetingResponse = {
+  nickname: '지민',
+  yearMonth: '2026-08',
+  missedBenefitAmount: 8_200,
+  message: '이번 달 혜택 8,200원을 놓치고 있어요!',
+}
 
 function createHomeCardsResponse(): HomeCardsResponse {
   const highlightBenefitTitles = [
@@ -73,6 +83,8 @@ describe('HomeView', () => {
     window.localStorage.clear()
     fetchHomeCards.mockReset()
     fetchHomeCards.mockResolvedValue(createHomeCardsResponse())
+    fetchHomeGreeting.mockReset()
+    fetchHomeGreeting.mockResolvedValue(homeGreeting)
     fetchRecentBenefits.mockReset()
     fetchRecentBenefits.mockResolvedValue(recentBenefits)
   })
@@ -151,24 +163,37 @@ describe('HomeView', () => {
   })
 
   it('사용자 인사와 놓치고 있는 혜택을 표시하고 리포트로 연결한다', async () => {
-    const pinia = createPinia()
-    const authStore = useAuthStore(pinia)
-    authStore.setUser({ nickname: '지민', email: 'jimin@example.com', provider: 'google' })
-
-    const wrapper = mountView(pinia)
+    const wrapper = mountView()
     await flushPromises()
     const reportLink = wrapper
       .findAllComponents(RouterLinkStub)
       .find((link) => link.text() === '보러가기')
 
     expect(wrapper.text()).toContain('안녕하세요, 지민님')
-    expect(wrapper.text()).toContain('이번 달 혜택 22,900원을 놓치고 있어요!')
+    expect(wrapper.text()).toContain('이번 달 혜택 8,200원을 놓치고 있어요!')
+    expect(fetchHomeGreeting).toHaveBeenCalledWith()
     expect(reportLink?.props('to')).toEqual({ name: 'report' })
 
     const benefitHistoryLink = wrapper
       .findAllComponents(RouterLinkStub)
       .find((link) => link.text() === '전체보기')
     expect(benefitHistoryLink?.props('to')).toEqual({ name: 'home-benefits' })
+  })
+
+  it('홈 인사 조회 실패 후 다시 시도할 수 있다', async () => {
+    fetchHomeGreeting.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toBe('홈 혜택 정보를 불러오지 못했어요.')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '다시 시도')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(fetchHomeGreeting).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('안녕하세요, 지민님')
   })
 
   it('최근 혜택 API 내역 5건을 표시한다', async () => {
@@ -248,7 +273,7 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-available-benefit]').text()).toBe('6,600원')
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(80%)')
     expect(wrapper.get('[data-performance-remaining]').text()).toContain('59,000원')
-    expect(wrapper.text()).toContain('이번 달 혜택 22,900원을 놓치고 있어요!')
+    expect(wrapper.text()).toContain('이번 달 혜택 8,200원을 놓치고 있어요!')
 
     const detailLink = wrapper
       .findAllComponents(RouterLinkStub)
