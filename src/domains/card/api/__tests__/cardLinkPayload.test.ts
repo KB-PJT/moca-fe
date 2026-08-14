@@ -81,14 +81,14 @@ const INVALID_PAYLOAD_CASES: InvalidPayloadCase[] = [
 ]
 
 describe('cardLink payload', () => {
-  it('KB 요청에 카드번호와 카드 비밀번호를 포함한다', () => {
+  it('KB 요청에 카드번호, 카드 비밀번호, 생년월일을 포함한다', () => {
     expect(
       buildCreateCardLinkRequest('kb-kookmin', {
         homepageId: 'moca-user',
         homepagePassword: 'secret',
         cardNumber: '1234123412341234',
         cardPassword: '1234',
-        birthDate: '950101',
+        birthDate: '19950101',
       }),
     ).toEqual({
       institutionCode: '0301',
@@ -96,6 +96,7 @@ describe('cardLink payload', () => {
       password: 'secret',
       cardNo: '1234123412341234',
       cardPassword: '1234',
+      birthDate: '19950101',
     })
   })
 

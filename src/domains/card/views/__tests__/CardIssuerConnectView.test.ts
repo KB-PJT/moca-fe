@@ -98,19 +98,23 @@ describe('CardIssuerConnectView', () => {
     })
   })
 
-  it('KB는 홈페이지 로그인 정보와 카드번호, 카드 비밀번호를 입력받는다', async () => {
+  it('KB는 홈페이지 로그인 정보와 카드번호, 카드 비밀번호, 생년월일을 입력받는다', async () => {
     const { wrapper } = await mountAt('kb-kookmin')
 
     expect(wrapper.text()).toContain('KB국민카드')
     expect(wrapper.text()).not.toContain('추가 인증 정보 없이 조회할 수 있어요')
     expect(wrapper.text()).not.toContain('카드 이미지 함께 불러오기')
-    expect(wrapper.findAll('input')).toHaveLength(4)
+    expect(wrapper.findAll('input')).toHaveLength(5)
     expect(wrapper.get('footer button').attributes('disabled')).toBeDefined()
 
     await wrapper.get('#card-connection-homepageId').setValue('moca-user')
     await wrapper.get('#card-connection-homepagePassword').setValue('password')
     await wrapper.get('#card-connection-cardNumber').setValue('1234-1234-1234-1234')
     await wrapper.get('#card-connection-cardPassword').setValue('1234')
+    await wrapper.get('#card-connection-birthDate').setValue('95-01-01')
+    expect(wrapper.get('footer button').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('#card-connection-birthDate').setValue('1995-01-01')
     expect(wrapper.get('footer button').attributes('disabled')).toBeUndefined()
 
     await wrapper.get('form').trigger('submit')
@@ -123,6 +127,7 @@ describe('CardIssuerConnectView', () => {
       password: 'password',
       cardNo: '1234123412341234',
       cardPassword: '1234',
+      birthDate: '19950101',
     })
   })
 
