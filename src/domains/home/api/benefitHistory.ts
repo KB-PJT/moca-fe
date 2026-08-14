@@ -11,10 +11,18 @@ interface BenefitHistoryResponseItem {
   approvedAt: string
   paymentAmount: number
   benefitAmount: number
+  missedBenefitAmount: number
   benefitType: BenefitType
   benefitTitle: string
   userCardId: string
   cardName: string
+  calculationStatus: 'APPLIED' | 'PARTIALLY_APPLIED' | 'NOT_APPLIED' | 'UNCALCULATED'
+  rejectionReason: string | null
+  performanceShortfall: {
+    requiredAmount: number
+    achievedAmount: number
+    remainingAmount: number
+  } | null
 }
 
 export interface BenefitHistorySummary {
@@ -48,6 +56,7 @@ export interface BenefitHistoryResult {
 export interface BenefitHistoryParams {
   yearMonth: string
   userCardId: string
+  sort?: 'LATEST' | 'BENEFIT_DESC'
 }
 
 const PAGE_SIZE = 100
@@ -55,6 +64,7 @@ const PAGE_SIZE = 100
 export async function fetchBenefitHistory({
   yearMonth,
   userCardId,
+  sort = 'LATEST',
 }: BenefitHistoryParams): Promise<BenefitHistoryResult> {
   const items: BenefitHistoryResponseItem[] = []
   let page = 1
@@ -70,7 +80,7 @@ export async function fetchBenefitHistory({
 
   while (hasNext) {
     const response = await apiClient.get<BenefitHistoryPageResponse>('/api/v1/benefit-history', {
-      params: { yearMonth, userCardId, sort: 'LATEST', page, size: PAGE_SIZE },
+      params: { yearMonth, userCardId, sort, page, size: PAGE_SIZE },
     })
     const result = response.data.data
     items.push(...result.data)
@@ -91,9 +101,10 @@ export async function fetchBenefitHistory({
         cardName: item.cardName,
         paymentAmount: item.paymentAmount,
         benefitAmount: item.benefitAmount,
-        missedBenefitAmount: 0,
-        calculationStatus: 'APPLIED',
-        rejectionReason: null,
+        missedBenefitAmount: item.missedBenefitAmount,
+        calculationStatus: item.calculationStatus,
+        rejectionReason: item.rejectionReason,
+        performanceShortfall: item.performanceShortfall,
         occurredAt: item.approvedAt,
       }),
     ),

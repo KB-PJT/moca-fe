@@ -5,7 +5,13 @@ import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
 import BenefitHistoryView from '@/domains/home/views/BenefitHistoryView.vue'
 
 const fetchBenefitHistory = vi.hoisted(() =>
-  vi.fn<(params: { yearMonth: string; userCardId: string }) => Promise<unknown>>(),
+  vi.fn<
+    (params: {
+      yearMonth: string
+      userCardId: string
+      sort: 'LATEST' | 'BENEFIT_DESC'
+    }) => Promise<unknown>
+  >(),
 )
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
@@ -66,7 +72,11 @@ const historyResult: BenefitHistoryResult = {
       cardName: 'KB My WE:SH',
       cardLastFour: '',
       benefitAmount: 1_500,
+      missedBenefitAmount: 0,
       paymentAmount: 15_000,
+      calculationStatus: 'APPLIED',
+      rejectionReason: null,
+      performanceShortfall: null,
       occurredAt: '8월 12일 15:08',
       monthlyBenefitUsed: 0,
       monthlyBenefitLimit: 0,
@@ -111,6 +121,7 @@ describe('BenefitHistoryView', () => {
     expect(fetchBenefitHistory).toHaveBeenCalledWith({
       yearMonth: expect.stringMatching(/^\d{4}-\d{2}$/),
       userCardId: 'card-1',
+      sort: 'LATEST',
     })
     expect(wrapper.text()).toContain('KB My WE:SH')
     expect(wrapper.text()).toContain('1,500원')
@@ -121,6 +132,31 @@ describe('BenefitHistoryView', () => {
     expect(wrapper.get('[data-detail-sheet]').attributes('data-open')).toBe('true')
   })
 
+  it('전체 결제금액 중 실제 혜택이 적용된 결제금액 비율을 표시한다', async () => {
+    fetchBenefitHistory.mockResolvedValueOnce({
+      ...historyResult,
+      items: [
+        historyResult.items[0]!,
+        {
+          ...historyResult.items[0]!,
+          id: 'benefit-2',
+          merchantName: '실적 미충족 가맹점',
+          benefitAmount: 0,
+          missedBenefitAmount: 1_000,
+          paymentAmount: 5_000,
+          calculationStatus: 'NOT_APPLIED',
+          rejectionReason: 'PERFORMANCE_NOT_MET',
+        },
+      ],
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    const progress = wrapper.get('[role="progressbar"]')
+    expect(progress.attributes('aria-valuenow')).toBe('75')
+    expect(progress.get('div').attributes('style')).toContain('width: 75%')
+  })
+
   it('서버가 선택한 카드로 첫 혜택 내역을 조회한다', async () => {
     fetchHomeCards.mockResolvedValueOnce({ ...cardsResponse, selectedUserCardId: 'card-2' })
     const wrapper = mountView()
@@ -129,6 +165,7 @@ describe('BenefitHistoryView', () => {
     expect(fetchBenefitHistory).toHaveBeenCalledWith({
       yearMonth: expect.any(String),
       userCardId: 'card-2',
+      sort: 'LATEST',
     })
     expect(wrapper.text()).toContain('신한 Deep Dream')
   })
@@ -143,6 +180,23 @@ describe('BenefitHistoryView', () => {
 
     expect(fetchBenefitHistory).toHaveBeenCalledTimes(2)
     expect(fetchBenefitHistory.mock.calls[1]?.[0].yearMonth).not.toBe(firstYearMonth)
+  })
+
+  it('혜택금액순을 선택하면 서버 정렬 조건으로 다시 조회한다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '혜택금액순')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(fetchBenefitHistory).toHaveBeenLastCalledWith({
+      yearMonth: expect.any(String),
+      userCardId: 'card-1',
+      sort: 'BENEFIT_DESC',
+    })
   })
 
   it('조회 실패 후 다시 시도할 수 있다', async () => {
@@ -181,6 +235,7 @@ describe('BenefitHistoryView', () => {
     expect(fetchBenefitHistory).toHaveBeenLastCalledWith({
       yearMonth: expect.any(String),
       userCardId: 'card-2',
+      sort: 'LATEST',
     })
   })
 

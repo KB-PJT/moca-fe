@@ -39,11 +39,11 @@ const loadError = ref('')
 let historyRequestId = 0
 const cardFilterDetails = ref<HTMLDetailsElement | null>(null)
 const sortDetails = ref<HTMLDetailsElement | null>(null)
-const sortOrder = ref<'latest' | 'oldest'>('latest')
+const sortOrder = ref<'LATEST' | 'BENEFIT_DESC'>('LATEST')
 const currencyFormatter = new Intl.NumberFormat('ko-KR')
 const sortOptions = [
-  { value: 'latest', label: '최신순' },
-  { value: 'oldest', label: '과거순' },
+  { value: 'LATEST', label: '최신순' },
+  { value: 'BENEFIT_DESC', label: '혜택금액순' },
 ] as const
 
 const displayedMonth = computed(() => Number(yearMonth.value.slice(5, 7)))
@@ -52,6 +52,20 @@ const monthlyBenefitTotal = computed(() => historySummary.value.totalBenefitAmou
 const monthlyPaymentTotal = computed(() =>
   historyItems.value.reduce((total, item) => total + item.paymentAmount, 0),
 )
+const benefitPaymentTotal = computed(() =>
+  historyItems.value.reduce(
+    (total, item) =>
+      item.benefitAmount > 0 &&
+      (item.calculationStatus === 'APPLIED' || item.calculationStatus === 'PARTIALLY_APPLIED')
+        ? total + item.paymentAmount
+        : total,
+    0,
+  ),
+)
+const benefitPaymentRate = computed(() => {
+  if (monthlyPaymentTotal.value <= 0) return 0
+  return Math.min(Math.round((benefitPaymentTotal.value / monthlyPaymentTotal.value) * 100), 100)
+})
 const benefitSummary = computed(() => {
   return [
     { type: '할인' as const, amount: historySummary.value.discountAmount },
@@ -62,11 +76,7 @@ const benefitSummary = computed(() => {
 })
 const groupedBenefits = computed(() => {
   const groups = new Map<string, RecentBenefitItem[]>()
-  const benefits = [...historyItems.value]
-
-  if (sortOrder.value === 'oldest') benefits.reverse()
-
-  benefits.forEach((item) => {
+  historyItems.value.forEach((item) => {
     const date = item.occurredAt.split(' ').slice(0, 2).join(' ')
     const items = groups.get(date) ?? []
     items.push(item)
@@ -93,6 +103,7 @@ async function loadHistory() {
     const result = await fetchBenefitHistory({
       yearMonth: requestYearMonth,
       userCardId: requestCardId,
+      sort: sortOrder.value,
     })
     if (requestId !== historyRequestId) return
     historyItems.value = result.items
@@ -146,9 +157,10 @@ function changeMonth(offset: number) {
   void loadHistory()
 }
 
-function selectSort(order: 'latest' | 'oldest') {
+function selectSort(order: 'LATEST' | 'BENEFIT_DESC') {
   sortOrder.value = order
   sortDetails.value?.removeAttribute('open')
+  void loadHistory()
 }
 
 function retryHistory() {
@@ -289,8 +301,18 @@ onMounted(loadCardsAndHistory)
               {{ currencyFormatter.format(monthlyPaymentTotal) }}원
             </strong>
           </div>
-          <div class="mt-2 h-2 overflow-hidden rounded-full bg-divider" aria-hidden="true">
-            <div class="h-full w-3/4 rounded-full bg-primary" />
+          <div
+            class="mt-2 h-2 overflow-hidden rounded-full bg-divider"
+            role="progressbar"
+            aria-label="전체 결제 중 혜택받은 결제 비율"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-valuenow="benefitPaymentRate"
+          >
+            <div
+              class="h-full rounded-full bg-primary"
+              :style="{ width: `${benefitPaymentRate}%` }"
+            />
           </div>
         </div>
       </section>
@@ -302,7 +324,7 @@ onMounted(loadCardsAndHistory)
             <summary
               class="flex cursor-pointer list-none items-center gap-1 text-caption font-semibold text-brown [&::-webkit-details-marker]:hidden"
             >
-              {{ sortOrder === 'latest' ? '최신순' : '과거순' }}
+              {{ sortOrder === 'LATEST' ? '최신순' : '혜택금액순' }}
               <ChevronDown class="size-4" aria-hidden="true" />
             </summary>
             <div

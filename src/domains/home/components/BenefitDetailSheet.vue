@@ -17,6 +17,11 @@ const monthlyProgressRate = computed(() => {
 const remainingBenefitAmount = computed(() =>
   props.item ? Math.max(props.item.monthlyBenefitLimit - props.item.monthlyBenefitUsed, 0) : 0,
 )
+const hasMissedBenefit = computed(
+  () =>
+    Boolean(props.item?.missedBenefitAmount) &&
+    props.item?.rejectionReason === 'PERFORMANCE_NOT_MET',
+)
 
 function formatAmount(amount: number) {
   return `${currencyFormatter.format(amount)}원`
@@ -60,20 +65,48 @@ function formatAmount(amount: number) {
               {{ formatAmount(item.paymentAmount) }}
             </dd>
           </div>
-          <div v-if="item.benefitType" class="flex items-center justify-between py-3">
+          <div v-if="hasMissedBenefit" class="flex items-center justify-between py-3">
+            <dt class="text-body text-[#8C7F74]">놓친 혜택</dt>
+            <dd class="text-body font-bold text-primary">
+              {{ formatAmount(item.missedBenefitAmount) }} {{ item.benefitType }}
+            </dd>
+          </div>
+          <div v-else-if="item.benefitType" class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">받은 혜택</dt>
             <dd class="text-body font-bold text-benefit">
               -{{ formatAmount(item.benefitAmount) }} {{ item.benefitType }}
             </dd>
           </div>
           <div v-if="item.benefitType" class="flex items-center justify-between py-3">
-            <dt class="text-body text-[#8C7F74]">적용 혜택</dt>
+            <dt class="text-body text-[#8C7F74]">
+              {{ hasMissedBenefit ? '놓친 혜택 정보' : '적용 혜택' }}
+            </dt>
             <dd class="text-body font-semibold text-charcoal">{{ item.description }}</dd>
           </div>
+          <template v-if="hasMissedBenefit && item.performanceShortfall">
+            <div class="flex items-center justify-between py-3">
+              <dt class="text-body text-[#8C7F74]">전월 실적</dt>
+              <dd class="text-body font-semibold text-charcoal">
+                {{ formatAmount(item.performanceShortfall.achievedAmount) }}
+              </dd>
+            </div>
+            <div class="flex items-center justify-between py-3">
+              <dt class="text-body text-[#8C7F74]">필요 실적</dt>
+              <dd class="text-body font-semibold text-charcoal">
+                {{ formatAmount(item.performanceShortfall.requiredAmount) }}
+              </dd>
+            </div>
+            <div class="flex items-center justify-between py-3">
+              <dt class="text-body text-[#8C7F74]">부족 실적</dt>
+              <dd class="text-body font-semibold text-primary">
+                {{ formatAmount(item.performanceShortfall.remainingAmount) }}
+              </dd>
+            </div>
+          </template>
         </dl>
 
         <section
-          v-if="item.benefitType"
+          v-if="item.benefitType && !hasMissedBenefit"
           class="mt-4"
           aria-labelledby="monthly-benefit-status-title"
         >
