@@ -39,7 +39,7 @@ export const CARD_ISSUERS = {
     name: 'NH농협카드',
     institutionCode: '0304',
     accentColor: '#00A651',
-    aliases: ['NH농협', 'NH', '농협'],
+    aliases: ['NH농협', 'NH', '농협', '올바른'],
     logos: { default: nhNonghyupLogo, fill: nhNonghyupLogoFill },
   },
   lotte: {

@@ -102,6 +102,9 @@ describe('homeCards API', () => {
     expect(resolveHomeCardAccentColor(createCard({ cardName: '신한카드 Mr.Life' }))).toBe(
       CARD_ISSUERS.shinhan.accentColor,
     )
+    expect(resolveHomeCardAccentColor(createCard({ cardName: '올바른POINT체크카드' }))).toBe(
+      CARD_ISSUERS['nh-nonghyup'].accentColor,
+    )
     expect(resolveHomeCardAccentColor(createCard({ cardName: '알 수 없는 카드' }))).toBe(
       DEFAULT_CARD_ISSUER_ACCENT_COLOR,
     )
