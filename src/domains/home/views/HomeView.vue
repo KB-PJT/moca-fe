@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useAuthStore } from '@/domains/auth/stores/auth'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
+import { fetchHomeGreeting, type HomeGreetingResponse } from '@/domains/home/api/homeGreeting'
 import { fetchRecentBenefits, type RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import CardBenefitAmounts from '@/domains/home/components/CardBenefitAmounts.vue'
@@ -21,6 +21,9 @@ const activeCardIndex = ref(0)
 const cards = ref<HomeOwnedCard[]>([])
 const isCardsLoading = ref(true)
 const cardsError = ref('')
+const greeting = ref<HomeGreetingResponse | null>(null)
+const isGreetingLoading = ref(true)
+const greetingError = ref('')
 const recentBenefits = ref<RecentBenefitItem[]>([])
 const isRecentBenefitsLoading = ref(true)
 const recentBenefitsError = ref('')
@@ -28,13 +31,22 @@ let recentBenefitsRequestId = 0
 const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
-const authStore = useAuthStore()
 const cardManagementStore = useCardManagementStore()
-const nickname = computed(() => authStore.user?.nickname ?? '사용자')
-const missedBenefitAmount = computed(() =>
-  cards.value.reduce((total, card) => total + card.availableBenefitAmount, 0),
-)
 const activeCardMemo = computed(() => activeCard.value?.highlightBenefitTitle ?? '')
+
+async function loadHomeGreeting() {
+  isGreetingLoading.value = true
+  greetingError.value = ''
+
+  try {
+    greeting.value = await fetchHomeGreeting()
+  } catch {
+    greeting.value = null
+    greetingError.value = '홈 혜택 정보를 불러오지 못했어요.'
+  } finally {
+    isGreetingLoading.value = false
+  }
+}
 
 async function loadHomeCards() {
   isCardsLoading.value = true
@@ -80,6 +92,7 @@ async function loadRecentBenefits() {
 }
 
 onMounted(() => {
+  void loadHomeGreeting()
   void loadHomeCards()
   void loadRecentBenefits()
 })
@@ -101,7 +114,13 @@ function selectCard(index: number) {
       <MainHeader title="MOCA" />
     </div>
 
-    <HomeBenefitHeader :nickname="nickname" :missed-benefit-amount="missedBenefitAmount" />
+    <HomeBenefitHeader
+      :nickname="greeting?.nickname ?? ''"
+      :missed-benefit-amount="greeting?.missedBenefitAmount ?? 0"
+      :is-loading="isGreetingLoading"
+      :error="greetingError"
+      @retry="loadHomeGreeting"
+    />
 
     <OwnedCardSection :card-count="cards.length" :active-index="activeCardIndex">
       <div v-if="isCardsLoading" data-home-cards-loading class="px-5" aria-label="보유카드 로딩 중">
