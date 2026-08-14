@@ -185,7 +185,7 @@ describe('HomeView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('홈 혜택 정보를 불러오지 못했어요.')
+    expect(wrapper.get('[role="alert"]').text()).toBe('홈 혜택 정보를 불러오지 못했어요.')
     await wrapper
       .findAll('button')
       .find((button) => button.text() === '다시 시도')

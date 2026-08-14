@@ -24,7 +24,7 @@ const currencyFormatter = new Intl.NumberFormat('ko-KR')
       <div class="h-6 w-64 animate-pulse rounded-sm bg-primary/10" />
     </div>
     <div v-else-if="error" class="flex items-center justify-between gap-3 py-1">
-      <p class="text-caption text-error">{{ error }}</p>
+      <p role="alert" class="text-caption text-error">{{ error }}</p>
       <button
         type="button"
         class="shrink-0 text-caption font-semibold text-brown"
