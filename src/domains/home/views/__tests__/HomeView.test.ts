@@ -1,7 +1,8 @@
 import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
-import { createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_ISSUERS } from '@/domains/card/constants/cardIssuers'
+import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
 import type { HomeGreetingResponse } from '@/domains/home/api/homeGreeting'
@@ -111,6 +112,27 @@ describe('HomeView', () => {
       },
     })
   }
+
+  it('카드 활성화 후 승인내역 반영 지연 안내를 한 번 표시한다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useCardManagementStore().setActivationNotice(
+      '카드가 활성화됐어요. 승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.',
+    )
+
+    const firstVisit = mountView(pinia)
+    await flushPromises()
+
+    expect(firstVisit.get('[data-card-activation-notice]').text()).toContain(
+      '승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.',
+    )
+
+    firstVisit.unmount()
+    const nextVisit = mountView(pinia)
+    await flushPromises()
+
+    expect(nextVisit.find('[data-card-activation-notice]').exists()).toBe(false)
+  })
 
   it('관리 링크를 통해 홈에서 카드 관리 화면으로 이동한다', async () => {
     const wrapper = mountView()

@@ -35,7 +35,9 @@ const emit = defineEmits<{
 const cardNumber = ref('')
 const cardPassword = ref('')
 const displayedCardNumber = computed(() => cardNumber.value.replace(/(\d{4})(?=\d)/g, '$1 '))
-const canSubmit = computed(() => cardNumber.value.length > 0 && !props.loading)
+const canSubmit = computed(
+  () => cardNumber.value.length === 16 && cardPassword.value.length === 4 && !props.loading,
+)
 
 watch(
   () => [props.open, props.cardName],
@@ -107,9 +109,10 @@ function submit() {
 
         <BasePasswordInput
           :model-value="cardPassword"
-          label="카드 비밀번호"
+          label="카드 비밀번호 4자리"
+          required
           :maxlength="4"
-          placeholder="카드사에서 요구하는 경우 입력해 주세요"
+          placeholder="4자리 입력"
           :error="errors.cardPassword"
           input-class="rounded-sm!"
           @update:model-value="updateCardPassword"

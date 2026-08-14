@@ -9,15 +9,24 @@ import {
   RotateCw,
   Trash2,
 } from '@lucide/vue'
+import axios from 'axios'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { activateCardLinkCards, syncCardLinkCards } from '@/domains/card/api/cardLinks'
+import {
+  activateCardLinkCards,
+  submitCardCredentials,
+  syncCardLinkCards,
+  type CardLinkCardResponse,
+  type CardLinkErrorResponse,
+  type SubmitCardCredentialsRequest,
+} from '@/domains/card/api/cardLinks'
 import {
   deactivateMyCard,
   disconnectMyCard,
   fetchMyCards,
   reorderMyCards,
 } from '@/domains/card/api/cardManagement'
+import CardCredentialDialog from '@/domains/card/components/CardCredentialDialog.vue'
 import { CARD_ISSUER_LIST } from '@/domains/card/constants/cardIssuers'
 import { type ManagedCard, useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
@@ -35,6 +44,11 @@ interface PendingAction {
   type: CardManagementAction
   cardId: string
   cardName: string
+}
+
+interface PendingCardActivation {
+  card: ManagedCard
+  linkId: string
 }
 
 const route = useRoute()
@@ -56,6 +70,10 @@ const isActionLoading = ref(false)
 const actionError = ref('')
 const activatingCardId = ref<string | null>(null)
 const activationError = ref('')
+const activationStatusMessage = ref('')
+const pendingCardActivation = ref<PendingCardActivation | null>(null)
+const credentialErrors = ref<Record<string, string>>({})
+const isSubmittingCredentials = ref(false)
 const isInactiveCardsExpanded = ref(true)
 
 const activeBottomBarPath = computed(() => {
@@ -232,14 +250,23 @@ function requestCardAction(type: CardManagementAction, cardId: string, cardName:
 }
 
 async function activateCard(card: ManagedCard) {
-  if (activatingCardId.value || isActionLoading.value) return
+  if (
+    activatingCardId.value ||
+    isActionLoading.value ||
+    pendingCardActivation.value ||
+    isSubmittingCredentials.value
+  )
+    return
 
   activatingCardId.value = card.id
   activationError.value = ''
+  activationStatusMessage.value = ''
 
   try {
     const issuer = CARD_ISSUER_LIST.find((item) => item.name === card.issuerName)
-    const response = await syncCardLinkCards(issuer?.institutionCode)
+    if (!issuer) throw new Error('CARD_ISSUER_NOT_FOUND')
+
+    const response = await syncCardLinkCards(issuer.institutionCode)
     const result = response.results.find(
       (item) => item.success && item.cards.some((linkedCard) => linkedCard.userCardId === card.id),
     )
@@ -268,14 +295,107 @@ async function activateCard(card: ManagedCard) {
       return
     }
 
-    await activateCardLinkCards(result.linkId, { activeUserCardIds: [card.id] })
-    cardManagementStore.setCardActive(card.id, true)
-    if (isActivationRequired.value) await router.replace({ name: 'home' })
+    await completeCardActivation(card, result.linkId)
   } catch {
     activationError.value = '카드를 활성화하지 못했어요. 다시 시도해 주세요.'
   } finally {
     activatingCardId.value = null
   }
+}
+
+async function completeCardActivation(card: ManagedCard, linkId: string) {
+  try {
+    await activateCardLinkCards(linkId, { activeUserCardIds: [card.id] })
+  } catch (error) {
+    if (prepareCredentialSubmission(error, card, linkId)) return false
+    throw error
+  }
+
+  cardManagementStore.setCardActive(card.id, true)
+  const notice =
+    '카드가 활성화됐어요. 승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.'
+  if (isActivationRequired.value) {
+    cardManagementStore.setActivationNotice(notice)
+    await router.replace({ name: 'home' })
+  } else {
+    activationStatusMessage.value = notice
+  }
+  return true
+}
+
+function prepareCredentialSubmission(error: unknown, card: ManagedCard, linkId: string) {
+  if (!axios.isAxiosError<CardLinkErrorResponse>(error)) return false
+
+  const apiError = error.response?.data?.error
+  if (apiError?.code !== 'CARD_CREDENTIAL_REQUIRED') return false
+
+  const requiredCardIds = apiError.fields?.userCardId
+    ?.split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  if (!requiredCardIds?.includes(card.id)) return false
+
+  pendingCardActivation.value = { card, linkId }
+  credentialErrors.value = {}
+  activationError.value = ''
+  return true
+}
+
+async function submitTargetCardCredentials(request: SubmitCardCredentialsRequest) {
+  const target = pendingCardActivation.value
+  if (!target || isSubmittingCredentials.value) return
+
+  credentialErrors.value = {}
+  isSubmittingCredentials.value = true
+
+  try {
+    const response = await submitCardCredentials(target.card.id, request)
+
+    if (response.optionGroups.length > 0) {
+      await openCardOptions(target, response)
+    } else {
+      const activated = await completeCardActivation(target.card, target.linkId)
+      if (!activated) return
+    }
+
+    pendingCardActivation.value = null
+  } catch (error) {
+    credentialErrors.value = toCredentialErrors(error)
+  } finally {
+    isSubmittingCredentials.value = false
+  }
+}
+
+async function openCardOptions(target: PendingCardActivation, card: CardLinkCardResponse) {
+  const issuer = CARD_ISSUER_LIST.find((item) => item.institutionCode === card.institutionCode)
+  if (!issuer) throw new Error('CARD_ISSUER_NOT_FOUND')
+
+  directCardConnectionStore.beginLookup(issuer.id)
+  directCardConnectionStore.completeCardLinkCards(target.linkId, card.institutionCode, [card])
+  directCardConnectionStore.setAllSelected(false)
+  directCardConnectionStore.setCardSelected(target.card.id, true)
+  await router.push({
+    name: 'card-issuer-card-select',
+    params: { issuerId: issuer.id },
+  })
+}
+
+function closeCredentialDialog() {
+  if (isSubmittingCredentials.value) return
+  pendingCardActivation.value = null
+  credentialErrors.value = {}
+}
+
+function toCredentialErrors(error: unknown) {
+  if (axios.isAxiosError<CardLinkErrorResponse>(error)) {
+    const apiError = error.response?.data?.error
+    if (apiError?.fields && Object.keys(apiError.fields).some((key) => key !== 'userCardId')) {
+      return apiError.fields
+    }
+    if (apiError?.message) return { form: apiError.message }
+  }
+
+  return { form: '카드 정보 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' }
 }
 
 function closeActionDialog() {
@@ -581,6 +701,14 @@ onMounted(() => {
             <p v-if="activationError" class="mb-3 text-caption text-rose-500" role="alert">
               {{ activationError }}
             </p>
+            <p
+              v-if="activationStatusMessage"
+              data-card-activation-status
+              class="mb-3 rounded-md bg-primary/8 px-4 py-3 text-caption text-primary"
+              role="status"
+            >
+              {{ activationStatusMessage }}
+            </p>
 
             <ul
               v-if="cardManagementStore.inactiveCards.length && isInactiveCardsExpanded"
@@ -683,6 +811,18 @@ onMounted(() => {
       @update:open="updateActionDialogOpen"
       @cancel="closeActionDialog"
       @confirm="confirmCardAction"
+    />
+
+    <CardCredentialDialog
+      v-if="pendingCardActivation"
+      :key="pendingCardActivation.card.id"
+      :open="true"
+      :card-name="pendingCardActivation.card.name"
+      :card-no="pendingCardActivation.card.cardNo"
+      :errors="credentialErrors"
+      :loading="isSubmittingCredentials"
+      @update:open="(open) => !open && closeCredentialDialog()"
+      @submit="submitTargetCardCredentials"
     />
   </div>
 </template>
