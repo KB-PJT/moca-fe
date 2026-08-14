@@ -3,6 +3,12 @@ import apiClient from '@/shared/api/client'
 export type BenefitType = 'DISCOUNT' | 'CASHBACK' | 'POINT' | 'MILEAGE'
 export type CalculationStatus = 'APPLIED' | 'PARTIALLY_APPLIED' | 'NOT_APPLIED' | 'UNCALCULATED'
 
+export interface PerformanceShortfall {
+  requiredAmount: number
+  achievedAmount: number
+  remainingAmount: number
+}
+
 export interface RecentBenefitResponse {
   approvalId: string
   benefitHistoryId: string | null
@@ -15,6 +21,7 @@ export interface RecentBenefitResponse {
   missedBenefitAmount: number
   calculationStatus: CalculationStatus
   rejectionReason: string | null
+  performanceShortfall?: PerformanceShortfall | null
   occurredAt: string
 }
 
@@ -33,7 +40,11 @@ export interface RecentBenefitItem {
   cardName: string
   cardLastFour: string
   benefitAmount: number
+  missedBenefitAmount: number
   paymentAmount: number
+  calculationStatus: CalculationStatus
+  rejectionReason: string | null
+  performanceShortfall: PerformanceShortfall | null
   occurredAt: string
   monthlyBenefitUsed: number
   monthlyBenefitLimit: number
@@ -66,16 +77,25 @@ function formatOccurredAt(value: string): string {
 
 export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenefitItem {
   const hasBenefit = Boolean(benefit.benefitType && benefit.benefitAmount > 0)
+  const hasMissedBenefit = Boolean(benefit.benefitType && benefit.missedBenefitAmount > 0)
 
   return {
     id: benefit.approvalId,
     merchantName: benefit.merchantName,
-    benefitType: hasBenefit && benefit.benefitType ? benefitTypeLabels[benefit.benefitType] : null,
-    description: hasBenefit ? (benefit.benefitTitle ?? '적용 혜택') : '일반 결제',
+    benefitType:
+      (hasBenefit || hasMissedBenefit) && benefit.benefitType
+        ? benefitTypeLabels[benefit.benefitType]
+        : null,
+    description:
+      hasBenefit || hasMissedBenefit ? (benefit.benefitTitle ?? '적용 혜택') : '일반 결제',
     cardName: benefit.cardName,
     cardLastFour: '',
     benefitAmount: benefit.benefitAmount,
+    missedBenefitAmount: benefit.missedBenefitAmount,
     paymentAmount: benefit.paymentAmount,
+    calculationStatus: benefit.calculationStatus,
+    rejectionReason: benefit.rejectionReason,
+    performanceShortfall: benefit.performanceShortfall ?? null,
     occurredAt: formatOccurredAt(benefit.occurredAt),
     monthlyBenefitUsed: 0,
     monthlyBenefitLimit: 0,

@@ -18,6 +18,10 @@ const currencyFormatter = new Intl.NumberFormat('ko-KR')
 function formatAmount(amount: number) {
   return `${currencyFormatter.format(amount)}원`
 }
+
+function hasMissedBenefit(item: RecentBenefitItem) {
+  return item.missedBenefitAmount > 0 && item.rejectionReason === 'PERFORMANCE_NOT_MET'
+}
 </script>
 
 <template>
@@ -60,13 +64,18 @@ function formatAmount(amount: number) {
         <span class="shrink-0 text-right">
           <strong
             class="block"
-            :class="
-              item.benefitType
-                ? 'text-body font-bold text-benefit'
-                : 'text-caption font-normal text-gray'
-            "
+            :class="{
+              'text-body font-bold text-benefit': item.benefitType && !hasMissedBenefit(item),
+              'text-caption font-semibold text-primary': hasMissedBenefit(item),
+              'text-caption font-normal text-gray': !item.benefitType,
+            }"
           >
-            <template v-if="item.benefitType">-{{ formatAmount(item.benefitAmount) }}</template>
+            <template v-if="hasMissedBenefit(item)">
+              놓친 혜택 {{ formatAmount(item.missedBenefitAmount) }}
+            </template>
+            <template v-else-if="item.benefitType">
+              -{{ formatAmount(item.benefitAmount) }}
+            </template>
             <template v-else>혜택 없음</template>
           </strong>
           <span class="mt-1 block text-caption font-semibold text-charcoal">
@@ -100,7 +109,13 @@ function formatAmount(amount: number) {
         </span>
 
         <span class="shrink-0 text-right">
-          <strong v-if="item.benefitType" class="block text-body font-bold text-benefit">
+          <strong
+            v-if="hasMissedBenefit(item)"
+            class="block text-caption font-semibold text-primary"
+          >
+            놓친 혜택 {{ formatAmount(item.missedBenefitAmount) }}
+          </strong>
+          <strong v-else-if="item.benefitType" class="block text-body font-bold text-benefit">
             -{{ formatAmount(item.benefitAmount) }}
           </strong>
           <strong v-else class="block text-caption font-normal text-gray">혜택 없음</strong>
