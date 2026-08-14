@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { CircleAlert, LoaderCircle } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { syncMyCards } from '@/domains/card/api/cardManagement'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
@@ -8,12 +9,18 @@ import { isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import MocaButton from '@/shared/components/MocaButton.vue'
 
-type SyncViewState = 'idle' | 'syncing' | 'failed'
-
 const route = useRoute()
 const router = useRouter()
 const directCardConnectionStore = useDirectCardConnectionStore()
-const syncState = ref<SyncViewState>('idle')
+const queryClient = useQueryClient()
+const {
+  mutateAsync: syncCards,
+  isPending: isSyncing,
+  isError: isSyncFailed,
+} = useMutation({
+  mutationFn: syncMyCards,
+  retry: false,
+})
 
 const issuerId = computed(() => {
   const routeIssuerId = route.params.issuerId
@@ -42,15 +49,18 @@ async function finishSync() {
 }
 
 async function runSync() {
-  if (syncState.value === 'syncing') return
+  if (isSyncing.value) return
 
-  syncState.value = 'syncing'
   directCardConnectionStore.setApprovalSyncStatus('syncing')
 
   try {
-    await syncMyCards()
+    await syncCards()
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['cards', 'my-cards'] }),
+      queryClient.invalidateQueries({ queryKey: ['benefit-report'] }),
+      queryClient.invalidateQueries({ queryKey: ['performance-report'] }),
+    ])
   } catch {
-    syncState.value = 'failed'
     directCardConnectionStore.setApprovalSyncStatus('failed')
     return
   }
@@ -60,7 +70,7 @@ async function runSync() {
 }
 
 async function skipSync() {
-  if (syncState.value === 'syncing') return
+  if (isSyncing.value) return
 
   directCardConnectionStore.setApprovalSyncStatus('skipped')
   await finishSync()
@@ -80,7 +90,7 @@ onMounted(() => void runSync())
 <template>
   <CardPageLayout title="카드 등록" bg="screen" :show-back="false">
     <section class="flex min-h-full flex-col items-center justify-center pb-12 text-center">
-      <template v-if="syncState !== 'failed'">
+      <template v-if="!isSyncFailed">
         <div
           class="flex size-20 items-center justify-center rounded-full bg-primary/10 text-primary"
           aria-hidden="true"

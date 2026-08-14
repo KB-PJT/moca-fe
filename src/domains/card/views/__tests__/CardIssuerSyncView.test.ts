@@ -1,3 +1,4 @@
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
@@ -69,15 +70,24 @@ function createTestRouter() {
 
 async function mountSyncView(pinia: ReturnType<typeof createPinia>) {
   const router = createTestRouter()
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
   await router.push({ name: 'card-issuer-sync-progress', params: { issuerId: 'kb-kookmin' } })
   await router.isReady()
   const appWrapper = mount(
     { template: '<router-view />' },
     {
-      global: { plugins: [pinia, router], stubs: globalStubs },
+      global: {
+        plugins: [pinia, router, [VueQueryPlugin, { queryClient }]],
+        stubs: globalStubs,
+      },
     },
   )
-  return { router, wrapper: appWrapper.getComponent(CardIssuerSyncView) }
+  return { queryClient, router, wrapper: appWrapper.getComponent(CardIssuerSyncView) }
 }
 
 describe('CardIssuerSyncView', () => {
@@ -97,7 +107,8 @@ describe('CardIssuerSyncView', () => {
         }),
     )
 
-    const { router, wrapper } = await mountSyncView(pinia)
+    const { queryClient, router, wrapper } = await mountSyncView(pinia)
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
 
     expect(wrapper.text()).toContain('승인내역을 불러오고 있어요')
     expect(cardManagementApiMocks.syncMyCards).toHaveBeenCalledOnce()
@@ -113,6 +124,9 @@ describe('CardIssuerSyncView', () => {
 
     expect(store.approvalSyncStatus).toBe('success')
     expect(router.currentRoute.value.name).toBe('card-issuer-connect-complete')
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['cards', 'my-cards'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['benefit-report'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['performance-report'] })
   })
 
   it('실패 시 이전 선택 화면 이동을 막고 sync만 다시 시도한다', async () => {
