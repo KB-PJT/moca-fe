@@ -54,13 +54,13 @@ function formatAmount(amount: number) {
               <template v-if="item.cardLastFour">•••• {{ item.cardLastFour }}</template>
             </dd>
           </div>
-          <div v-if="item.benefitType" class="flex items-center justify-between py-3">
+          <div class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">결제금액</dt>
             <dd class="text-body font-semibold text-charcoal">
               {{ formatAmount(item.paymentAmount) }}
             </dd>
           </div>
-          <div class="flex items-center justify-between py-3">
+          <div v-if="item.benefitType" class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">받은 혜택</dt>
             <dd class="text-body font-bold text-benefit">
               -{{ formatAmount(item.benefitAmount) }} {{ item.benefitType }}

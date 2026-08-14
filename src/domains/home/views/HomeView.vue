@@ -85,7 +85,7 @@ async function loadRecentBenefits() {
   } catch {
     if (requestId !== recentBenefitsRequestId) return
     recentBenefits.value = []
-    recentBenefitsError.value = '최근 혜택 내역을 불러오지 못했어요.'
+    recentBenefitsError.value = '최근 결제 내역을 불러오지 못했어요.'
   } finally {
     if (requestId === recentBenefitsRequestId) isRecentBenefitsLoading.value = false
   }

@@ -48,7 +48,7 @@ function parseOccurredAt(occurredAt: string) {
       </RouterLink>
     </div>
 
-    <div v-if="isLoading" aria-label="최근 혜택 내역 로딩 중" class="space-y-2">
+    <div v-if="isLoading" aria-label="최근 결제 내역 로딩 중" class="space-y-2">
       <Skeleton v-for="index in 3" :key="index" class="h-16.5 w-full rounded-md" />
     </div>
     <EmptyState
@@ -60,8 +60,8 @@ function parseOccurredAt(occurredAt: string) {
     />
     <EmptyState
       v-else-if="visibleItems.length === 0"
-      title="최근 혜택 내역이 없어요"
-      description="혜택이 확정되면 이곳에서 확인할 수 있어요."
+      title="최근 결제 내역이 없어요"
+      description="카드 결제 내역이 생기면 이곳에서 확인할 수 있어요."
     />
     <BenefitHistoryList v-else :items="visibleItems" @select="emit('select', $event)" />
   </section>
