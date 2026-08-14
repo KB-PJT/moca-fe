@@ -160,6 +160,7 @@ describe('benefitHistory API', () => {
     })
 
     expect(result.items[0]).toMatchObject({
+      id: 'card-1-2026-08-13T17:42:56+09:00-그린팜마트군자점-0',
       merchantName: '그린팜마트군자점',
       benefitType: null,
       description: '일반 결제',
