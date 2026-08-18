@@ -2,6 +2,7 @@
 import type { RankedCardBenefit } from '@/domains/map/api/merchants'
 import { describeRecommendationReason, formatRewardLabel } from '@/domains/map/utils/rewardFormat'
 import { formatAmountWithUnit } from '@/shared/utils/format'
+import { gaugeFillPercent } from '@/domains/map/utils/tierGauge'
 import CardImage from '@/shared/components/CardImage.vue'
 
 interface Props {
@@ -16,14 +17,6 @@ withDefaults(defineProps<Props>(), {
   detailed: false,
   appliedAmount: null,
 })
-
-function performanceRate(item: RankedCardBenefit): number {
-  if (item.requiredPreviousSpendKrw == null || item.requiredPreviousSpendKrw <= 0) return 100
-  return Math.min(
-    100,
-    Math.floor((item.previousMonthSpendKrw / item.requiredPreviousSpendKrw) * 100),
-  )
-}
 
 // 미충족 카드 밑에 왜 미충족인지 보여줄 첫 번째 미충족 사유.
 function unmetReasonText(item: RankedCardBenefit): string | null {
@@ -60,11 +53,11 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
               :aria-label="`${item.cardName} 실적 달성률`"
               aria-valuemin="0"
               aria-valuemax="100"
-              :aria-valuenow="performanceRate(item)"
+              :aria-valuenow="gaugeFillPercent(item)"
             >
               <div
                 class="bg-primary h-full rounded-full"
-                :style="{ width: `${performanceRate(item)}%` }"
+                :style="{ width: `${gaugeFillPercent(item)}%` }"
               />
             </div>
           </div>

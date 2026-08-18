@@ -133,6 +133,11 @@ export interface RankedCardBenefit {
   previousMonthSpendKrw: number
   requiredPreviousSpendKrw: number | null
   remainingPreviousSpendKrw: number
+  currentTier: number | null
+  nextTier: number | null
+  currentTierTargetAmount: number | null
+  isCurrentTierAchieved: boolean
+  remainingAmountToNextTier: number
   monthlyLimitKrw: number | null
   monthlyUsedKrw: number
   monthlyRemainingKrw: number | null

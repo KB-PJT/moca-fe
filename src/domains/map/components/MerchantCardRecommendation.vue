@@ -7,6 +7,12 @@ import { formatAmountWithUnit } from '@/shared/utils/format'
 import type { Merchant } from '@/domains/map/api/merchants'
 import { fetchMerchantCardRecommendations } from '@/domains/map/api/merchants'
 import { describeRecommendationReason, formatRewardLabel } from '@/domains/map/utils/rewardFormat'
+import {
+  gaugeFillPercent,
+  hasPerformanceRequirement,
+  segmentEndAmount,
+  targetTierNumber,
+} from '@/domains/map/utils/tierGauge'
 import MyCardRankingPreview from '@/domains/map/components/MyCardRankingPreview.vue'
 import CardImage from '@/shared/components/CardImage.vue'
 
@@ -60,18 +66,6 @@ watch(recommendedCard, (card) => {
     isFilled.value = true
   })
 })
-
-function hasPerformanceRequirement(requiredPreviousSpendKrw: number | null): boolean {
-  return requiredPreviousSpendKrw != null
-}
-
-function gaugeFillPercent(
-  previousMonthSpendKrw: number,
-  requiredPreviousSpendKrw: number | null,
-): number {
-  if (requiredPreviousSpendKrw == null || requiredPreviousSpendKrw <= 0) return 100
-  return Math.min(100, Math.floor((previousMonthSpendKrw / requiredPreviousSpendKrw) * 100))
-}
 
 // "실제 할인 금액 계산해보기" — 버튼을 누르면 결제 금액 입력칸이 나타나고, 적용하면
 // 그 금액으로 쿼리를 다시 호출해 서버가 계산한 실제 예상 혜택 금액을 보여준다.
@@ -167,49 +161,47 @@ watch(merchantId, () => {
           </div>
         </div>
 
-        <template v-if="hasPerformanceRequirement(recommendedCard.requiredPreviousSpendKrw)">
+        <template v-if="hasPerformanceRequirement(recommendedCard)">
           <div
             class="bg-divider relative h-3 rounded-full"
             role="progressbar"
             aria-label="전월 실적 달성률"
             aria-valuemin="0"
             aria-valuemax="100"
-            :aria-valuenow="
-              gaugeFillPercent(
-                recommendedCard.previousMonthSpendKrw,
-                recommendedCard.requiredPreviousSpendKrw,
-              )
-            "
+            :aria-valuenow="gaugeFillPercent(recommendedCard)"
           >
             <div
               class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
-              :style="{
-                width: `${
-                  isFilled
-                    ? gaugeFillPercent(
-                        recommendedCard.previousMonthSpendKrw,
-                        recommendedCard.requiredPreviousSpendKrw,
-                      )
-                    : 0
-                }%`,
-              }"
+              :style="{ width: `${isFilled ? gaugeFillPercent(recommendedCard) : 0}%` }"
             />
             <span
               class="text-label absolute inset-0 flex items-center justify-center text-charcoal"
             >
               {{ formatAmountWithUnit(recommendedCard.previousMonthSpendKrw) }}/{{
-                formatAmountWithUnit(recommendedCard.requiredPreviousSpendKrw!)
+                formatAmountWithUnit(segmentEndAmount(recommendedCard))
               }}
+            </span>
+            <span
+              v-if="recommendedCard.isCurrentTierAchieved"
+              class="bg-primary absolute top-1/2 left-0 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold text-white"
+            >
+              {{ recommendedCard.currentTier }}
+            </span>
+            <span
+              v-if="targetTierNumber(recommendedCard) !== null"
+              class="border-divider bg-card text-gray absolute top-1/2 right-0 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border text-[10px] font-bold"
+            >
+              {{ targetTierNumber(recommendedCard) }}
             </span>
           </div>
 
           <p
-            v-if="recommendedCard.remainingPreviousSpendKrw > 0"
+            v-if="recommendedCard.remainingAmountToNextTier > 0"
             class="text-caption text-charcoal text-right font-semibold"
           >
-            실적까지
+            {{ targetTierNumber(recommendedCard) }}구간까지
             <span class="text-primary">
-              {{ formatAmountWithUnit(recommendedCard.remainingPreviousSpendKrw) }}
+              {{ formatAmountWithUnit(recommendedCard.remainingAmountToNextTier) }}
             </span>
             남았어요!
           </p>
