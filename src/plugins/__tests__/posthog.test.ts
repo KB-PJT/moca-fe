@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const posthogMocks = vi.hoisted(() => ({
-  init: vi.fn(),
-  capture: vi.fn(),
+  init: vi.fn<(apiKey: string, config?: Record<string, unknown>) => void>(),
+  capture: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
 }))
 
 vi.mock('posthog-js', () => ({
