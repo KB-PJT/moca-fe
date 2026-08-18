@@ -1,4 +1,4 @@
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 import { ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MypageView from '@/domains/mypage/views/MypageView.vue'
@@ -12,6 +12,15 @@ const cardQueryState = vi.hoisted(() => ({
   isPending: false,
   isError: false,
   refetch: vi.fn<() => void>(),
+}))
+const summaryQueryState = vi.hoisted(() => ({
+  data: { locationRecommendationEnabled: true },
+  isPending: false,
+  isError: false,
+  refetch: vi.fn<() => void>(),
+}))
+const locationMutationState = vi.hoisted(() => ({
+  mutateAsync: vi.fn<(enabled: boolean) => Promise<void>>(),
 }))
 
 vi.mock('vue-router', () => ({
@@ -28,13 +37,16 @@ vi.mock('@tanstack/vue-query', () => ({
           refetch: cardQueryState.refetch,
         }
       : {
-          data: ref({ locationPermissionGranted: true }),
+          data: ref(summaryQueryState.data),
+          isPending: ref(summaryQueryState.isPending),
+          isError: ref(summaryQueryState.isError),
+          refetch: summaryQueryState.refetch,
         },
   useQueryClient: () => ({
     setQueryData: vi.fn<() => void>(),
   }),
   useMutation: () => ({
-    mutateAsync: vi.fn<() => Promise<void>>(),
+    mutateAsync: locationMutationState.mutateAsync,
     isPending: ref(false),
   }),
 }))
@@ -56,6 +68,12 @@ describe('MypageView', () => {
     cardQueryState.isPending = false
     cardQueryState.isError = false
     cardQueryState.refetch.mockClear()
+    summaryQueryState.data = { locationRecommendationEnabled: true }
+    summaryQueryState.isPending = false
+    summaryQueryState.isError = false
+    summaryQueryState.refetch.mockClear()
+    locationMutationState.mutateAsync.mockReset()
+    locationMutationState.mutateAsync.mockResolvedValue()
     window.history.replaceState({}, '')
   })
 
@@ -68,8 +86,35 @@ describe('MypageView', () => {
           SectionCard: { template: '<section><slot /></section>' },
           ListItem: {
             props: ['title', 'description'],
-            template: '<div>{{ title }} {{ description }}<slot /></div>',
+            template: '<div>{{ title }} {{ description }}<slot /><slot name="right" /></div>',
           },
+        },
+      },
+    })
+  }
+
+  function mountLocationSetting() {
+    return shallowMount(MypageView, {
+      global: {
+        stubs: {
+          PageLayout: { template: '<main><slot /></main>' },
+          MainHeader: { template: '<header />' },
+          SectionCard: { template: '<section><slot /></section>' },
+          ListItem: { template: '<div><slot /><slot name="right" /></div>' },
+          Switch: {
+            props: ['disabled'],
+            emits: ['update:modelValue'],
+            template:
+              '<div><button data-location-switch :disabled="disabled" @click="$emit(\'update:modelValue\', true)" /><button data-location-off :disabled="disabled" @click="$emit(\'update:modelValue\', false)" /></div>',
+          },
+          Dialog: { template: '<div><slot /></div>' },
+          DialogContent: { template: '<div><slot /></div>' },
+          DialogHeader: { template: '<div><slot /></div>' },
+          DialogTitle: { template: '<div><slot /></div>' },
+          DialogDescription: { template: '<div><slot /></div>' },
+          DialogFooter: { template: '<div><slot /></div>' },
+          DialogClose: { template: '<div><slot /></div>' },
+          MocaButton: { template: '<button><slot /></button>' },
         },
       },
     })
@@ -100,6 +145,88 @@ describe('MypageView', () => {
     const text = mountCardStatus().text()
     expect(text).toContain('연결 카드 0개')
     expect(text).toContain('등록한 카드 0개')
+  })
+
+  it('위치 설정 조회 실패 시 오류를 표시하고 재조회할 수 있다', async () => {
+    summaryQueryState.isError = true
+    const wrapper = mountCardStatus()
+
+    expect(wrapper.text()).toContain('설정을 불러오지 못했어요')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '다시 시도')
+      ?.trigger('click')
+
+    expect(summaryQueryState.refetch).toHaveBeenCalledOnce()
+  })
+
+  it('브라우저 위치 권한이 거부되면 서버 설정을 변경하지 않고 토스트를 표시한다', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn<
+          (
+            success: PositionCallback,
+            error: PositionErrorCallback,
+            options?: PositionOptions,
+          ) => void
+        >((_success, error) => error({} as GeolocationPositionError)),
+      },
+    })
+    const wrapper = shallowMount(MypageView, {
+      global: {
+        stubs: {
+          PageLayout: { template: '<main><slot /></main>' },
+          MainHeader: { template: '<header />' },
+          SectionCard: { template: '<section><slot /></section>' },
+          ListItem: { template: '<div><slot /><slot name="right" /></div>' },
+          Switch: {
+            emits: ['update:modelValue'],
+            template: '<button data-location-switch @click="$emit(\'update:modelValue\', true)" />',
+          },
+          Dialog: { template: '<div />' },
+        },
+      },
+    })
+
+    await wrapper.get('[data-location-switch]').trigger('click')
+
+    expect(wrapper.get('[role="alert"]').text()).toBe('브라우저 위치 권한을 허용해주세요.')
+    expect(locationMutationState.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('위치 추천 활성화 API 실패 시 오류 토스트를 표시한다', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn<(success: PositionCallback) => void>((success) =>
+          success({} as GeolocationPosition),
+        ),
+      },
+    })
+    locationMutationState.mutateAsync.mockRejectedValueOnce(new Error('update failed'))
+    const wrapper = mountLocationSetting()
+
+    await wrapper.get('[data-location-switch]').trigger('click')
+    await flushPromises()
+
+    expect(locationMutationState.mutateAsync).toHaveBeenCalledWith(true)
+    expect(wrapper.get('[role="alert"]').text()).toBe('위치 설정을 변경하지 못했어요.')
+  })
+
+  it('위치 추천 비활성화 API 실패 시 오류 토스트를 표시한다', async () => {
+    locationMutationState.mutateAsync.mockRejectedValueOnce(new Error('update failed'))
+    const wrapper = mountLocationSetting()
+
+    await wrapper.get('[data-location-off]').trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '끄기')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(locationMutationState.mutateAsync).toHaveBeenCalledWith(false)
+    expect(wrapper.get('[role="alert"]').text()).toBe('위치 설정을 변경하지 못했어요.')
   })
 
   it('내 카드 관리에 마이페이지 진입 정보를 전달한다', async () => {

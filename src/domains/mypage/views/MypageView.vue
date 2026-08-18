@@ -38,28 +38,69 @@ const authStore = useAuthStore()
 const isLogoutDialogOpen = ref(false)
 const isLocationOffConfirmOpen = ref(false)
 const locationPermissionError = ref('')
-const isInquiryToastVisible = ref(false)
-let inquiryToastTimer: ReturnType<typeof setTimeout> | undefined
+const browserLocationPermission = ref<PermissionState | 'unsupported'>('prompt')
+const toast = ref<{ message: string; role: 'status' | 'alert' } | null>(null)
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+let locationPermissionStatus: PermissionStatus | undefined
+
+function showToast(message: string, role: 'status' | 'alert' = 'status') {
+  if (toastTimer) clearTimeout(toastTimer)
+  toast.value = { message, role }
+  toastTimer = setTimeout(() => {
+    toast.value = null
+  }, 2000)
+}
+
+function handleBrowserLocationPermissionChange() {
+  if (!locationPermissionStatus) return
+
+  browserLocationPermission.value = locationPermissionStatus.state
+  if (locationPermissionStatus.state === 'denied') {
+    locationPermissionError.value = '브라우저 설정에서 위치 권한을 허용해주세요.'
+    showToast('브라우저 위치 권한이 차단되었어요.', 'alert')
+  } else {
+    locationPermissionError.value = ''
+  }
+}
+
+async function initializeBrowserLocationPermission() {
+  if (!navigator.geolocation || !navigator.permissions) {
+    browserLocationPermission.value = 'unsupported'
+    return
+  }
+
+  try {
+    locationPermissionStatus = await navigator.permissions.query({ name: 'geolocation' })
+    browserLocationPermission.value = locationPermissionStatus.state
+    locationPermissionStatus.addEventListener('change', handleBrowserLocationPermissionChange)
+  } catch {
+    browserLocationPermission.value = 'unsupported'
+  }
+}
 
 onMounted(() => {
-  if (!window.history.state?.inquirySubmitted) return
+  void initializeBrowserLocationPermission()
 
-  isInquiryToastVisible.value = true
+  if (window.history.state?.inquirySubmitted) {
+    showToast('문의가 접수되었습니다.')
 
-  const nextState = { ...window.history.state }
-  delete nextState.inquirySubmitted
-  window.history.replaceState(nextState, '')
-
-  inquiryToastTimer = setTimeout(() => {
-    isInquiryToastVisible.value = false
-  }, 2000)
+    const nextState = { ...window.history.state }
+    delete nextState.inquirySubmitted
+    window.history.replaceState(nextState, '')
+  }
 })
 
 onBeforeUnmount(() => {
-  if (inquiryToastTimer) clearTimeout(inquiryToastTimer)
+  if (toastTimer) clearTimeout(toastTimer)
+  locationPermissionStatus?.removeEventListener('change', handleBrowserLocationPermissionChange)
 })
 
-const { data: summary } = useQuery({
+const {
+  data: summary,
+  isPending: isSummaryPending,
+  isError: isSummaryError,
+  refetch: refetchSummary,
+} = useQuery({
   queryKey: ['mypage', 'summary'],
   queryFn: fetchMyPageSummary,
 })
@@ -89,7 +130,17 @@ const connectedCardDescription = computed(() => {
   if (isMyCardsError.value) return '카드 정보를 불러오지 못했어요'
   return `등록한 카드 ${connectedCardCount.value}개`
 })
-const locationPermissionGranted = computed(() => summary.value?.locationPermissionGranted ?? false)
+const locationRecommendationEnabled = computed(
+  () => summary.value?.locationRecommendationEnabled ?? false,
+)
+const locationSettingDescription = computed(() => {
+  if (isSummaryPending.value) return '설정을 불러오는 중'
+  if (isSummaryError.value) return '설정을 불러오지 못했어요'
+  if (!locationRecommendationEnabled.value) return '허용 안 됨'
+  if (browserLocationPermission.value === 'denied') return '브라우저 권한 차단됨'
+  if (browserLocationPermission.value === 'unsupported') return '브라우저에서 확인할 수 없음'
+  return '허용됨'
+})
 
 function navigateToCardManage() {
   void router.push({ name: 'card-manage', query: { from: 'mypage' } })
@@ -97,6 +148,10 @@ function navigateToCardManage() {
 
 function retryMyCards() {
   void refetchMyCards()
+}
+
+function retrySummary() {
+  void refetchSummary()
 }
 
 function navigateToProfile() {
@@ -141,10 +196,17 @@ async function handleLocationPermissionChange(enabled: boolean) {
     const isGranted = await requestBrowserLocationPermission()
     if (!isGranted) {
       locationPermissionError.value = '브라우저 설정에서 위치 권한을 허용해주세요.'
+      showToast('브라우저 위치 권한을 허용해주세요.', 'alert')
       return
     }
 
-    await updateLocationPermission(true)
+    browserLocationPermission.value = 'granted'
+    try {
+      await updateLocationPermission(true)
+      showToast('위치 기반 추천을 켰어요.')
+    } catch {
+      showToast('위치 설정을 변경하지 못했어요.', 'alert')
+    }
     return
   }
 
@@ -153,7 +215,12 @@ async function handleLocationPermissionChange(enabled: boolean) {
 
 async function confirmTurnOffLocation() {
   isLocationOffConfirmOpen.value = false
-  await updateLocationPermission(false)
+  try {
+    await updateLocationPermission(false)
+    showToast('위치 기반 추천을 껐어요.')
+  } catch {
+    showToast('위치 설정을 변경하지 못했어요.', 'alert')
+  }
 }
 
 async function handleLogout() {
@@ -175,11 +242,11 @@ async function handleLogout() {
     leave-to-class="-translate-y-2 opacity-0"
   >
     <div
-      v-if="isInquiryToastVisible"
-      role="status"
+      v-if="toast"
+      :role="toast.role"
       class="absolute top-[max(1rem,var(--safe-area-top))] right-5 left-5 z-50 rounded-md border bg-background px-4 py-3 text-center text-body font-semibold text-muted-foreground shadow-lg"
     >
-      문의가 접수되었습니다.
+      {{ toast.message }}
     </div>
   </Transition>
 
@@ -264,9 +331,7 @@ async function handleLogout() {
 
       <ListItem
         title="위치 권한 설정"
-        :description="
-          locationPermissionError || (locationPermissionGranted ? '허용됨' : '허용 안 됨')
-        "
+        :description="locationPermissionError || locationSettingDescription"
       >
         <template #left>
           <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
@@ -274,9 +339,18 @@ async function handleLogout() {
           </span>
         </template>
         <template #right>
+          <button
+            v-if="isSummaryError"
+            type="button"
+            class="text-caption font-semibold text-primary"
+            @click="retrySummary"
+          >
+            다시 시도
+          </button>
           <Switch
-            :model-value="locationPermissionGranted"
-            :disabled="isLocationPermissionUpdating"
+            v-else
+            :model-value="locationRecommendationEnabled"
+            :disabled="isSummaryPending || isLocationPermissionUpdating"
             class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
             aria-label="위치 권한 설정"
             @update:model-value="handleLocationPermissionChange"
