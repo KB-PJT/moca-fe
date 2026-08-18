@@ -4,6 +4,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { deleteMocaAccount } from '@/domains/mypage/api/mypage'
+import { captureEvent } from '@/plugins/posthog'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import { Checkbox } from '@/shared/ui/checkbox'
@@ -55,6 +56,7 @@ async function submitDeleteAccount() {
     return
   }
 
+  captureEvent('account_deleted', { reason: selectedReason.value ?? null })
   authStore.clearSession()
   isAccountDeleted.value = true
 

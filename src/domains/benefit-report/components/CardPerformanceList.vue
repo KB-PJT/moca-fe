@@ -5,6 +5,7 @@ import { CircleCheck } from '@lucide/vue'
 import type { PerformanceCardItem } from '@/domains/benefit-report/api/performanceReport'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
+import { captureEvent } from '@/plugins/posthog'
 
 defineProps<{
   cards: PerformanceCardItem[]
@@ -14,6 +15,7 @@ const router = useRouter()
 
 // 카드를 누르면 그 카드로 필터링된 전체 결제 내역으로 이동한다.
 function goToCardHistory(userCardId: string) {
+  captureEvent('performance_card_clicked', { userCardId })
   router.push({ name: 'home-benefits', query: { userCardId } })
 }
 

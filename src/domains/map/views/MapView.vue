@@ -25,6 +25,7 @@ import CategoryPickerSheet from '@/domains/map/components/CategoryPickerSheet.vu
 import LocationPermissionModal from '@/domains/map/components/LocationPermissionModal.vue'
 import MerchantBottomSheet from '@/domains/map/components/MerchantBottomSheet.vue'
 import PlaceListPanel from '@/domains/map/components/PlaceListPanel.vue'
+import { captureEvent } from '@/plugins/posthog'
 
 const mapContainer = ref<HTMLElement | null>(null)
 const controlsRef = ref<HTMLElement | null>(null)
@@ -129,6 +130,10 @@ function recenterToCurrentLocation() {
 function selectCategory(categoryId: string) {
   activeCategoryId.value = categoryId
   activeMerchantId.value = null
+  const categoryName = categories.value?.find(
+    (category) => category.categoryId === categoryId,
+  )?.categoryName
+  captureEvent('map_category_selected', { categoryId, categoryName })
 }
 
 function toggleBrandFilter(merchantId: string) {

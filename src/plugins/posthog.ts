@@ -30,3 +30,9 @@ export function capturePageview(path: string): void {
   if (!isInitialized) return
   posthog.capture('$pageview', { $current_url: path })
 }
+
+// 주요 이벤트(가입/카드 연동/추천 확인 등)를 도메인 코드에서 이 함수로 보낸다.
+export function captureEvent(name: string, properties?: Record<string, unknown>): void {
+  if (!isInitialized) return
+  posthog.capture(name, properties)
+}

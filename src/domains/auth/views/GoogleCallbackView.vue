@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { fetchOnboardingStatus, loginToMoca } from '@/domains/auth/api/auth'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { clearGoogleLoginSession, getGoogleCodeVerifier } from '@/domains/auth/utils/pkce'
+import { captureEvent } from '@/plugins/posthog'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -41,6 +42,8 @@ onMounted(async () => {
     })
     const isNewUser = await fetchOnboardingStatus()
     clearGoogleLoginSession()
+
+    captureEvent('login_completed', { isNewUser })
 
     const savedRedirect = sessionStorage.getItem('post_login_redirect')
     sessionStorage.removeItem('post_login_redirect')

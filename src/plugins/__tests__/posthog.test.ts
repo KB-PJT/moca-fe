@@ -71,4 +71,23 @@ describe('initPostHog / capturePageview', () => {
       expect.objectContaining({ api_host: 'https://us.i.posthog.com' }),
     )
   })
+
+  it('초기화 전에는 captureEvent가 아무것도 보내지 않는다', async () => {
+    const { captureEvent } = await import('@/plugins/posthog')
+
+    captureEvent('card_link_started', { institutionCode: '0301' })
+
+    expect(posthogMocks.capture).not.toHaveBeenCalled()
+  })
+
+  it('초기화 후 captureEvent는 이름과 속성을 그대로 전달한다', async () => {
+    const { initPostHog, captureEvent } = await import('@/plugins/posthog')
+
+    initPostHog('phc_abc')
+    captureEvent('card_link_started', { institutionCode: '0301' })
+
+    expect(posthogMocks.capture).toHaveBeenCalledWith('card_link_started', {
+      institutionCode: '0301',
+    })
+  })
 })
