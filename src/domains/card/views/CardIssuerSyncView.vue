@@ -50,7 +50,11 @@ async function finishSync() {
 
 async function runSync() {
   const targetIssuerId = issuerId.value
-  if (isSyncing.value || !targetIssuerId) return
+  if (isSyncing.value) return
+  if (!targetIssuerId) {
+    await finishSync()
+    return
+  }
 
   directCardConnectionStore.setApprovalSyncStatus('syncing')
 

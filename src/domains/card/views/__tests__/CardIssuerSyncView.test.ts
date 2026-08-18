@@ -68,7 +68,7 @@ function createTestRouter() {
   })
 }
 
-async function mountSyncView(pinia: ReturnType<typeof createPinia>) {
+async function mountSyncView(pinia: ReturnType<typeof createPinia>, issuerId = 'kb-kookmin') {
   const router = createTestRouter()
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -76,7 +76,7 @@ async function mountSyncView(pinia: ReturnType<typeof createPinia>) {
       mutations: { retry: false },
     },
   })
-  await router.push({ name: 'card-issuer-sync-progress', params: { issuerId: 'kb-kookmin' } })
+  await router.push({ name: 'card-issuer-sync-progress', params: { issuerId } })
   await router.isReady()
   const appWrapper = mount(
     { template: '<router-view />' },
@@ -192,5 +192,19 @@ describe('CardIssuerSyncView', () => {
 
     expect(cardManagementApiMocks.syncMyCards).toHaveBeenCalledOnce()
     expect(router.currentRoute.value.name).toBe('home')
+  })
+
+  it('유효하지 않은 카드사 경로에서는 sync 없이 홈으로 이동하고 등록 상태를 정리한다', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = prepareActivatedCard()
+
+    const { router } = await mountSyncView(pinia, 'invalid-issuer')
+    await flushPromises()
+
+    expect(cardManagementApiMocks.syncMyCards).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.name).toBe('home')
+    expect(store.issuerId).toBeNull()
+    expect(store.activationCompleted).toBe(false)
   })
 })
