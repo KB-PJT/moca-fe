@@ -81,10 +81,18 @@ const BIRTH_DATE_FIELD = {
   helperText: '생년월일 6자리를 입력해 주세요. 예: 950101',
 } as const satisfies CardConnectionField
 
+const KB_BIRTH_DATE_FIELD = {
+  ...BIRTH_DATE_FIELD,
+  placeholder: 'YYYYMMDD',
+  maxLength: 8,
+  exactLength: 8,
+  helperText: '생년월일 8자리를 입력해 주세요. 예: 19950101',
+} as const satisfies CardConnectionField
+
 export const CARD_CONNECTION_CONFIGS: Record<CardIssuerId, CardConnectionConfig> = {
   'kb-kookmin': {
     loginFields: HOMEPAGE_LOGIN_FIELDS,
-    additionalFields: [CARD_NUMBER_FIELD, CARD_PASSWORD_FIELD],
+    additionalFields: [CARD_NUMBER_FIELD, CARD_PASSWORD_FIELD, KB_BIRTH_DATE_FIELD],
     additionalInputMode: 'always',
   },
   hyundai: {
