@@ -3,6 +3,7 @@ import { useAuthStore } from '@/domains/auth/stores/auth'
 import { fetchMyCards, resolveCardAccessState } from '@/domains/card/api/cardManagement'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { restoreInitialMocaSession } from '@/shared/api/client'
+import { capturePageview } from '@/plugins/posthog'
 
 // 지도/상세 라우트가 같은 컴포넌트 인스턴스를 재사용하도록 import를 하나로 공유한다.
 const MapView = () => import('@/domains/map/views/MapView.vue')
@@ -254,6 +255,10 @@ router.beforeEach(async (to, from) => {
   }
 
   return true
+})
+
+router.afterEach((to) => {
+  capturePageview(to.fullPath)
 })
 
 export default router
