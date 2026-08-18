@@ -68,7 +68,7 @@ export async function syncMyCards(): Promise<SyncMyCardsResponse> {
   const response = await apiClient.post<SyncMyCardsApiResponse>(
     '/api/v1/me/cards/sync',
     undefined,
-    { timeout: 80_000 },
+    { timeout: 120_000 },
   )
 
   return response.data.data

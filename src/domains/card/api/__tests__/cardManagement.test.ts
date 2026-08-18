@@ -99,7 +99,7 @@ describe('cardManagement API', () => {
 
     await expect(syncMyCards()).resolves.toEqual(responseData)
     expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/me/cards/sync', undefined, {
-      timeout: 80_000,
+      timeout: 120_000,
     })
   })
 
