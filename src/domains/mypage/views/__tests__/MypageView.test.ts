@@ -1,4 +1,4 @@
-import { shallowMount } from '@vue/test-utils'
+import { flushPromises, shallowMount } from '@vue/test-utils'
 import { ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MypageView from '@/domains/mypage/views/MypageView.vue'
@@ -93,6 +93,33 @@ describe('MypageView', () => {
     })
   }
 
+  function mountLocationSetting() {
+    return shallowMount(MypageView, {
+      global: {
+        stubs: {
+          PageLayout: { template: '<main><slot /></main>' },
+          MainHeader: { template: '<header />' },
+          SectionCard: { template: '<section><slot /></section>' },
+          ListItem: { template: '<div><slot /><slot name="right" /></div>' },
+          Switch: {
+            props: ['disabled'],
+            emits: ['update:modelValue'],
+            template:
+              '<div><button data-location-switch :disabled="disabled" @click="$emit(\'update:modelValue\', true)" /><button data-location-off :disabled="disabled" @click="$emit(\'update:modelValue\', false)" /></div>',
+          },
+          Dialog: { template: '<div><slot /></div>' },
+          DialogContent: { template: '<div><slot /></div>' },
+          DialogHeader: { template: '<div><slot /></div>' },
+          DialogTitle: { template: '<div><slot /></div>' },
+          DialogDescription: { template: '<div><slot /></div>' },
+          DialogFooter: { template: '<div><slot /></div>' },
+          DialogClose: { template: '<div><slot /></div>' },
+          MocaButton: { template: '<button><slot /></button>' },
+        },
+      },
+    })
+  }
+
   it('카드 조회 중에는 0개 대신 로딩 상태를 표시한다', () => {
     cardQueryState.isPending = true
 
@@ -166,6 +193,40 @@ describe('MypageView', () => {
 
     expect(wrapper.get('[role="alert"]').text()).toBe('브라우저 위치 권한을 허용해주세요.')
     expect(locationMutationState.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('위치 추천 활성화 API 실패 시 오류 토스트를 표시한다', async () => {
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition: vi.fn<(success: PositionCallback) => void>((success) =>
+          success({} as GeolocationPosition),
+        ),
+      },
+    })
+    locationMutationState.mutateAsync.mockRejectedValueOnce(new Error('update failed'))
+    const wrapper = mountLocationSetting()
+
+    await wrapper.get('[data-location-switch]').trigger('click')
+    await flushPromises()
+
+    expect(locationMutationState.mutateAsync).toHaveBeenCalledWith(true)
+    expect(wrapper.get('[role="alert"]').text()).toBe('위치 설정을 변경하지 못했어요.')
+  })
+
+  it('위치 추천 비활성화 API 실패 시 오류 토스트를 표시한다', async () => {
+    locationMutationState.mutateAsync.mockRejectedValueOnce(new Error('update failed'))
+    const wrapper = mountLocationSetting()
+
+    await wrapper.get('[data-location-off]').trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '끄기')
+      ?.trigger('click')
+    await flushPromises()
+
+    expect(locationMutationState.mutateAsync).toHaveBeenCalledWith(false)
+    expect(wrapper.get('[role="alert"]').text()).toBe('위치 설정을 변경하지 못했어요.')
   })
 
   it('내 카드 관리에 마이페이지 진입 정보를 전달한다', async () => {

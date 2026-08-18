@@ -32,6 +32,13 @@ describe('location settings API', () => {
     expect(apiClient.get).toHaveBeenCalledWith('/api/v1/me/location-settings')
   })
 
+  it('위치 추천 설정 조회 실패를 호출자에게 전달한다', async () => {
+    const error = new Error('location settings query failed')
+    vi.mocked(apiClient.get).mockRejectedValue(error)
+
+    await expect(fetchMyPageSummary()).rejects.toBe(error)
+  })
+
   it.each([true, false])('위치 추천 설정을 %s로 변경한다', async (enabled) => {
     vi.mocked(apiClient.patch).mockResolvedValue({
       data: {
@@ -46,6 +53,13 @@ describe('location settings API', () => {
     expect(apiClient.patch).toHaveBeenCalledWith('/api/v1/me/location-settings', {
       locationRecommendationEnabled: enabled,
     })
+  })
+
+  it.each([true, false])('위치 추천 설정 %s 변경 실패를 호출자에게 전달한다', async (enabled) => {
+    const error = new Error('location settings update failed')
+    vi.mocked(apiClient.patch).mockRejectedValue(error)
+
+    await expect(updateLocationPermissionGranted(enabled)).rejects.toBe(error)
   })
 })
 

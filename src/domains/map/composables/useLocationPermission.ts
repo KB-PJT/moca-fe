@@ -43,8 +43,16 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
     )
   }
 
+  function clearWatch() {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId)
+      watchId = null
+    }
+    currentLocation.value = null
+  }
+
   onUnmounted(() => {
-    if (watchId !== null) navigator.geolocation.clearWatch(watchId)
+    clearWatch()
   })
 
   async function handleAllowLocation() {
@@ -60,11 +68,12 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
     }
 
     currentLocation.value = coordinates
-    startWatchingPosition()
     try {
       await updateLocationPermission(true)
+      startWatchingPosition()
       isLocationModalOpen.value = false
     } catch {
+      clearWatch()
       locationPermissionError.value = '위치 추천 설정을 저장하지 못했어요.'
     } finally {
       isRequestingLocation.value = false
@@ -83,11 +92,16 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
 
       if (summary.locationRecommendationEnabled) {
         currentLocation.value = await requestCurrentPosition()
-        if (currentLocation.value) startWatchingPosition()
+        if (myPageSummary.value?.locationRecommendationEnabled && currentLocation.value) {
+          startWatchingPosition()
+        } else if (!myPageSummary.value?.locationRecommendationEnabled) {
+          clearWatch()
+        }
         isLocationCheckComplete.value = true
         return
       }
 
+      clearWatch()
       isLocationCheckComplete.value = true
       if (sessionStorage.getItem(LOCATION_MODAL_DISMISSED_KEY)) return
       isLocationModalOpen.value = true
