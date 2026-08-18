@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { CircleCheck } from '@lucide/vue'
 import type { PerformanceCardItem } from '@/domains/benefit-report/api/performanceReport'
 import { formatAmountWithUnit } from '@/shared/utils/format'
@@ -8,6 +9,13 @@ import CardImage from '@/shared/components/CardImage.vue'
 defineProps<{
   cards: PerformanceCardItem[]
 }>()
+
+const router = useRouter()
+
+// 카드를 누르면 그 카드로 필터링된 전체 결제 내역으로 이동한다.
+function goToCardHistory(userCardId: string) {
+  router.push({ name: 'home-benefits', query: { userCardId } })
+}
 
 // 게이지가 화면에 나타날 때 0%에서 실제 값까지 차오르는 효과를 주기 위한 트리거.
 // 실적 %와 무관하게 모든 카드가 같은 transition-duration으로 동시에 채워진다.
@@ -61,11 +69,13 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
 
 <template>
   <TransitionGroup tag="div" name="card-stagger" appear class="space-y-3">
-    <div
+    <button
       v-for="(card, index) in cards"
       :key="card.userCardId"
-      class="rounded-lg border border-divider bg-card p-3"
+      type="button"
+      class="block w-full rounded-lg border border-divider bg-card p-3 text-left"
       :style="{ transitionDelay: `${index * 70}ms` }"
+      @click="goToCardHistory(card.userCardId)"
     >
       <div class="flex items-center gap-3">
         <CardImage :src="card.cardImageUrl" :alt="`${card.cardName} 카드 이미지`" small />
@@ -130,7 +140,7 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
           {{ remainingAmountText(card) }}
         </span>
       </div>
-    </div>
+    </button>
   </TransitionGroup>
 </template>
 
