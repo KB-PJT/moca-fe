@@ -64,11 +64,11 @@ export async function reorderMyCards(userCardIds: string[]): Promise<MyCardsResp
   return response.data.data
 }
 
-export async function syncMyCards(): Promise<SyncMyCardsResponse> {
+export async function syncMyCards(institutionCode: string): Promise<SyncMyCardsResponse> {
   const response = await apiClient.post<SyncMyCardsApiResponse>(
     '/api/v1/me/cards/sync',
     undefined,
-    { timeout: 180_000 },
+    { params: { institutionCode }, timeout: 150_000 },
   )
 
   return response.data.data

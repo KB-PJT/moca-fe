@@ -5,7 +5,7 @@ import { computed, onMounted } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { syncMyCards } from '@/domains/card/api/cardManagement'
 import CardPageLayout from '@/domains/card/components/CardPageLayout.vue'
-import { isCardIssuerId } from '@/domains/card/constants/cardIssuers'
+import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import MocaButton from '@/shared/components/MocaButton.vue'
 
@@ -18,7 +18,7 @@ const {
   isPending: isSyncing,
   isError: isSyncFailed,
 } = useMutation({
-  mutationFn: syncMyCards,
+  mutationFn: (institutionCode: string) => syncMyCards(institutionCode),
   retry: false,
 })
 
@@ -49,12 +49,13 @@ async function finishSync() {
 }
 
 async function runSync() {
-  if (isSyncing.value) return
+  const targetIssuerId = issuerId.value
+  if (isSyncing.value || !targetIssuerId) return
 
   directCardConnectionStore.setApprovalSyncStatus('syncing')
 
   try {
-    await syncCards()
+    await syncCards(CARD_ISSUERS[targetIssuerId].institutionCode)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['cards', 'my-cards'] }),
       queryClient.invalidateQueries({ queryKey: ['benefit-report'] }),
