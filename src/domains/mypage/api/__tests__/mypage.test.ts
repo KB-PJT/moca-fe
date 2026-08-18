@@ -1,12 +1,53 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import apiClient from '@/shared/api/client'
-import { deleteMocaAccount } from '@/domains/mypage/api/mypage'
+import {
+  deleteMocaAccount,
+  fetchMyPageSummary,
+  updateLocationPermissionGranted,
+} from '@/domains/mypage/api/mypage'
 
 vi.mock('@/shared/api/client', () => ({
   default: {
+    get: vi.fn<(url: string) => Promise<unknown>>(),
+    patch: vi.fn<(url: string, data: object) => Promise<unknown>>(),
     delete: vi.fn<(url: string, config: object) => Promise<void>>(),
   },
 }))
+
+describe('location settings API', () => {
+  beforeEach(() => {
+    vi.mocked(apiClient.get).mockReset()
+    vi.mocked(apiClient.patch).mockReset()
+  })
+
+  it('저장된 위치 추천 설정을 조회한다', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        success: true,
+        data: { locationRecommendationEnabled: true },
+      },
+    } as never)
+
+    await expect(fetchMyPageSummary()).resolves.toEqual({ locationRecommendationEnabled: true })
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/me/location-settings')
+  })
+
+  it.each([true, false])('위치 추천 설정을 %s로 변경한다', async (enabled) => {
+    vi.mocked(apiClient.patch).mockResolvedValue({
+      data: {
+        success: true,
+        data: { locationRecommendationEnabled: enabled },
+      },
+    } as never)
+
+    await expect(updateLocationPermissionGranted(enabled)).resolves.toEqual({
+      locationRecommendationEnabled: enabled,
+    })
+    expect(apiClient.patch).toHaveBeenCalledWith('/api/v1/me/location-settings', {
+      locationRecommendationEnabled: enabled,
+    })
+  })
+})
 
 describe('deleteMocaAccount', () => {
   beforeEach(() => {

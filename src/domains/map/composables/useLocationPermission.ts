@@ -61,9 +61,14 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
 
     currentLocation.value = coordinates
     startWatchingPosition()
-    await updateLocationPermission(true)
-    isRequestingLocation.value = false
-    isLocationModalOpen.value = false
+    try {
+      await updateLocationPermission(true)
+      isLocationModalOpen.value = false
+    } catch {
+      locationPermissionError.value = '위치 추천 설정을 저장하지 못했어요.'
+    } finally {
+      isRequestingLocation.value = false
+    }
   }
 
   function handleLaterLocation() {
@@ -76,7 +81,7 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
     async ([ready, summary]) => {
       if (!ready || !summary) return
 
-      if (summary.locationPermissionGranted) {
+      if (summary.locationRecommendationEnabled) {
         currentLocation.value = await requestCurrentPosition()
         if (currentLocation.value) startWatchingPosition()
         isLocationCheckComplete.value = true
