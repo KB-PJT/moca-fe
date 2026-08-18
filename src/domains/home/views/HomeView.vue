@@ -16,6 +16,7 @@ import EmptyState from '@/shared/components/EmptyState.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { captureEvent } from '@/plugins/posthog'
 
 const activeCardIndex = ref(0)
 const cards = ref<HomeOwnedCard[]>([])
@@ -44,6 +45,7 @@ async function loadHomeGreeting() {
   } catch {
     greeting.value = null
     greetingError.value = '홈 혜택 정보를 불러오지 못했어요.'
+    captureEvent('api_load_failed', { source: 'home_greeting' })
   } finally {
     isGreetingLoading.value = false
   }
@@ -69,6 +71,7 @@ async function loadHomeCards() {
     cardManagementStore.setDetailNavigationCardIds([])
     activeCardIndex.value = 0
     cardsError.value = '보유카드를 불러오지 못했어요.'
+    captureEvent('api_load_failed', { source: 'home_cards' })
   } finally {
     isCardsLoading.value = false
   }
@@ -87,6 +90,7 @@ async function loadRecentBenefits() {
     if (requestId !== recentBenefitsRequestId) return
     recentBenefits.value = []
     recentBenefitsError.value = '최근 결제 내역을 불러오지 못했어요.'
+    captureEvent('api_load_failed', { source: 'home_recent_benefits' })
   } finally {
     if (requestId === recentBenefitsRequestId) isRecentBenefitsLoading.value = false
   }

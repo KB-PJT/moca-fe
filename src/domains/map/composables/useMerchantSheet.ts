@@ -3,6 +3,7 @@ import { useRoute, useRouter } from 'vue-router'
 import type { Merchant } from '@/domains/map/api/merchants'
 import { useSheetTransition } from '@/domains/map/composables/useSheetTransition'
 import type { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
+import { captureEvent } from '@/plugins/posthog'
 
 export function useMerchantSheet(
   sheetRef: Ref<HTMLElement | null>,
@@ -45,6 +46,11 @@ export function useMerchantSheet(
 
   async function selectMerchant(merchant: Merchant) {
     if (!kakaoMap.selectMarker(merchant)) return
+
+    captureEvent('merchant_selected', {
+      category: merchant.category,
+      merchantId: merchant.merchantId,
+    })
 
     sheet.startOpen()
     selectedMerchant.value = merchant

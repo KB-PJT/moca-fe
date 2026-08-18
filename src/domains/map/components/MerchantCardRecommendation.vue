@@ -15,6 +15,7 @@ import {
 } from '@/domains/map/utils/tierGauge'
 import MyCardRankingPreview from '@/domains/map/components/MyCardRankingPreview.vue'
 import CardImage from '@/shared/components/CardImage.vue'
+import { captureEvent } from '@/plugins/posthog'
 
 interface Props {
   merchant: Merchant
@@ -55,16 +56,29 @@ const {
 const recommendedCard = computed(() => recommendation.value?.recommendedCard ?? null)
 const rankedCards = computed(() => recommendation.value?.rankedCards ?? [])
 
+watch(isError, (hasError) => {
+  if (hasError) captureEvent('api_load_failed', { source: 'merchant_card_recommendations' })
+})
+
 // 게이지가 화면에 나타날 때 0%에서 실제 값까지 차오르는 효과. 데이터가 비동기로 오므로
 // mount 시점이 아니라 recommendedCard가 실제로 생길 때마다 다시 재생한다.
 const isFilled = ref(false)
 
-watch(recommendedCard, (card) => {
+watch(recommendedCard, (card, previousCard) => {
   if (!card) return
   isFilled.value = false
   requestAnimationFrame(() => {
     isFilled.value = true
   })
+
+  // 결제 금액 재계산으로 같은 추천 결과가 갱신될 때마다가 아니라, 새 가맹점의 추천 결과를
+  // 처음 확인했을 때만 잡는다.
+  if (!previousCard) {
+    captureEvent('card_recommendation_viewed', {
+      merchantId: props.merchant.merchantId,
+      cardName: card.cardName,
+    })
+  }
 })
 
 // "실제 할인 금액 계산해보기" — 버튼을 누르면 결제 금액 입력칸이 나타나고, 적용하면
@@ -83,6 +97,10 @@ function applyAmount() {
   const amount = Number(paymentAmountInput.value)
   appliedAmount.value = amount
   paymentAmount.value = amount
+  captureEvent('benefit_calculator_used', {
+    merchantId: props.merchant.merchantId,
+    paymentAmount: amount,
+  })
 }
 
 function resetAmount() {

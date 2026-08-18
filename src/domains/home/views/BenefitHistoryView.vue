@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchBenefitHistory, type BenefitHistorySummary } from '@/domains/home/api/benefitHistory'
 import { fetchHomeCards } from '@/domains/home/api/homeCards'
+import { captureEvent } from '@/plugins/posthog'
 import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import BenefitHistoryList from '@/domains/home/components/BenefitHistoryList.vue'
@@ -118,6 +119,7 @@ async function loadHistory() {
     historySummary.value = emptySummary()
     totalCount.value = 0
     loadError.value = '혜택 내역을 불러오지 못했어요.'
+    captureEvent('api_load_failed', { source: 'benefit_history' })
   } finally {
     if (requestId === historyRequestId) isLoading.value = false
   }

@@ -20,6 +20,7 @@ import {
 import { CARD_ISSUERS, isCardIssuerId } from '@/domains/card/constants/cardIssuers'
 import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardConnection'
 import MocaButton from '@/shared/components/MocaButton.vue'
+import { captureEvent } from '@/plugins/posthog'
 
 const route = useRoute()
 const router = useRouter()
@@ -142,15 +143,19 @@ async function connectIssuer() {
     return
   }
 
+  captureEvent('card_link_started', { institutionCode: targetIssuerId })
+
   try {
     const response = await createCardLink(request)
     if (directCardConnectionStore.issuerId === targetIssuerId) {
       directCardConnectionStore.completeCardLink(response)
     }
+    captureEvent('card_link_succeeded', { institutionCode: targetIssuerId })
   } catch (error) {
     if (directCardConnectionStore.issuerId === targetIssuerId) {
       directCardConnectionStore.failLookup(toLookupError(error))
     }
+    captureEvent('card_link_failed', { institutionCode: targetIssuerId })
   } finally {
     isSubmitting.value = false
   }
