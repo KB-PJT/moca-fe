@@ -27,6 +27,10 @@ const isSaveDisabled = computed(
     normalizedNickname.value === authStore.user?.nickname,
 )
 
+function syncNickname(event: Event) {
+  nickname.value = (event.target as HTMLInputElement).value
+}
+
 async function saveProfile() {
   if (!normalizedNickname.value || isNicknameTooLong.value || isSaveDisabled.value) return
 
@@ -58,6 +62,7 @@ async function saveProfile() {
           name="nickname"
           type="text"
           autocomplete="nickname"
+          @input="syncNickname"
           :aria-invalid="isNicknameTooLong"
           class="text-body h-12.5 w-full rounded-md border bg-card px-4 font-semibold text-charcoal outline-none transition-shadow focus:ring-3"
           :class="
