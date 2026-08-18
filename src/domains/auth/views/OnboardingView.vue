@@ -114,21 +114,33 @@ function moveToStep(index: number) {
 
 function handlePointerDown(event: PointerEvent) {
   if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return
+  if (event.target instanceof Element && event.target.closest('button')) return
 
+  const target = event.currentTarget as HTMLElement
+  target.setPointerCapture(event.pointerId)
   pointerStartX.value = event.clientX
 }
 
 function handlePointerUp(event: PointerEvent) {
   const startX = pointerStartX.value
   pointerStartX.value = null
+  releasePointerCapture(event)
 
   if (startX === null || Math.abs(startX - event.clientX) < 50) return
 
   moveToStep(currentStepIndex.value + (startX > event.clientX ? 1 : -1))
 }
 
-function handlePointerCancel() {
+function handlePointerCancel(event: PointerEvent) {
   pointerStartX.value = null
+  releasePointerCapture(event)
+}
+
+function releasePointerCapture(event: PointerEvent) {
+  const target = event.currentTarget as HTMLElement
+  if (target.hasPointerCapture?.(event.pointerId)) {
+    target.releasePointerCapture(event.pointerId)
+  }
 }
 
 async function handleNext() {

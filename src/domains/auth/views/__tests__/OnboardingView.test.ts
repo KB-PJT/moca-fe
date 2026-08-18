@@ -7,7 +7,7 @@ const push = vi.fn<(location: { name: string }) => void>()
 
 function dispatchPointerEvent(
   element: Element,
-  type: 'pointerdown' | 'pointerup',
+  type: 'pointerdown' | 'pointerup' | 'pointercancel',
   clientX: number,
 ) {
   const event = new MouseEvent(type, { bubbles: true, clientX, button: 0 })
@@ -108,11 +108,20 @@ describe('OnboardingView', () => {
   it('화면을 좌우로 드래그해 다음 및 이전 단계로 이동한다', async () => {
     const wrapper = mount(OnboardingView)
     const slide = wrapper.get('section')
+    const setPointerCapture = vi.fn<(pointerId: number) => void>()
+    const releasePointerCapture = vi.fn<(pointerId: number) => void>()
+    Object.assign(slide.element, {
+      setPointerCapture,
+      hasPointerCapture: () => true,
+      releasePointerCapture,
+    })
 
     dispatchPointerEvent(slide.element, 'pointerdown', 300)
     dispatchPointerEvent(slide.element, 'pointerup', 200)
     await wrapper.vm.$nextTick()
     expect(wrapper.text()).toContain('결제 전 혜택 확인')
+    expect(setPointerCapture).toHaveBeenCalledWith(1)
+    expect(releasePointerCapture).toHaveBeenCalledWith(1)
 
     dispatchPointerEvent(slide.element, 'pointerdown', 100)
     dispatchPointerEvent(slide.element, 'pointerup', 200)
