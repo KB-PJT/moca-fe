@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { ChevronLeft, ChevronRight, LoaderCircle } from '@lucide/vue'
 import {
@@ -29,8 +30,20 @@ function shiftYearMonth(yearMonth: string, delta: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
-const activeTab = ref<'benefit' | 'performance'>('benefit')
+const route = useRoute()
+const router = useRouter()
+
+// 실적 탭에서 카드 눌러 다른 화면으로 갔다가 뒤로가기로 돌아왔을 때도 실적 탭이 유지되도록
+// 탭 상태를 URL 쿼리에 반영한다. 뒤로가기는 그 시점 URL(쿼리 포함)을 그대로 복원해준다.
+const activeTab = ref<'benefit' | 'performance'>(
+  route.query.tab === 'performance' ? 'performance' : 'benefit',
+)
 const activeYearMonth = ref(currentYearMonth())
+
+function setActiveTab(tab: 'benefit' | 'performance') {
+  activeTab.value = tab
+  void router.replace({ query: { ...route.query, tab } })
+}
 
 const pageTitle = computed(() => (activeTab.value === 'benefit' ? '혜택 리포트' : '실적 리포트'))
 
@@ -134,7 +147,7 @@ const {
         type="button"
         class="flex-1 rounded-full py-2 text-caption font-semibold"
         :class="activeTab === 'benefit' ? 'bg-white text-primary' : 'text-gray'"
-        @click="activeTab = 'benefit'"
+        @click="setActiveTab('benefit')"
       >
         혜택
       </button>
@@ -142,7 +155,7 @@ const {
         type="button"
         class="flex-1 rounded-full py-2 text-caption font-semibold"
         :class="activeTab === 'performance' ? 'bg-white text-primary' : 'text-gray'"
-        @click="activeTab = 'performance'"
+        @click="setActiveTab('performance')"
       >
         실적
       </button>

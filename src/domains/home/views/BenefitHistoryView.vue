@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronLeft, ChevronRight } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { fetchBenefitHistory, type BenefitHistorySummary } from '@/domains/home/api/benefitHistory'
-import { fetchHomeCards, resolveHomeCardAccentColor } from '@/domains/home/api/homeCards'
+import { fetchHomeCards } from '@/domains/home/api/homeCards'
 import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
 import BenefitHistoryList from '@/domains/home/components/BenefitHistoryList.vue'
+import CardImage from '@/shared/components/CardImage.vue'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import { Skeleton } from '@/shared/ui/skeleton'
@@ -13,9 +15,10 @@ import { Skeleton } from '@/shared/ui/skeleton'
 interface CardOption {
   id: string
   name: string
-  accentColor: string
+  imageUrl: string | null
 }
 
+const route = useRoute()
 const now = new Date()
 const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 const emptySummary = (): BenefitHistorySummary => ({
@@ -129,11 +132,18 @@ async function loadCardsAndHistory() {
       response?.cards.map((card) => ({
         id: card.userCardId,
         name: card.cardName,
-        accentColor: resolveHomeCardAccentColor(card),
+        imageUrl: card.cardImageUrl,
       })) ?? []
+    // 실적탭 카드를 눌러 들어온 경우 그 카드를 우선 선택한다. 쿼리 카드가 없거나
+    // 본인 소유가 아니면(카드 목록에 없으면) 홈이 알려준 선택 카드로 대체한다.
+    const requestedCardId =
+      typeof route.query.userCardId === 'string' ? route.query.userCardId : null
     const responseSelectedCardId = response?.selectedUserCardId
-    selectedCardId.value = cards.value.some((card) => card.id === responseSelectedCardId)
-      ? (responseSelectedCardId ?? '')
+    const preferredCardId = cards.value.some((card) => card.id === requestedCardId)
+      ? requestedCardId
+      : responseSelectedCardId
+    selectedCardId.value = cards.value.some((card) => card.id === preferredCardId)
+      ? (preferredCardId ?? '')
       : (cards.value[0]?.id ?? '')
     if (selectedCardId.value) await loadHistory()
     else isLoading.value = false
@@ -183,10 +193,12 @@ onMounted(loadCardsAndHistory)
           <summary
             class="flex w-full cursor-pointer list-none items-center gap-2 rounded-md border border-divider bg-card px-3 py-2 shadow-btn [&::-webkit-details-marker]:hidden"
           >
-            <span
-              class="size-5 shrink-0 rounded-xs"
-              :style="{ backgroundColor: selectedCard?.accentColor ?? '#2A998B' }"
-              aria-hidden="true"
+            <CardImage
+              :src="selectedCard?.imageUrl"
+              :alt="`${selectedCard?.name ?? '카드'} 이미지`"
+              orientation="horizontal"
+              :width="28"
+              :height="18"
             />
             <strong class="min-w-0 flex-1 truncate text-caption font-semibold text-charcoal">
               {{ selectedCard?.name ?? '카드 선택' }}

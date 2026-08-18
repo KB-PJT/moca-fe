@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BenefitHistoryResult } from '@/domains/home/api/benefitHistory'
 import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
@@ -19,6 +20,12 @@ vi.mock('@/domains/home/api/benefitHistory', () => ({ fetchBenefitHistory }))
 vi.mock('@/domains/home/api/homeCards', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/domains/home/api/homeCards')>()),
   fetchHomeCards,
+}))
+
+let routeQuery = reactive<{ userCardId?: string }>({})
+
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: routeQuery }),
 }))
 
 const cardsResponse: HomeCardsResponse = {
@@ -98,6 +105,7 @@ describe('BenefitHistoryView', () => {
     fetchHomeCards.mockResolvedValue(cardsResponse)
     fetchBenefitHistory.mockReset()
     fetchBenefitHistory.mockResolvedValue(historyResult)
+    routeQuery = reactive({})
   })
 
   function mountView() {
@@ -160,6 +168,34 @@ describe('BenefitHistoryView', () => {
 
   it('서버가 선택한 카드로 첫 혜택 내역을 조회한다', async () => {
     fetchHomeCards.mockResolvedValueOnce({ ...cardsResponse, selectedUserCardId: 'card-2' })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(fetchBenefitHistory).toHaveBeenCalledWith({
+      yearMonth: expect.any(String),
+      userCardId: 'card-2',
+      sort: 'LATEST',
+    })
+    expect(wrapper.text()).toContain('신한 Deep Dream')
+  })
+
+  it('쿼리로 넘어온 본인 소유 카드를 서버가 선택한 카드보다 우선한다', async () => {
+    fetchHomeCards.mockResolvedValueOnce({ ...cardsResponse, selectedUserCardId: 'card-1' })
+    routeQuery.userCardId = 'card-2'
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(fetchBenefitHistory).toHaveBeenCalledWith({
+      yearMonth: expect.any(String),
+      userCardId: 'card-2',
+      sort: 'LATEST',
+    })
+    expect(wrapper.text()).toContain('신한 Deep Dream')
+  })
+
+  it('쿼리로 넘어온 카드가 본인 소유가 아니면 서버가 선택한 카드를 사용한다', async () => {
+    fetchHomeCards.mockResolvedValueOnce({ ...cardsResponse, selectedUserCardId: 'card-2' })
+    routeQuery.userCardId = 'not-my-card'
     const wrapper = mountView()
     await flushPromises()
 

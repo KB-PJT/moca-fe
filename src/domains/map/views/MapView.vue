@@ -268,7 +268,7 @@ watch(currentLocation, (coordinates) => {
       "
     >
       <div
-        class="pointer-events-auto flex items-center gap-2 border-b border-divider bg-card px-4 py-3"
+        class="pointer-events-auto relative flex items-center gap-2 border-b border-divider bg-card px-4 py-3"
       >
         <button
           v-if="currentLocation"
@@ -281,17 +281,7 @@ watch(currentLocation, (coordinates) => {
         </button>
         <span v-else class="size-5 shrink-0" aria-hidden="true" />
 
-        <div class="flex flex-1 justify-center">
-          <button
-            v-if="activeCategoryId"
-            type="button"
-            class="flex items-center gap-1 py-1"
-            @click="openCategoryPicker"
-          >
-            <span class="text-body font-semibold text-charcoal">{{ activeCategoryName }}</span>
-            <ChevronDown class="text-gray size-4" />
-          </button>
-        </div>
+        <div class="flex-1" />
 
         <button
           v-if="isScreenReady"
@@ -302,6 +292,22 @@ watch(currentLocation, (coordinates) => {
           <component :is="viewMode === 'map' ? List : MapIcon" class="size-4" />
           {{ viewMode === 'map' ? '목록' : '지도' }}
         </button>
+
+        <!-- 좌우 버튼 너비가 서로 달라 flex 가운데 정렬로는 이 바 전체 기준 중앙에 오지 않아서,
+        절대 위치로 덮어 항상 바 정중앙에 오도록 한다. -->
+        <div
+          v-if="activeCategoryId"
+          class="pointer-events-none absolute inset-0 flex items-center justify-center"
+        >
+          <button
+            type="button"
+            class="pointer-events-auto flex items-center gap-1 py-1"
+            @click="openCategoryPicker"
+          >
+            <span class="text-body font-semibold text-charcoal">{{ activeCategoryName }}</span>
+            <ChevronDown class="text-gray size-4" />
+          </button>
+        </div>
       </div>
 
       <div
