@@ -8,7 +8,7 @@ import { useDirectCardConnectionStore } from '@/domains/card/stores/directCardCo
 import CardIssuerSyncView from '@/domains/card/views/CardIssuerSyncView.vue'
 
 const cardManagementApiMocks = vi.hoisted(() => ({
-  syncMyCards: vi.fn<() => Promise<SyncMyCardsResponse>>(),
+  syncMyCards: vi.fn<(institutionCode: string) => Promise<SyncMyCardsResponse>>(),
 }))
 
 vi.mock('@/domains/card/api/cardManagement', async (importOriginal) => ({
@@ -111,7 +111,7 @@ describe('CardIssuerSyncView', () => {
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
 
     expect(wrapper.text()).toContain('승인내역을 불러오고 있어요')
-    expect(cardManagementApiMocks.syncMyCards).toHaveBeenCalledOnce()
+    expect(cardManagementApiMocks.syncMyCards).toHaveBeenCalledExactlyOnceWith('0301')
     expect(store.approvalSyncStatus).toBe('syncing')
 
     resolveSync?.({
@@ -155,6 +155,8 @@ describe('CardIssuerSyncView', () => {
     await flushPromises()
 
     expect(cardManagementApiMocks.syncMyCards).toHaveBeenCalledTimes(2)
+    expect(cardManagementApiMocks.syncMyCards).toHaveBeenNthCalledWith(1, '0301')
+    expect(cardManagementApiMocks.syncMyCards).toHaveBeenNthCalledWith(2, '0301')
     expect(store.approvalSyncStatus).toBe('success')
     expect(router.currentRoute.value.name).toBe('card-issuer-connect-complete')
   })

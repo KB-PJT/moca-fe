@@ -97,9 +97,10 @@ describe('cardManagement API', () => {
     }
     apiClientMocks.post.mockResolvedValue({ data: { success: true, data: responseData } })
 
-    await expect(syncMyCards()).resolves.toEqual(responseData)
+    await expect(syncMyCards('0301')).resolves.toEqual(responseData)
     expect(apiClientMocks.post).toHaveBeenCalledWith('/api/v1/me/cards/sync', undefined, {
-      timeout: 180_000,
+      params: { institutionCode: '0301' },
+      timeout: 150_000,
     })
   })
 
