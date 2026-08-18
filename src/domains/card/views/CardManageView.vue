@@ -12,6 +12,7 @@ import {
 import axios from 'axios'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useQueryClient } from '@tanstack/vue-query'
 import {
   activateCardLinkCards,
   submitCardCredentials,
@@ -53,6 +54,7 @@ interface PendingCardActivation {
 
 const route = useRoute()
 const router = useRouter()
+const queryClient = useQueryClient()
 const cardManagementStore = useCardManagementStore()
 const directCardConnectionStore = useDirectCardConnectionStore()
 const isCardsLoading = ref(true)
@@ -148,6 +150,9 @@ async function saveCardOrder() {
     const cardIds = cardManagementStore.activeCards.map((card) => card.id)
     const response = await reorderMyCards(cardIds)
     cardManagementStore.setCards(response)
+    // 리포트 혜택탭 등 이 스토어를 안 쓰고 vue-query로 따로 보유카드를 불러오는
+    // 화면(MissedBenefitsSection.vue)이 새로고침 없이도 바뀐 순서를 반영하도록 무효화한다.
+    void queryClient.invalidateQueries({ queryKey: ['cards', 'my-cards'] })
     draggingCardId.value = null
     dragTargetCardId.value = null
     orderSnapshot.value = []
@@ -312,6 +317,7 @@ async function completeCardActivation(card: ManagedCard, linkId: string) {
   }
 
   cardManagementStore.setCardActive(card.id, true)
+  void queryClient.invalidateQueries({ queryKey: ['cards', 'my-cards'] })
   const notice =
     '카드가 활성화됐어요. 승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.'
   if (isActivationRequired.value) {
@@ -434,6 +440,7 @@ async function confirmCardAction() {
       await disconnectMyCard(action.cardId)
       cardManagementStore.disconnectCard(action.cardId)
     }
+    void queryClient.invalidateQueries({ queryKey: ['cards', 'my-cards'] })
     succeeded = true
   } catch {
     actionError.value =
