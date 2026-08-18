@@ -58,6 +58,12 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push, replace }),
 }))
 
+const invalidateQueries = vi.fn<(filters: { queryKey: unknown[] }) => Promise<void>>()
+
+vi.mock('@tanstack/vue-query', () => ({
+  useQueryClient: () => ({ invalidateQueries }),
+}))
+
 const globalStubs = {
   PageLayout: {
     props: ['showBack', 'hasBottomBar'],
@@ -141,6 +147,8 @@ describe('CardManageView', () => {
     push.mockClear()
     replace.mockReset()
     replace.mockResolvedValue(undefined)
+    invalidateQueries.mockReset()
+    invalidateQueries.mockResolvedValue(undefined)
     apiMocks.fetchMyCards.mockReset()
     apiMocks.fetchMyCards.mockResolvedValue(createMyCardsResponse())
     apiMocks.deactivateMyCard.mockReset()
@@ -279,6 +287,7 @@ describe('CardManageView', () => {
     expect(apiMocks.deactivateMyCard).toHaveBeenCalledWith('managed-shinhan-deep-dream')
     expect(wrapper.text()).toContain('등록된 카드 2개')
     expect(wrapper.text()).toContain('비활성화 된 카드 2개')
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['cards', 'my-cards'] })
 
     await wrapper.get('button[aria-label="신한 Deep Dream 활성화"]').trigger('click')
     await flushPromises()
@@ -292,6 +301,7 @@ describe('CardManageView', () => {
     expect(wrapper.get('[data-card-activation-status]').text()).toContain(
       '승인내역은 별도 동기화 후 반영되며, 바로 보이지 않을 수 있어요.',
     )
+    expect(invalidateQueries).toHaveBeenCalledTimes(2)
   })
 
   it('옵션 선택이 필요한 카드는 기존 선택 화면에서 이어서 활성화한다', async () => {
@@ -582,6 +592,7 @@ describe('CardManageView', () => {
     expect(apiMocks.disconnectMyCard).toHaveBeenCalledWith('managed-shinhan-deep-dream')
     expect(wrapper.text()).toContain('등록된 카드 2개')
     expect(wrapper.text()).not.toContain('신한 Deep Dream')
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['cards', 'my-cards'] })
   })
 
   it('카드 연결 해제에 실패하면 목록을 유지하고 다시 시도하도록 안내한다', async () => {
@@ -709,6 +720,7 @@ describe('CardManageView', () => {
       wrapper.findAll('li[data-card-id]').map((item) => item.attributes('data-card-id')),
     ).toEqual(['managed-shinhan-deep-dream', 'managed-kb-wesh', 'managed-hyundai-zero'])
     expect(wrapper.text()).not.toContain('저장 중')
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['cards', 'my-cards'] })
   })
 
   it('카드 순서 저장에 실패하면 변경 전 순서로 복원한다', async () => {
