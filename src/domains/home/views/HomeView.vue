@@ -136,7 +136,7 @@ function selectCard(index: number) {
       @retry="loadHomeGreeting"
     />
 
-    <OwnedCardSection :card-count="cards.length" :active-index="activeCardIndex">
+    <OwnedCardSection>
       <div v-if="isCardsLoading" data-home-cards-loading class="px-5" aria-label="보유카드 로딩 중">
         <Skeleton class="mx-auto h-80 w-50 rounded-lg" />
         <Skeleton class="mt-5 h-18 w-full" />
@@ -160,7 +160,12 @@ function selectCard(index: number) {
           :active-memo="activeCardMemo"
           @update:active-index="selectCard"
         />
-        <SelectedCardInfo v-if="activeCard" :card="activeCard" />
+        <SelectedCardInfo
+          v-if="activeCard"
+          :card="activeCard"
+          :card-count="cards.length"
+          :active-index="activeCardIndex"
+        />
         <CardBenefitAmounts v-if="activeCard" :card="activeCard" />
         <CardPerformance v-if="activeCard" :card="activeCard" />
       </template>

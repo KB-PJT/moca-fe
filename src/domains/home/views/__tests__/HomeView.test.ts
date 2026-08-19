@@ -302,7 +302,9 @@ describe('HomeView', () => {
     expect(
       wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
     ).toBe('1')
-    expect(wrapper.findAll('[data-card-indicator]')[1]?.classes()).toContain('w-6')
+    const activeIndicator = wrapper.get('[data-card-indicator-active]').element as HTMLElement
+    expect(activeIndicator.style.width).toBe('25%')
+    expect(activeIndicator.style.left).toBe('25%')
     expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB국민 청춘대로 톡톡카드')
     expect(wrapper.get('[data-received-benefit]').text()).toBe('16,400원')
     expect(wrapper.get('[data-available-benefit]').text()).toBe('6,600원')
