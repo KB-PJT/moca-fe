@@ -229,7 +229,7 @@ watch(
             :alt="`${renderedCard.card.name} 카드 이미지`"
             :width="CARD_WIDTH"
             :height="CARD_HEIGHT"
-            class="rounded-sm shadow-card"
+            class="shadow-card"
           />
         </button>
 

@@ -439,7 +439,8 @@ async function confirmCardAction() {
             :alt="`${card.cardName} 카드 이미지`"
             :width="145"
             :height="234"
-            class="overflow-visible! rounded-none drop-shadow-[0_4px_10px_rgba(111,78,55,0.08)]"
+            :rounded="false"
+            class="overflow-visible! drop-shadow-[0_4px_10px_rgba(111,78,55,0.08)]"
           />
 
           <button

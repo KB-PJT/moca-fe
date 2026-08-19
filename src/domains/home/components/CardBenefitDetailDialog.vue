@@ -128,7 +128,7 @@ watch(
               :alt="`${card.name} 카드 이미지`"
               :width="72"
               :height="116"
-              class="shrink-0 rounded-sm"
+              class="shrink-0"
             />
             <div class="min-w-0 flex-1">
               <p class="line-clamp-2 text-caption leading-5 text-gray">{{ card.name }}</p>

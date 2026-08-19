@@ -12,6 +12,7 @@ interface Props {
   width?: number | string
   height?: number | string
   orientation?: 'vertical' | 'horizontal'
+  rounded?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -19,6 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
   alt: '',
   small: false,
   orientation: 'vertical',
+  rounded: true,
 })
 
 const displayedSrc = ref(defaultCardImageUrl)
@@ -39,6 +41,11 @@ const resolvedHeight = computed(() => {
 const frameStyle = computed(() => ({
   width: resolvedWidth.value,
   height: resolvedHeight.value,
+  borderRadius: props.rounded
+    ? props.orientation === 'horizontal'
+      ? '3.7% / 5.9%'
+      : '5.9% / 3.7%'
+    : undefined,
 }))
 const shouldRotate = computed(() => {
   if (!sourceOrientation.value) return props.orientation === 'horizontal'
