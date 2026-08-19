@@ -22,6 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:activeIndex': [index: number]
+  'open-benefit-detail': []
 }>()
 
 const viewport = ref<HTMLElement | null>(null)
@@ -47,8 +48,8 @@ const renderedCards = computed(() => {
   })
 })
 
-let didMouseDrag = false
 let dragStartX = 0
+let suppressClickUntil = 0
 
 function normalizeIndex(index: number) {
   const cardCount = props.cards.length
@@ -79,20 +80,21 @@ function resolveCardStyle(virtualIndex: number): CSSProperties {
 
 function startDrag(event: PointerEvent) {
   if ((event.pointerType === 'mouse' && event.button !== 0) || !viewport.value) return
-  if ((event.target as HTMLElement).closest('a, button')) return
+  const interactiveTarget = (event.target as HTMLElement).closest('a, button')
+  if (interactiveTarget && !interactiveTarget.matches('[data-card-visual]')) return
 
   isDragging.value = true
-  didMouseDrag = false
   dragStartX = event.clientX
   dragOffsetX.value = 0
-  viewport.value.setPointerCapture(event.pointerId)
 }
 
 function moveDrag(event: PointerEvent) {
   if (!isDragging.value || !viewport.value) return
 
   let dragDistance = event.clientX - dragStartX
-  if (Math.abs(dragDistance) > 4) didMouseDrag = true
+  if (Math.abs(dragDistance) > 4 && !viewport.value.hasPointerCapture(event.pointerId)) {
+    viewport.value.setPointerCapture(event.pointerId)
+  }
   if (
     props.cards.length <= 2 &&
     ((virtualActiveIndex.value === 0 && dragDistance > 0) ||
@@ -114,6 +116,7 @@ function finishDrag(event: PointerEvent) {
   }
 
   if (Math.abs(completedOffset) < SWIPE_THRESHOLD) return
+  suppressClickUntil = Date.now() + 250
   moveToVirtualCard(virtualActiveIndex.value + (completedOffset < 0 ? 1 : -1))
 }
 
@@ -122,15 +125,15 @@ function cancelDrag(event: PointerEvent) {
 
   isDragging.value = false
   dragOffsetX.value = 0
-  didMouseDrag = false
   if (viewport.value.hasPointerCapture(event.pointerId)) {
     viewport.value.releasePointerCapture(event.pointerId)
   }
 }
 
-function selectVirtualCard(virtualIndex: number) {
-  if (didMouseDrag) {
-    didMouseDrag = false
+function activateVirtualCard(virtualIndex: number) {
+  if (Date.now() < suppressClickUntil) return
+  if (virtualIndex === virtualActiveIndex.value) {
+    emit('open-benefit-detail')
     return
   }
 
@@ -201,16 +204,6 @@ watch(
         :style="resolveCardStyle(renderedCard.virtualIndex)"
         :aria-current="renderedCard.virtualIndex === virtualActiveIndex ? 'true' : undefined"
         :aria-hidden="Math.abs(renderedCard.virtualIndex - virtualActiveIndex) >= 2 || undefined"
-        :aria-label="
-          renderedCard.virtualIndex === virtualActiveIndex
-            ? undefined
-            : `${renderedCard.card.name} 카드 선택`
-        "
-        :role="renderedCard.virtualIndex === virtualActiveIndex ? undefined : 'button'"
-        :tabindex="Math.abs(renderedCard.virtualIndex - virtualActiveIndex) === 1 ? 0 : undefined"
-        @click="selectVirtualCard(renderedCard.virtualIndex)"
-        @keydown.enter.prevent="selectVirtualCard(renderedCard.virtualIndex)"
-        @keydown.space.prevent="selectVirtualCard(renderedCard.virtualIndex)"
       >
         <span
           aria-hidden="true"
@@ -218,13 +211,26 @@ watch(
           :class="renderedCard.virtualIndex === virtualActiveIndex ? 'opacity-100' : 'opacity-0'"
         />
 
-        <CardImage
-          :src="renderedCard.card.imageUrl"
-          :alt="`${renderedCard.card.name} 카드 이미지`"
-          :width="CARD_WIDTH"
-          :height="CARD_HEIGHT"
-          class="rounded-lg shadow-card"
-        />
+        <button
+          type="button"
+          data-card-visual
+          class="relative block h-[296px] w-[184px] appearance-none rounded-lg border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+          :tabindex="Math.abs(renderedCard.virtualIndex - virtualActiveIndex) <= 1 ? 0 : -1"
+          :aria-label="
+            renderedCard.virtualIndex === virtualActiveIndex
+              ? `${renderedCard.card.name} 혜택 상세 보기`
+              : `${renderedCard.card.name} 카드 선택`
+          "
+          @click="activateVirtualCard(renderedCard.virtualIndex)"
+        >
+          <CardImage
+            :src="renderedCard.card.imageUrl"
+            :alt="`${renderedCard.card.name} 카드 이미지`"
+            :width="CARD_WIDTH"
+            :height="CARD_HEIGHT"
+            class="rounded-lg shadow-card"
+          />
+        </button>
 
         <Transition
           enter-active-class="transition duration-300 ease-out"

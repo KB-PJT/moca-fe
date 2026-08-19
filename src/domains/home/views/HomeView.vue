@@ -5,6 +5,7 @@ import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/h
 import { fetchHomeGreeting, type HomeGreetingResponse } from '@/domains/home/api/homeGreeting'
 import { fetchRecentBenefits, type RecentBenefitItem } from '@/domains/home/api/recentBenefits'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
+import CardBenefitDetailDialog from '@/domains/home/components/CardBenefitDetailDialog.vue'
 import CardBenefitAmounts from '@/domains/home/components/CardBenefitAmounts.vue'
 import CardPerformance from '@/domains/home/components/CardPerformance.vue'
 import HomeBenefitHeader from '@/domains/home/components/HomeBenefitHeader.vue'
@@ -32,6 +33,7 @@ let recentBenefitsRequestId = 0
 const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
+const isCardBenefitDetailOpen = ref(false)
 const cardManagementStore = useCardManagementStore()
 const activationNotice = ref(cardManagementStore.consumeActivationNotice())
 const activeCardMemo = computed(() => activeCard.value?.highlightBenefitTitle ?? '')
@@ -159,6 +161,7 @@ function selectCard(index: number) {
           :cards="cards"
           :active-memo="activeCardMemo"
           @update:active-index="selectCard"
+          @open-benefit-detail="isCardBenefitDetailOpen = true"
         />
         <SelectedCardInfo
           v-if="activeCard"
@@ -181,4 +184,9 @@ function selectCard(index: number) {
   </PageLayout>
 
   <BenefitDetailSheet v-model:open="isDetailSheetOpen" :item="selectedBenefit" />
+  <CardBenefitDetailDialog
+    v-model:open="isCardBenefitDetailOpen"
+    :card="activeCard"
+    :benefit-title="activeCardMemo"
+  />
 </template>

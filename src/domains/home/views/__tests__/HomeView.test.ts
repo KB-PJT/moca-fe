@@ -2,8 +2,10 @@ import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CARD_ISSUERS } from '@/domains/card/constants/cardIssuers'
+import type { CardDetailResponse } from '@/domains/card/api/cardDetail'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import BenefitDetailSheet from '@/domains/home/components/BenefitDetailSheet.vue'
+import CardBenefitDetailDialog from '@/domains/home/components/CardBenefitDetailDialog.vue'
 import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
 import type { HomeGreetingResponse } from '@/domains/home/api/homeGreeting'
 import type { RecentBenefitItem } from '@/domains/home/api/recentBenefits'
@@ -13,6 +15,12 @@ import HomeView from '@/domains/home/views/HomeView.vue'
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 const fetchHomeGreeting = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 const fetchRecentBenefits = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
+const fetchCardDetail = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
+
+vi.mock('@/domains/card/api/cardDetail', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/domains/card/api/cardDetail')>()),
+  fetchCardDetail,
+}))
 
 vi.mock('@/domains/home/api/homeCards', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/domains/home/api/homeCards')>()),
@@ -58,6 +66,33 @@ const homeGreeting: HomeGreetingResponse = {
   message: '이번 달 혜택 8,200원을 놓치고 있어요!',
 }
 
+const cardDetail: CardDetailResponse = {
+  userCardId: 'home-kb-wesh',
+  cardName: 'KB My WE:SH',
+  cardNo: null,
+  issuerId: 'kb-kookmin',
+  issuerName: 'KB국민카드',
+  cardImageUrl: null,
+  memo: null,
+  benefits: [
+    {
+      benefitId: 'coffee-discount',
+      title: '카페 10% 할인',
+      summary: '스타벅스와 폴바셋에서 결제 시 할인',
+      detailText: null,
+      detailHtml: null,
+    },
+    {
+      benefitId: 'easy-pay-discount',
+      title: '간편결제 10% 할인',
+      summary: 'KB Pay 결제 시 할인',
+      detailText: null,
+      detailHtml: null,
+    },
+  ],
+  notices: [],
+}
+
 function createHomeCardsResponse(): HomeCardsResponse {
   const highlightBenefitTitles = [
     '스타벅스, 폴바셋 10% 할인',
@@ -99,6 +134,8 @@ describe('HomeView', () => {
     fetchHomeGreeting.mockResolvedValue(homeGreeting)
     fetchRecentBenefits.mockReset()
     fetchRecentBenefits.mockResolvedValue(recentBenefits)
+    fetchCardDetail.mockReset()
+    fetchCardDetail.mockResolvedValue(cardDetail)
   })
 
   function mountView(pinia = createPinia()) {
@@ -297,7 +334,9 @@ describe('HomeView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.get('[data-owned-card][data-card-index="1"][tabindex="0"]').trigger('click')
+    await wrapper
+      .get('[data-owned-card][data-card-index="1"] [data-card-visual][tabindex="0"]')
+      .trigger('click')
 
     expect(
       wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
@@ -322,12 +361,48 @@ describe('HomeView', () => {
     })
   })
 
+  it('선택한 카드를 누르면 해당 카드의 혜택 요약 모달을 연다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const activeCardVisual = wrapper.get(
+      '[data-owned-card][aria-current="true"] [data-card-visual]',
+    )
+    const benefitDialog = wrapper.getComponent(CardBenefitDetailDialog)
+    expect(activeCardVisual.element.tagName).toBe('BUTTON')
+    expect(activeCardVisual.attributes('aria-label')).toContain('혜택 상세 보기')
+    expect(benefitDialog.props('open')).toBe(false)
+
+    await activeCardVisual.trigger('click')
+    await flushPromises()
+
+    expect(benefitDialog.props('open')).toBe(true)
+    expect(benefitDialog.props('card')?.name).toBe('KB My WE:SH')
+    expect(benefitDialog.props('benefitTitle')).toBe('스타벅스, 폴바셋 10% 할인')
+    expect(fetchCardDetail).toHaveBeenCalledWith('home-kb-wesh')
+    expect(document.querySelectorAll('[data-benefit-summary-item]')).toHaveLength(2)
+    expect(document.querySelector('[data-benefit-summary-list]')?.textContent).toContain(
+      '카페 10% 할인',
+    )
+    expect(document.querySelector('[data-benefit-summary-list]')?.textContent).toContain(
+      '스타벅스와 폴바셋에서 결제 시 할인',
+    )
+    expect(document.querySelector('[data-card-benefit-dialog]')?.textContent).toContain(
+      '카드 한눈에',
+    )
+    expect(document.querySelector('[data-card-benefit-dialog]')?.textContent).toContain(
+      '혜택 더 보기',
+    )
+  })
+
   it('카드 상세에서 홈으로 돌아오면 이전에 선택한 카드를 복원한다', async () => {
     const pinia = createPinia()
     const firstVisit = mountView(pinia)
     await flushPromises()
 
-    await firstVisit.get('[data-owned-card][data-card-index="1"][tabindex="0"]').trigger('click')
+    await firstVisit
+      .get('[data-owned-card][data-card-index="1"] [data-card-visual][tabindex="0"]')
+      .trigger('click')
     expect(firstVisit.get('[data-selected-card-name]').text()).toBe('KB국민 청춘대로 톡톡카드')
     firstVisit.unmount()
 
