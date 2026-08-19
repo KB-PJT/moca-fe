@@ -2,7 +2,10 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { CircleCheck } from '@lucide/vue'
-import type { PerformanceCardItem } from '@/domains/benefit-report/api/performanceReport'
+import type {
+  PerformanceCardItem,
+  PerformanceTier,
+} from '@/domains/benefit-report/api/performanceReport'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
 import { captureEvent } from '@/plugins/posthog'
@@ -29,31 +32,38 @@ onMounted(() => {
   })
 })
 
-// 카드 원천 데이터에 실적 tier가 없으면 currentTier=0, nextTier=null로 내려온다.
 function hasTierInfo(card: PerformanceCardItem): boolean {
-  return card.currentTier > 0 || card.nextTier !== null
+  return card.tiers.length > 0
 }
 
+// 게이지 전체가 나타내는 최종(최고) 구간 목표금액. 각 구간 배지 위치와 채움 비율을
+// 이 금액 기준으로 계산해 전체 구간을 실제 비율대로 한 막대에 그린다.
+function maxTierTarget(card: PerformanceCardItem): number {
+  if (!card.tiers.length) return 0
+  return Math.max(...card.tiers.map((tier) => tier.targetAmount))
+}
+
+// achievementRate는 "다음 구간까지"만 기준으로 한 값이라, 여러 구간을 한 막대에 실제
+// 비율대로 그릴 땐 쓸 수 없어 최종 구간 목표금액 기준으로 다시 계산한다.
 function displayRate(card: PerformanceCardItem): number {
-  return Math.min(100, Math.max(0, Math.floor(card.achievementRate)))
+  const max = maxTierTarget(card)
+  if (max <= 0) return 0
+  return Math.min(100, Math.max(0, Math.floor((card.currentPerformanceAmount / max) * 100)))
 }
 
 function isAchieved(card: PerformanceCardItem): boolean {
   return hasTierInfo(card) && card.isCurrentTierAchieved
 }
 
-// 게이지 왼쪽에 표시할 달성 구간 번호. 더 채울 구간이 없는 최고 구간까지 다 채웠으면
-// 지나온 구간이 몇 개든 왼쪽은 항상 시작 구간(1)으로 표시하고 오른쪽에 최종 달성 구간을 보여준다.
-// (구간별 정확한 목표금액을 API가 안 내려줘서, 최고 구간 달성 후엔 1구간 금액을 알 방법이 없다.)
-function achievedTierNumber(card: PerformanceCardItem): number | null {
-  if (!isAchieved(card)) return null
-  return card.nextTier === null ? 1 : card.currentTier
+// 구간 배지를 막대 위 몇 %지점에 놓을지.
+function tierPositionPercent(card: PerformanceCardItem, tier: PerformanceTier): number {
+  const max = maxTierTarget(card)
+  if (max <= 0) return 0
+  return Math.min(100, Math.max(0, (tier.targetAmount / max) * 100))
 }
 
-// 게이지 오른쪽에 표시할 목표(또는 최종 달성) 구간 번호.
-function targetTierNumber(card: PerformanceCardItem): number | null {
-  if (isAchieved(card)) return card.nextTier === null ? card.currentTier : card.nextTier
-  return card.currentTier > 0 ? card.currentTier : card.nextTier
+function isTierAchieved(card: PerformanceCardItem, tier: PerformanceTier): boolean {
+  return card.currentPerformanceAmount >= tier.targetAmount
 }
 
 function statusLabel(card: PerformanceCardItem): string {
@@ -93,7 +103,7 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
           </div>
           <p v-if="hasTierInfo(card)" class="mt-0.5 text-caption text-gray">
             {{ formatAmountWithUnit(card.currentPerformanceAmount) }} /
-            {{ formatAmountWithUnit(card.currentTierTargetAmount) }}
+            {{ formatAmountWithUnit(maxTierTarget(card)) }}
           </p>
         </div>
       </div>
@@ -112,21 +122,17 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
           :style="{ width: `${isFilled ? displayRate(card) : 0}%` }"
         />
         <span
-          v-if="achievedTierNumber(card) !== null"
-          class="absolute left-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
-        >
-          {{ achievedTierNumber(card) }}
-        </span>
-        <span
-          v-if="targetTierNumber(card) !== null"
-          class="absolute right-0 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold"
+          v-for="tier in card.tiers"
+          :key="tier.tier"
+          class="absolute top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold"
+          :style="{ left: `${tierPositionPercent(card, tier)}%` }"
           :class="
-            isAchieved(card) && card.nextTier === null
+            isTierAchieved(card, tier)
               ? 'bg-primary text-white'
               : 'border border-divider bg-card text-gray'
           "
         >
-          {{ targetTierNumber(card) }}
+          {{ tier.tier }}
         </span>
       </div>
 
