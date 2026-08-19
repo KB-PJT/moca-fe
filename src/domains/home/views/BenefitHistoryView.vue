@@ -190,10 +190,10 @@ onMounted(loadCardsAndHistory)
 <template>
   <PageLayout title="최근 전체 내역" has-bottom-bar :horizontal-padding="false">
     <div class="-my-6">
-      <div class="flex items-center justify-between gap-3 px-5 pt-2 pb-5">
+      <div class="flex items-center justify-between gap-3 px-5 py-5">
         <details ref="cardFilterDetails" class="relative w-48 shrink-0">
           <summary
-            class="flex w-full cursor-pointer list-none items-center gap-2 rounded-md border border-divider bg-card px-3 py-2 shadow-btn [&::-webkit-details-marker]:hidden"
+            class="flex w-full cursor-pointer list-none items-center gap-2 rounded-md border border-divider bg-card px-3 py-2 [&::-webkit-details-marker]:hidden"
           >
             <CardImage
               :src="selectedCard?.imageUrl"
@@ -209,13 +209,13 @@ onMounted(loadCardsAndHistory)
           </summary>
 
           <div
-            class="absolute top-[calc(100%+0.5rem)] left-0 z-20 w-full overflow-hidden rounded-md border border-divider bg-card py-1 shadow-card"
+            class="absolute top-[calc(100%+0.5rem)] left-0 z-20 w-full overflow-hidden rounded-md border border-divider bg-card shadow-card"
           >
             <button
               v-for="card in cards"
               :key="card.id"
               type="button"
-              class="block w-full truncate px-3 py-3 text-left text-caption transition-colors hover:bg-screen"
+              class="block w-full truncate px-3 py-3 text-left text-caption hover:bg-screen"
               :class="card.id === selectedCardId ? 'font-semibold text-primary' : 'text-charcoal'"
               @click="selectCard(card.id)"
             >
@@ -271,11 +271,11 @@ onMounted(loadCardsAndHistory)
             </p>
           </div>
 
-          <dl class="mt-3 flex flex-wrap gap-2">
+          <dl class="mt-3 grid grid-cols-2 gap-2">
             <div
               v-for="item in benefitSummary"
               :key="item.type"
-              class="flex items-center gap-2 rounded-full px-3 py-1.5"
+              class="flex min-w-0 items-center justify-between gap-2 rounded-full px-3 py-1.5"
               :class="{
                 'bg-[#FCF6F0]': item.type === '할인',
                 'bg-[#F1F8F3]': item.type === '캐시백',
@@ -342,14 +342,14 @@ onMounted(loadCardsAndHistory)
               <ChevronDown class="size-4" aria-hidden="true" />
             </summary>
             <div
-              class="absolute top-7 right-0 z-10 w-24 overflow-hidden rounded-sm border border-divider bg-card py-1 shadow-card"
+              class="absolute top-7 right-0 z-10 w-24 overflow-hidden rounded-sm border border-divider bg-card shadow-card"
             >
               <button
                 v-for="option in sortOptions"
                 :key="option.value"
                 type="button"
                 class="block w-full px-4 py-2 text-left text-caption hover:bg-screen"
-                :class="sortOrder === option.value ? 'font-semibold text-brown' : 'text-charcoal'"
+                :class="sortOrder === option.value ? 'font-semibold text-brown' : 'text-gray'"
                 @click="selectSort(option.value)"
               >
                 {{ option.label }}
