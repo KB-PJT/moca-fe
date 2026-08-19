@@ -5,7 +5,11 @@ import BottomBar from '@/shared/components/BottomBar.vue'
 <template>
   <div class="flex h-full min-h-0 flex-col">
     <div class="min-h-0 flex-1">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <KeepAlive include="MapView">
+          <component :is="Component" />
+        </KeepAlive>
+      </RouterView>
     </div>
     <BottomBar />
   </div>

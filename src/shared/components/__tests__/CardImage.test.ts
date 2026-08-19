@@ -12,6 +12,7 @@ describe('CardImage', () => {
     expect(wrapper.get('img').attributes('alt')).toBe('기본 카드')
     expect(frameStyle).toContain('width: 200px')
     expect(frameStyle).toContain('height: 322px')
+    expect(frameStyle).toContain('border-radius: 5.9% / 3.7%')
   })
 
   it('카드 이미지 로드가 실패하면 기본 이미지로 교체한다', async () => {
@@ -56,9 +57,18 @@ describe('CardImage', () => {
 
     expect(frameStyle).toContain('width: 64px')
     expect(frameStyle).toContain('height: 40px')
+    expect(frameStyle).toContain('border-radius: 3.7% / 5.9%')
     expect(imageStyle).toContain('width: 40px')
     expect(imageStyle).toContain('height: 64px')
     expect(imageStyle).toContain('transform: rotate(90deg)')
+  })
+
+  it('rounded를 끄면 카드 프레임의 모서리를 둥글게 처리하지 않는다', () => {
+    const wrapper = mount(CardImage, { props: { rounded: false } })
+
+    expect(wrapper.get('[data-slot="card-image"]').attributes('style')).not.toContain(
+      'border-radius',
+    )
   })
 
   it('세로 프레임에 가로 원본이 들어오면 자동으로 90도 회전한다', async () => {
