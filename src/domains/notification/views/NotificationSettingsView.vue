@@ -21,9 +21,15 @@ const settings = ref<NotificationSettings>({
 })
 const isLoading = ref(true)
 const isSaving = ref(false)
+const hasLoadedSettings = ref(false)
 const settingsError = ref('')
+const settingsErrorType = ref<'load' | 'save' | null>(null)
+const failedSaveSettings = ref<NotificationSettings | null>(null)
 
 const allNotificationsEnabled = computed(() => Object.values(settings.value).every(Boolean))
+const isSettingsInteractionDisabled = computed(
+  () => !hasLoadedSettings.value || isLoading.value || isSaving.value,
+)
 
 async function requestNotificationPermission() {
   if (typeof Notification === 'undefined') return
@@ -34,33 +40,51 @@ async function requestNotificationPermission() {
 
 async function loadNotificationSettings() {
   isLoading.value = true
+  hasLoadedSettings.value = false
   settingsError.value = ''
+  settingsErrorType.value = null
+  failedSaveSettings.value = null
 
   try {
     settings.value = await fetchNotificationSettings()
+    hasLoadedSettings.value = true
   } catch {
     settingsError.value = '알림 설정을 불러오지 못했어요.'
+    settingsErrorType.value = 'load'
   } finally {
     isLoading.value = false
   }
 }
 
 async function saveNotificationSettings(nextSettings: NotificationSettings) {
-  if (isSaving.value) return
+  if (!hasLoadedSettings.value || isSaving.value) return
 
   const previousSettings = { ...settings.value }
   settings.value = nextSettings
   isSaving.value = true
   settingsError.value = ''
+  settingsErrorType.value = null
+  failedSaveSettings.value = null
 
   try {
     settings.value = await updateNotificationSettings(nextSettings)
   } catch {
     settings.value = previousSettings
     settingsError.value = '알림 설정을 저장하지 못했어요. 다시 시도해주세요.'
+    settingsErrorType.value = 'save'
+    failedSaveSettings.value = { ...nextSettings }
   } finally {
     isSaving.value = false
   }
+}
+
+function retryNotificationSettings() {
+  if (settingsErrorType.value === 'save' && failedSaveSettings.value) {
+    void saveNotificationSettings({ ...failedSaveSettings.value })
+    return
+  }
+
+  void loadNotificationSettings()
 }
 
 function updateAllNotifications(enabled: boolean) {
@@ -116,7 +140,7 @@ onMounted(loadNotificationSettings)
             v-if="!isSaving"
             type="button"
             class="shrink-0 font-bold underline underline-offset-2"
-            @click="loadNotificationSettings"
+            @click="retryNotificationSettings"
           >
             다시 시도
           </button>
@@ -131,7 +155,7 @@ onMounted(loadNotificationSettings)
             <span class="text-body flex-1 font-semibold text-charcoal">전체 알림</span>
             <Switch
               :model-value="allNotificationsEnabled"
-              :disabled="isLoading || isSaving"
+              :disabled="isSettingsInteractionDisabled"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="전체 알림"
               @update:model-value="updateAllNotifications"
@@ -155,7 +179,7 @@ onMounted(loadNotificationSettings)
             </span>
             <Switch
               :model-value="settings.performanceClosingEnabled"
-              :disabled="isLoading || isSaving"
+              :disabled="isSettingsInteractionDisabled"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="실적 마감 알림"
               @update:model-value="updateNotificationSetting('performanceClosingEnabled', $event)"
@@ -171,7 +195,7 @@ onMounted(loadNotificationSettings)
             </span>
             <Switch
               :model-value="settings.nearbyBenefitEnabled"
-              :disabled="isLoading || isSaving"
+              :disabled="isSettingsInteractionDisabled"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="주변 혜택 알림"
               @update:model-value="updateNotificationSetting('nearbyBenefitEnabled', $event)"
@@ -187,7 +211,7 @@ onMounted(loadNotificationSettings)
             </span>
             <Switch
               :model-value="settings.benefitLimitEnabled"
-              :disabled="isLoading || isSaving"
+              :disabled="isSettingsInteractionDisabled"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="혜택 한도 알림"
               @update:model-value="updateNotificationSetting('benefitLimitEnabled', $event)"
@@ -211,7 +235,7 @@ onMounted(loadNotificationSettings)
             </span>
             <Switch
               :model-value="settings.marketingEnabled"
-              :disabled="isLoading || isSaving"
+              :disabled="isSettingsInteractionDisabled"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="마케팅 정보 알림"
               @update:model-value="updateNotificationSetting('marketingEnabled', $event)"

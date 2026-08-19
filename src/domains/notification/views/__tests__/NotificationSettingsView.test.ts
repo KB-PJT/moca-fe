@@ -89,4 +89,47 @@ describe('NotificationSettingsView', () => {
     expect(wrapper.get('[aria-label="마케팅 정보 알림"]').attributes('aria-checked')).toBe('false')
     expect(wrapper.get('[role="alert"]').text()).toContain('알림 설정을 저장하지 못했어요.')
   })
+
+  it('초기 조회 실패 시 스위치를 비활성화하고 다시 시도하면 GET을 재호출한다', async () => {
+    vi.mocked(fetchNotificationSettings)
+      .mockRejectedValueOnce(new Error('get failed'))
+      .mockResolvedValueOnce(serverSettings)
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('알림 설정을 불러오지 못했어요.')
+    expect(wrapper.get('[aria-label="전체 알림"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[aria-label="주변 혜택 알림"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[aria-label="주변 혜택 알림"]').trigger('click')
+    expect(updateNotificationSettings).not.toHaveBeenCalled()
+
+    await wrapper.get('[role="alert"] button').trigger('click')
+    await flushPromises()
+
+    expect(fetchNotificationSettings).toHaveBeenCalledTimes(2)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.get('[aria-label="주변 혜택 알림"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.get('[aria-label="실적 마감 알림"]').attributes('aria-checked')).toBe('true')
+  })
+
+  it('저장 실패 후 다시 시도하면 실패했던 payload로 PATCH를 재호출한다', async () => {
+    const failedPayload = { ...serverSettings, marketingEnabled: true }
+    vi.mocked(updateNotificationSettings)
+      .mockRejectedValueOnce(new Error('patch failed'))
+      .mockResolvedValueOnce(failedPayload)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="마케팅 정보 알림"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[role="alert"] button').trigger('click')
+    await flushPromises()
+
+    expect(updateNotificationSettings).toHaveBeenCalledTimes(2)
+    expect(updateNotificationSettings).toHaveBeenNthCalledWith(1, failedPayload)
+    expect(updateNotificationSettings).toHaveBeenNthCalledWith(2, failedPayload)
+    expect(fetchNotificationSettings).toHaveBeenCalledOnce()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.get('[aria-label="마케팅 정보 알림"]').attributes('aria-checked')).toBe('true')
+  })
 })

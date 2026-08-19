@@ -41,4 +41,18 @@ describe('notification settings API', () => {
     await expect(updateNotificationSettings(settings)).resolves.toEqual(settings)
     expect(apiClient.patch).toHaveBeenCalledWith('/api/v1/me/notification-settings', settings)
   })
+
+  it('알림 설정 조회 오류를 호출자에게 전달한다', async () => {
+    const error = new Error('get failed')
+    vi.mocked(apiClient.get).mockRejectedValue(error)
+
+    await expect(fetchNotificationSettings()).rejects.toBe(error)
+  })
+
+  it('알림 설정 저장 오류를 호출자에게 전달한다', async () => {
+    const error = new Error('patch failed')
+    vi.mocked(apiClient.patch).mockRejectedValue(error)
+
+    await expect(updateNotificationSettings(settings)).rejects.toBe(error)
+  })
 })
