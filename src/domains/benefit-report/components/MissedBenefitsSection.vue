@@ -214,7 +214,7 @@ function progressPercent(item: MissedBenefitItem) {
         v-else-if="benefits.length === 0"
         class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
       >
-        <Info class="size-6 text-gray" />
+        <Info class="size-6 text-disabled" />
         <p class="text-caption text-gray">이 카드는 이번 달 놓친 혜택이 없어요.</p>
       </div>
 

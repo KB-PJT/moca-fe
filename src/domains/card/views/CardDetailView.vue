@@ -395,7 +395,7 @@ async function confirmCardAction() {
     <main
       v-if="isCardLoading && !card"
       data-card-detail-loading
-      class="min-h-0 flex-1 overflow-y-auto px-5 py-6"
+      class="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-5 py-6"
       aria-label="카드 상세정보 로딩 중"
     >
       <Skeleton class="mx-auto h-80 w-44 rounded-lg" />
@@ -407,7 +407,7 @@ async function confirmCardAction() {
     <main
       v-else-if="card"
       ref="detailScrollContainer"
-      class="min-h-0 flex-1 overflow-y-auto"
+      class="scrollbar-hide min-h-0 flex-1 overflow-y-auto"
       :aria-busy="isCardLoading"
     >
       <section class="border-b border-divider" aria-label="카드 이미지">

@@ -116,7 +116,7 @@ const {
 </script>
 
 <template>
-  <PageLayout hide-app-bar has-bottom-bar hide-scrollbar>
+  <PageLayout hide-app-bar has-bottom-bar>
     <MainHeader>
       <div class="flex w-full items-center justify-between">
         <div>

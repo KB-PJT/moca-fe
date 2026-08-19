@@ -75,7 +75,7 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
       v-for="(card, index) in cards"
       :key="card.userCardId"
       type="button"
-      class="block w-full rounded-lg border border-divider bg-card p-3 text-left"
+      class="block w-full rounded-lg border border-divider bg-card p-4 text-left shadow-btn"
       :style="{ transitionDelay: `${index * 70}ms` }"
       @click="goToCardHistory(card.userCardId)"
     >
@@ -100,7 +100,7 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
 
       <div
         v-if="hasTierInfo(card)"
-        class="relative mt-3 h-1.5 rounded-full bg-divider"
+        class="relative mt-4 h-1.5 rounded-full bg-divider"
         role="progressbar"
         :aria-label="`${card.cardName} 실적 달성률`"
         aria-valuemin="0"
@@ -135,7 +135,9 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
           class="flex items-center gap-1 text-caption font-semibold"
           :class="isAchieved(card) ? 'text-success' : 'text-gray'"
         >
-          <CircleCheck v-if="isAchieved(card)" class="size-3.5" />
+          <span v-if="isAchieved(card)" class="flex size-5 items-center justify-center">
+            <CircleCheck class="size-3.5" />
+          </span>
           {{ statusLabel(card) }}
         </span>
         <span v-if="remainingAmountText(card)" class="text-caption font-bold text-primary">

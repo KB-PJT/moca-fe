@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
   transparent: false,
   hasBottomBar: false,
   horizontalPadding: true,
-  hideScrollbar: false,
+  hideScrollbar: true,
   bg: 'background',
 })
 

@@ -15,6 +15,9 @@ export function useSheetTransition(
   // 압축 위치를 유지한 채 높이만 고정값으로 바꾸는 "순간 스냅" 단계에서, 트랜지션이 항상 켜져 있는
   // 탓에 그 스냅 자체까지 애니메이션되는 것을 막기 위한 임시 트랜지션 억제 플래그.
   const suppressTransition = ref(false)
+  // expand() 시점의 압축 카드 높이를 기억해뒀다가, 상세에서 다시 압축 카드로 되돌아갈 때
+  // (shrink()) 같은 높이로 되돌리는 데 쓴다.
+  const collapsedHeightPx = ref<number | null>(null)
 
   function reset() {
     isExpanding.value = false
@@ -22,6 +25,7 @@ export function useSheetTransition(
     heightPx.value = null
     transform.value = null
     suppressTransition.value = false
+    collapsedHeightPx.value = null
   }
 
   // 압축 시트가 막 나타날 차례일 때, selectedMerchant를 반영하는 것과 같은 렌더링 틱에
@@ -68,6 +72,8 @@ export function useSheetTransition(
     const targetHeight = containerRef.value.getBoundingClientRect().height
     const offset = targetHeight - startHeight
 
+    collapsedHeightPx.value = startHeight
+
     // 압축 위치를 그대로 유지한 채 높이만 고정값으로 바꾸는 첫 스냅은 순간적으로 반영돼야 하므로,
     // 그동안만 트랜지션을 꺼둔다.
     suppressTransition.value = true
@@ -84,6 +90,44 @@ export function useSheetTransition(
     })
 
     window.setTimeout(onDone, 320)
+  }
+
+  // expand()의 역순: 펼쳐진 상세를 완전히 닫지 않고 압축 카드 높이로 되돌린다.
+  // expand()가 기억해둔 collapsedHeightPx가 없으면(딥링크로 곧장 상세에 진입한 경우 등)
+  // 되돌릴 목표 높이를 알 수 없으므로 애니메이션하지 않고 false를 반환한다 — 호출부가
+  // 이 경우엔 대신 완전히 닫도록(collapse) 처리해야 한다.
+  function shrink(onDone: () => void): boolean {
+    if (!sheetRef.value || !containerRef.value || isCollapsing.value) return false
+    if (collapsedHeightPx.value === null) return false
+
+    const currentHeight = sheetRef.value.getBoundingClientRect().height
+    const offset = currentHeight - collapsedHeightPx.value
+
+    isCollapsing.value = true
+    transform.value = `translateY(${offset}px)`
+
+    window.setTimeout(async () => {
+      // 압축 높이만큼 밀려난 상태(고정 height + offset)와, 자연 높이로 돌아간 상태(height:auto
+      // + offset 0)는 화면에 보이는 위치가 동일하므로, 트랜지션을 잠깐 끄고 순간적으로 스왑한다.
+      suppressTransition.value = true
+      isExpanding.value = false
+      isCollapsing.value = false
+      heightPx.value = null
+      transform.value = 'translateY(0)'
+
+      if (sheetRef.value) {
+        await nextTick()
+        void sheetRef.value.offsetHeight
+      }
+
+      requestAnimationFrame(() => {
+        suppressTransition.value = false
+      })
+
+      onDone()
+    }, 320)
+
+    return true
   }
 
   // 압축이든 펼침이든, 지금 상태와 상관없이 화면 아래로 완전히 슬라이드시켜 닫는다.
@@ -110,6 +154,7 @@ export function useSheetTransition(
     startOpen,
     settleOpen,
     expand,
+    shrink,
     collapse,
     reset,
     snapExpanded,
