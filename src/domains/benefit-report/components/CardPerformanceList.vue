@@ -6,7 +6,7 @@ import type {
   PerformanceCardItem,
   PerformanceTier,
 } from '@/domains/benefit-report/api/performanceReport'
-import { formatAmountWithUnit } from '@/shared/utils/format'
+import { formatAmountWithUnit, formatCompactAmount } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
 import { captureEvent } from '@/plugins/posthog'
 
@@ -64,6 +64,19 @@ function tierPositionPercent(card: PerformanceCardItem, tier: PerformanceTier): 
 
 function isTierAchieved(card: PerformanceCardItem, tier: PerformanceTier): boolean {
   return card.currentPerformanceAmount >= tier.targetAmount
+}
+
+// 구간 배지·캡션은 기본적으로 그 지점 가운데 정렬하되, 막대 양 끝(0%/100%)에 가까운
+// 구간은 가운데 정렬하면(특히 100% 지점은 배지 절반이 항상 막대 밖으로 튀어나와
+// 카드 상단의 "100%" 텍스트 끝선과 안 맞아 보인다) 안쪽 가장자리에 딱 붙인다.
+function tierMarkerAlign(
+  card: PerformanceCardItem,
+  tier: PerformanceTier,
+): 'start' | 'center' | 'end' {
+  const percent = tierPositionPercent(card, tier)
+  if (percent <= 10) return 'start'
+  if (percent >= 90) return 'end'
+  return 'center'
 }
 
 function statusLabel(card: PerformanceCardItem): string {
@@ -124,26 +137,41 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
         <span
           v-for="tier in card.tiers"
           :key="tier.tier"
-          class="absolute top-1/2 flex size-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold"
-          :style="{ left: `${tierPositionPercent(card, tier)}%` }"
-          :class="
+          class="absolute top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold"
+          :style="
+            tierMarkerAlign(card, tier) === 'center'
+              ? { left: `${tierPositionPercent(card, tier)}%` }
+              : undefined
+          "
+          :class="[
             isTierAchieved(card, tier)
               ? 'bg-primary text-white'
-              : 'border border-divider bg-card text-gray'
-          "
+              : 'border border-divider bg-card text-gray',
+            tierMarkerAlign(card, tier) === 'start' && 'left-0',
+            tierMarkerAlign(card, tier) === 'center' && '-translate-x-1/2',
+            tierMarkerAlign(card, tier) === 'end' && 'right-0',
+          ]"
         >
           {{ tier.tier }}
+          <span
+            class="absolute top-full mt-1 whitespace-nowrap text-[10px] font-normal text-gray"
+            :class="{
+              'left-0': tierMarkerAlign(card, tier) === 'start',
+              'left-1/2 -translate-x-1/2': tierMarkerAlign(card, tier) === 'center',
+              'right-0': tierMarkerAlign(card, tier) === 'end',
+            }"
+          >
+            {{ formatCompactAmount(tier.targetAmount) }}
+          </span>
         </span>
       </div>
 
-      <div class="mt-3 flex items-center justify-between gap-2">
+      <div class="mt-9 flex items-center justify-between gap-2">
         <span
           class="flex items-center gap-1 text-caption font-semibold"
           :class="isAchieved(card) ? 'text-success' : 'text-gray'"
         >
-          <span v-if="isAchieved(card)" class="flex size-5 items-center justify-center">
-            <CircleCheck class="size-3.5" />
-          </span>
+          <CircleCheck v-if="isAchieved(card)" class="size-3.5" />
           {{ statusLabel(card) }}
         </span>
         <span v-if="remainingAmountText(card)" class="text-caption font-bold text-primary">
