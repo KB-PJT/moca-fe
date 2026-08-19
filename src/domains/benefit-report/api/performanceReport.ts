@@ -14,6 +14,11 @@ export interface PerformanceSummary {
   cards: PerformanceSummaryCardItem[]
 }
 
+export interface PerformanceTier {
+  tier: number
+  targetAmount: number
+}
+
 export interface PerformanceCardItem {
   userCardId: string
   cardName: string
@@ -25,6 +30,7 @@ export interface PerformanceCardItem {
   nextTier: number | null
   isCurrentTierAchieved: boolean
   remainingAmountToNextTier: number
+  tiers: PerformanceTier[]
 }
 
 export interface PerformanceCardsResult {
