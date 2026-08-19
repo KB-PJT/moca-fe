@@ -62,7 +62,7 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
             </div>
           </div>
 
-          <div class="flex w-14 shrink-0 justify-center">
+          <div class="flex min-h-9 w-14 shrink-0 flex-col items-center justify-center gap-0.5">
             <span
               v-if="!item.performanceMet"
               class="text-label bg-accent text-primary rounded-full px-2 py-0.5 whitespace-nowrap"
@@ -75,6 +75,10 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
                   ? formatAmountWithUnit(item.estimatedValueKrw)
                   : formatRewardLabel(item)
               }}
+            </span>
+            <!-- 미충족 카드도 조건만 채우면 받을 수 있는 혜택이 뭔지 바로 보여줘 판단에 도움을 준다. -->
+            <span v-if="!item.performanceMet" class="text-label text-gray whitespace-nowrap">
+              {{ formatRewardLabel(item) }}
             </span>
           </div>
         </div>
