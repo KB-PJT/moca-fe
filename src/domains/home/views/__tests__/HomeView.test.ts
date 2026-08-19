@@ -343,6 +343,43 @@ describe('HomeView', () => {
     expect(wrapper.text()).not.toContain('이전 요청 가맹점')
   })
 
+  it('이전 카드 요청이 늦게 끝나도 현재 카드의 내역과 전체보기 링크를 유지한다', async () => {
+    let resolveFirstCardRequest: ((items: RecentBenefitItem[]) => void) | undefined
+    fetchRecentBenefits
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstCardRequest = resolve
+          }),
+      )
+      .mockResolvedValueOnce([
+        { ...recentBenefits[0]!, id: 'second-card-history', merchantName: '두 번째 카드 승인내역' },
+      ])
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper
+      .get('[data-owned-card][data-card-index="1"] [data-card-visual][tabindex="0"]')
+      .trigger('click')
+    await flushPromises()
+
+    resolveFirstCardRequest?.([
+      { ...recentBenefits[0]!, id: 'first-card-history', merchantName: '첫 번째 카드 승인내역' },
+    ])
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('두 번째 카드 승인내역')
+    expect(wrapper.text()).not.toContain('첫 번째 카드 승인내역')
+    expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB국민 청춘대로 톡톡카드')
+    const benefitHistoryLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text() === '전체보기')
+    expect(benefitHistoryLink?.props('to')).toEqual({
+      name: 'home-benefits',
+      query: { userCardId: MOCK_HOME_OWNED_CARDS[1]?.id },
+    })
+  })
+
   it('옆 카드를 선택하면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
     fetchRecentBenefits
       .mockResolvedValueOnce(recentBenefits)
