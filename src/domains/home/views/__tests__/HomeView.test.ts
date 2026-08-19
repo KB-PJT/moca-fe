@@ -193,6 +193,17 @@ describe('HomeView', () => {
     const selectedCardAccent = wrapper.get('[data-selected-card-accent]').element as HTMLElement
     expect(selectedCardAccent.style.backgroundColor).toBe(expectedAccent.style.backgroundColor)
     expect(selectedCardAccent.style.backgroundImage).toContain('linear-gradient')
+    const activeOwnedCard = wrapper.get('[data-owned-card][aria-current="true"]')
+    const inactiveOwnedCard = wrapper.get('[data-owned-card][data-card-index="1"]')
+    expect(activeOwnedCard.attributes('style')).toContain(
+      'filter: brightness(1.02) saturate(1.04) contrast(1.04) blur(0.00px)',
+    )
+    expect(inactiveOwnedCard.attributes('style')).toContain(
+      'filter: brightness(0.86) saturate(0.70) contrast(0.94) blur(0.35px)',
+    )
+    expect(inactiveOwnedCard.attributes('style')).toContain('opacity: 0.66')
+    expect(wrapper.findAll('[data-carousel-edge-fade]')).toHaveLength(2)
+    expect(wrapper.get('[data-card-carousel]').classes()).toContain('isolate')
     expect(wrapper.get('[data-card-benefit-amounts]').classes()).toContain('min-h-20')
     expect(wrapper.get('[data-received-benefit]').text()).toBe('21,800원')
     expect(wrapper.get('[data-received-benefit]').classes()).toContain('text-heading')

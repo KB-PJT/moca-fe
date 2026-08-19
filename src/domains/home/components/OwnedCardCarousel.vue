@@ -68,10 +68,17 @@ function resolveCardStyle(virtualIndex: number): CSSProperties {
   const translateZ = 20 - curvedDistance * 90
   const rotation = direction * Math.min(68, curvedDistance * 46)
   const scale = Math.max(0.64, 1 - curvedDistance * 0.16)
+  const inactiveRatio = Math.min(absoluteDistance, 1)
+  const opacity = Number((1 - inactiveRatio * 0.34).toFixed(2))
+  const brightness = (1.02 - inactiveRatio * 0.16).toFixed(2)
+  const saturation = (1.04 - inactiveRatio * 0.34).toFixed(2)
+  const contrast = (1.04 - inactiveRatio * 0.1).toFixed(2)
+  const blur = (inactiveRatio * 0.35).toFixed(2)
 
   return {
     zIndex: Math.max(0, 100 - Math.round(absoluteDistance * 10)),
-    opacity: absoluteDistance >= 2 ? 0 : Math.max(0.5, 1 - absoluteDistance * 0.16),
+    opacity: absoluteDistance >= 2 ? 0 : opacity,
+    filter: `brightness(${brightness}) saturate(${saturation}) contrast(${contrast}) blur(${blur}px)`,
     visibility: absoluteDistance >= 2 ? 'hidden' : 'visible',
     pointerEvents: absoluteDistance > 1.5 ? 'none' : 'auto',
     transform: `translateX(calc(-50% + ${translateX}px)) translateZ(${translateZ}px) rotateY(${rotation}deg) scale(${scale})`,
@@ -177,7 +184,7 @@ watch(
   <div
     ref="viewport"
     data-card-carousel
-    class="touch-none relative h-[328px] cursor-grab overflow-hidden select-none active:cursor-grabbing"
+    class="touch-none relative isolate h-[328px] cursor-grab overflow-hidden select-none active:cursor-grabbing"
     aria-label="보유 카드 목록"
     @pointerdown="startDrag"
     @pointermove="moveDrag"
@@ -194,7 +201,7 @@ watch(
         :key="renderedCard.virtualIndex"
         data-owned-card
         :data-card-index="renderedCard.cardIndex"
-        class="absolute top-4 left-1/2 w-[184px] transform-gpu transition-[transform,opacity] will-change-transform"
+        class="absolute top-4 left-1/2 w-[184px] transform-gpu transition-[transform,opacity,filter] will-change-transform"
         :class="[
           renderedCard.virtualIndex === virtualActiveIndex ? '' : 'cursor-pointer',
           isDragging
@@ -205,16 +212,10 @@ watch(
         :aria-current="renderedCard.virtualIndex === virtualActiveIndex ? 'true' : undefined"
         :aria-hidden="Math.abs(renderedCard.virtualIndex - virtualActiveIndex) >= 2 || undefined"
       >
-        <span
-          aria-hidden="true"
-          class="pointer-events-none absolute inset-x-0 top-0.5 h-[292px] rounded-lg ring-1 ring-primary/15 shadow-[0_0_10px_3px_rgba(255,136,54,0.24)] transition-opacity duration-300"
-          :class="renderedCard.virtualIndex === virtualActiveIndex ? 'opacity-100' : 'opacity-0'"
-        />
-
         <button
           type="button"
           data-card-visual
-          class="relative block h-[296px] w-[184px] appearance-none rounded-lg border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+          class="relative block h-[296px] w-[184px] appearance-none rounded-sm border-0 bg-transparent p-0 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
           :tabindex="Math.abs(renderedCard.virtualIndex - virtualActiveIndex) <= 1 ? 0 : -1"
           :aria-label="
             renderedCard.virtualIndex === virtualActiveIndex
@@ -228,7 +229,7 @@ watch(
             :alt="`${renderedCard.card.name} 카드 이미지`"
             :width="CARD_WIDTH"
             :height="CARD_HEIGHT"
-            class="rounded-lg shadow-card"
+            class="rounded-sm shadow-card"
           />
         </button>
 
@@ -247,7 +248,7 @@ watch(
               params: { id: renderedCard.card.id },
               query: { from: 'home' },
             }"
-            class="absolute -left-5 bottom-0 isolate flex min-h-16 w-[calc(100%+40px)] items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(112deg,rgba(255,250,246,0.78)_0%,rgba(243,219,203,0.72)_100%)] px-5 py-3 shadow-[0_12px_30px_rgba(121,84,58,0.14),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-[18px] backdrop-saturate-150 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_92%_88%,rgba(255,255,255,0.9),transparent_30%)]"
+            class="absolute -left-5 bottom-0 isolate flex min-h-16 w-[calc(100%+40px)] items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(112deg,rgba(255,250,246,0.78)_0%,rgba(243,219,203,0.72)_100%)] px-5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-[18px] backdrop-saturate-150 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_92%_88%,rgba(255,255,255,0.9),transparent_30%)]"
             :aria-label="`${renderedCard.card.name} 메모 확인하기`"
           >
             <p
@@ -261,5 +262,16 @@ watch(
         </Transition>
       </li>
     </ul>
+
+    <span
+      data-carousel-edge-fade
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-y-0 left-0 z-[110] w-9 bg-[linear-gradient(90deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.74)_34%,rgba(255,255,255,0)_100%)]"
+    />
+    <span
+      data-carousel-edge-fade
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-y-0 right-0 z-[110] w-9 bg-[linear-gradient(270deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.74)_34%,rgba(255,255,255,0)_100%)]"
+    />
   </div>
 </template>
