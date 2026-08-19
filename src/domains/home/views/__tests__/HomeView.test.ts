@@ -406,6 +406,36 @@ describe('HomeView', () => {
     )
   })
 
+  it('카드 혜택 조회 실패를 안내하고 다시 시도할 수 있다', async () => {
+    fetchCardDetail.mockRejectedValueOnce(new Error('network error'))
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[data-owned-card][aria-current="true"] [data-card-visual]').trigger('click')
+    await flushPromises()
+
+    const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[data-card-benefit-dialog]'))
+    const dialog = dialogs[dialogs.length - 1]
+    if (!dialog) throw new Error('card benefit dialog is required')
+
+    expect(dialog.querySelector('[data-benefit-summary-error]')?.textContent).toContain(
+      '카드 혜택을 불러오지 못했어요.',
+    )
+    expect(dialog.textContent).not.toContain('등록된 주요 혜택이 없어요.')
+
+    const retryButton = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find(
+      (button) => button.textContent?.trim() === '다시 시도',
+    )
+    if (!retryButton) throw new Error('retry button is required')
+
+    retryButton.click()
+    await flushPromises()
+
+    expect(fetchCardDetail).toHaveBeenCalledTimes(2)
+    expect(dialog.querySelector('[data-benefit-summary-error]')).toBeNull()
+    expect(dialog.querySelectorAll('[data-benefit-summary-item]')).toHaveLength(2)
+  })
+
   it('카드 상세에서 홈으로 돌아오면 이전에 선택한 카드를 복원한다', async () => {
     const pinia = createPinia()
     const firstVisit = mountView(pinia)

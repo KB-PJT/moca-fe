@@ -26,11 +26,12 @@ const props = withDefaults(
 const open = defineModel<boolean>('open', { default: false })
 const benefits = ref<CardDetailBenefitResponse[]>([])
 const isBenefitsLoading = ref(false)
+const benefitsError = ref('')
 let benefitRequestId = 0
 
 const displayedBenefits = computed(() => {
   if (benefits.value.length > 0) return benefits.value.slice(0, 3)
-  if (isBenefitsLoading.value || !props.benefitTitle.trim()) return []
+  if (isBenefitsLoading.value || benefitsError.value || !props.benefitTitle.trim()) return []
 
   return [
     {
@@ -51,29 +52,43 @@ const surfaceStyle = computed(() => ({
   '--card-accent': props.card?.accentColor ?? '#FF8836',
 }))
 
+async function loadBenefits(cardId: string) {
+  const requestId = ++benefitRequestId
+  benefits.value = []
+  benefitsError.value = ''
+  isBenefitsLoading.value = true
+
+  try {
+    const cardDetail = await fetchCardDetail(cardId)
+    if (requestId !== benefitRequestId) return
+    benefits.value = cardDetail.benefits
+  } catch {
+    if (requestId !== benefitRequestId) return
+    benefits.value = []
+    benefitsError.value = '카드 혜택을 불러오지 못했어요.'
+  } finally {
+    if (requestId === benefitRequestId) isBenefitsLoading.value = false
+  }
+}
+
+function retryBenefits() {
+  if (!open.value || !props.card?.id) return
+  void loadBenefits(props.card.id)
+}
+
 watch(
   [open, () => props.card?.id],
-  async ([isOpen, cardId]) => {
-    const requestId = ++benefitRequestId
+  ([isOpen, cardId]) => {
     benefits.value = []
+    benefitsError.value = ''
 
     if (!isOpen || !cardId) {
+      benefitRequestId += 1
       isBenefitsLoading.value = false
       return
     }
 
-    isBenefitsLoading.value = true
-
-    try {
-      const cardDetail = await fetchCardDetail(cardId)
-      if (requestId !== benefitRequestId) return
-      benefits.value = cardDetail.benefits
-    } catch {
-      if (requestId !== benefitRequestId) return
-      benefits.value = []
-    } finally {
-      if (requestId === benefitRequestId) isBenefitsLoading.value = false
-    }
+    void loadBenefits(cardId)
   },
   { immediate: true },
 )
@@ -149,6 +164,22 @@ watch(
                 <span class="block h-2.5 w-full animate-pulse rounded-full bg-white/45" />
               </span>
             </div>
+          </div>
+
+          <div
+            v-else-if="benefitsError"
+            data-benefit-summary-error
+            class="mt-3 rounded-xl bg-white/42 px-4 py-5 text-center backdrop-blur-sm"
+            role="alert"
+          >
+            <p class="text-caption text-gray">{{ benefitsError }}</p>
+            <button
+              type="button"
+              class="mt-3 min-h-9 rounded-full bg-white/68 px-4 text-caption font-semibold text-charcoal transition-colors hover:bg-white/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              @click="retryBenefits"
+            >
+              다시 시도
+            </button>
           </div>
 
           <ul v-else-if="displayedBenefits.length > 0" class="mt-2 divide-y divide-charcoal/8">
