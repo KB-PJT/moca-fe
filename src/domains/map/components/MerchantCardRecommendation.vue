@@ -1,19 +1,23 @@
 <script setup lang="ts">
 import { computed, onActivated, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { Check, LoaderCircle, Star } from '@lucide/vue'
+import { LoaderCircle, Star } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import type { Merchant } from '@/domains/map/api/merchants'
 import { fetchMerchantCardRecommendations } from '@/domains/map/api/merchants'
-import { describeRecommendationReason, formatRewardLabel } from '@/domains/map/utils/rewardFormat'
+import { formatRewardLabel } from '@/domains/map/utils/rewardFormat'
+import { toConditionItems } from '@/domains/map/utils/benefitConditionMap'
 import {
+  achievedTierNumber,
   gaugeFillPercent,
   hasPerformanceRequirement,
+  nextUnachievedTier,
   segmentEndAmount,
   targetTierNumber,
 } from '@/domains/map/utils/tierGauge'
 import MyCardRankingPreview from '@/domains/map/components/MyCardRankingPreview.vue'
+import BenefitConditionList from '@/domains/map/components/BenefitConditionList.vue'
 import CardImage from '@/shared/components/CardImage.vue'
 import { captureEvent } from '@/plugins/posthog'
 
@@ -21,6 +25,10 @@ interface Props {
   merchant: Merchant
   // 압축 시트에서는 요약만 보이고, 펼쳐졌을 때만 추천 이유/카드 비교까지 보인다.
   expanded?: boolean
+  // 상세에서 압축으로 되돌아가는 중(shrink 애니메이션 진행 중)인지. true가 되는 시점에
+  // 맞춰 상세 전용 콘텐츠를 미리 페이드아웃한다 — expanded가 꺼지는 시점(애니메이션이 다
+  // 끝난 뒤)까지 기다리면 트랜지션 없이 한 번에 사라져 잔상처럼 보인다.
+  collapsing?: boolean
 }
 
 const props = defineProps<Props>()
@@ -55,6 +63,12 @@ const {
 
 const recommendedCard = computed(() => recommendation.value?.recommendedCard ?? null)
 const rankedCards = computed(() => recommendation.value?.rankedCards ?? [])
+const merchantLabel = computed(() => `${props.merchant.name} · ${props.merchant.category}`)
+const conditionItems = computed(() =>
+  recommendedCard.value
+    ? toConditionItems(recommendedCard.value.recommendationReasons, merchantLabel.value)
+    : [],
+)
 // 압축된 하단 시트에서는 공간이 좁아 상위 3장까지만 보여준다. 펼쳐진 상세에서는 전체 순위를 보여준다.
 const topRankedCards = computed(() => rankedCards.value.slice(0, 3))
 
@@ -212,10 +226,10 @@ watch(merchantId, () => {
               }}
             </span>
             <span
-              v-if="recommendedCard.isCurrentTierAchieved"
+              v-if="achievedTierNumber(recommendedCard) !== null"
               class="bg-primary absolute top-1/2 left-0 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold text-white"
             >
-              {{ recommendedCard.currentTier }}
+              {{ achievedTierNumber(recommendedCard) }}
             </span>
             <span
               v-if="targetTierNumber(recommendedCard) !== null"
@@ -226,12 +240,17 @@ watch(merchantId, () => {
           </div>
 
           <p
-            v-if="recommendedCard.remainingAmountToNextTier > 0"
+            v-if="nextUnachievedTier(recommendedCard)"
             class="text-caption text-charcoal text-right font-semibold"
           >
-            {{ targetTierNumber(recommendedCard) }}구간까지
+            {{ nextUnachievedTier(recommendedCard)!.tier }}구간까지
             <span class="text-primary">
-              {{ formatAmountWithUnit(recommendedCard.remainingAmountToNextTier) }}
+              {{
+                formatAmountWithUnit(
+                  nextUnachievedTier(recommendedCard)!.requiredPreviousSpendKrw -
+                    recommendedCard.previousMonthSpendKrw,
+                )
+              }}
             </span>
             남았어요!
           </p>
@@ -299,26 +318,18 @@ watch(merchantId, () => {
 
       <MyCardRankingPreview v-if="!expanded" :ranked-cards="topRankedCards" />
 
-      <template v-if="expanded">
-        <div
-          v-if="recommendedCard.recommendationReasons.some((reason) => reason.satisfied)"
-          class="mt-4 space-y-3"
-        >
+      <div
+        v-if="expanded"
+        class="transition-opacity duration-300"
+        :class="collapsing ? 'opacity-0' : 'opacity-100'"
+      >
+        <div v-if="conditionItems.length" class="mt-4">
           <p class="text-subheading text-charcoal">추천 이유</p>
-
-          <div
-            v-for="reason in recommendedCard.recommendationReasons.filter((item) => item.satisfied)"
-            :key="reason.code"
-            class="flex items-center gap-1.5"
-          >
-            <span
-              class="bg-success flex size-4 shrink-0 items-center justify-center rounded-full text-white"
-            >
-              <Check class="size-3" />
-            </span>
-            <p class="text-body text-charcoal min-w-0 font-bold">
-              {{ describeRecommendationReason(reason) }}
-            </p>
+          <div class="mt-3">
+            <!-- startDelayMs 160 = 바텀시트 expand() 트랜지션(320ms, useSheetTransition.ts)의
+                 절반. 시트가 다 펼쳐진 뒤에야 시작되는 것처럼 보이지 않도록, 시트가 아직
+                 슬라이드 중일 때 항목 등장이 겹쳐서 시작되게 맞춘다. -->
+            <BenefitConditionList :items="conditionItems" :start-delay-ms="160" />
           </div>
         </div>
 
@@ -327,7 +338,7 @@ watch(merchantId, () => {
           detailed
           :applied-amount="appliedAmount"
         />
-      </template>
+      </div>
     </template>
 
     <p v-else class="text-caption text-gray mt-4">이 가맹점에서 받을 수 있는 혜택이 아직 없어요.</p>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { ChevronDown } from '@lucide/vue'
 import type { RankedCardBenefit } from '@/domains/map/api/merchants'
 import { describeRecommendationReason, formatRewardLabel } from '@/domains/map/utils/rewardFormat'
 import { formatAmountWithUnit } from '@/shared/utils/format'
@@ -13,7 +15,7 @@ interface Props {
   appliedAmount?: number | null
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   detailed: false,
   appliedAmount: null,
 })
@@ -23,6 +25,23 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
   const reason = item.recommendationReasons.find((candidate) => !candidate.satisfied)
   return reason ? describeRecommendationReason(reason) : null
 }
+
+// 미충족 사유 박스는 상세 페이지에서 항상 보이지 않고, 카드를 눌러야 펼쳐지게 한다.
+function isExpandable(item: RankedCardBenefit): boolean {
+  return Boolean(props.detailed && !item.performanceMet && unmetReasonText(item))
+}
+
+const expandedCardIds = ref(new Set<string>())
+
+function toggleReason(userCardId: string) {
+  const next = new Set(expandedCardIds.value)
+  if (next.has(userCardId)) {
+    next.delete(userCardId)
+  } else {
+    next.add(userCardId)
+  }
+  expandedCardIds.value = next
+}
 </script>
 
 <template>
@@ -31,7 +50,12 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
 
     <div class="mt-2 space-y-3">
       <div v-for="item in rankedCards" :key="item.userCardId">
-        <div class="flex items-center gap-3">
+        <component
+          :is="isExpandable(item) ? 'button' : 'div'"
+          type="button"
+          class="flex w-full items-center gap-3 text-left"
+          @click="isExpandable(item) && toggleReason(item.userCardId)"
+        >
           <div class="flex shrink-0 items-center gap-1">
             <span class="text-caption text-primary w-6 shrink-0 font-bold">#{{ item.rank }}</span>
             <CardImage
@@ -44,7 +68,7 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
 
           <div class="flex min-w-0 flex-1 flex-col justify-center">
             <p class="text-caption text-charcoal truncate leading-none">{{ item.cardName }}</p>
-            <p v-if="detailed && item.issuerName" class="text-label text-gray truncate">
+            <p v-if="detailed && item.issuerName" class="text-caption text-gray truncate">
               {{ item.issuerName }}
             </p>
             <div
@@ -62,12 +86,22 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
             </div>
           </div>
 
-          <div class="flex min-h-9 w-14 shrink-0 flex-col items-center justify-center gap-0.5">
+          <div class="flex min-h-9 min-w-14 shrink-0 flex-col items-end justify-center gap-0.5">
             <span
               v-if="!item.performanceMet"
-              class="text-label bg-accent text-primary rounded-full px-2 py-0.5 whitespace-nowrap"
+              class="text-caption bg-accent text-primary flex items-center gap-0.5 rounded-full px-1.5 py-0.5 whitespace-nowrap transition-[border-color]"
+              :class="
+                isExpandable(item) && expandedCardIds.has(item.userCardId)
+                  ? 'border border-charcoal'
+                  : 'border border-transparent'
+              "
             >
               미충족
+              <ChevronDown
+                v-if="isExpandable(item)"
+                class="size-2.5 shrink-0 transition-transform"
+                :class="expandedCardIds.has(item.userCardId) && 'rotate-180'"
+              />
             </span>
             <span v-else class="text-caption text-charcoal whitespace-nowrap">
               {{
@@ -77,19 +111,29 @@ function unmetReasonText(item: RankedCardBenefit): string | null {
               }}
             </span>
             <!-- 미충족 카드도 조건만 채우면 받을 수 있는 혜택이 뭔지 바로 보여줘 판단에 도움을 준다. -->
-            <span v-if="!item.performanceMet" class="text-label text-gray whitespace-nowrap">
+            <span v-if="!item.performanceMet" class="text-caption text-gray whitespace-nowrap">
               {{ formatRewardLabel(item) }}
             </span>
           </div>
-        </div>
+        </component>
 
-        <!-- 미충족 카드 밑에 왜 미충족인지 바로 알 수 있게 사유를 눈에 띄는 회색 박스로 붙인다. 상세 페이지에서만 노출. -->
-        <p
-          v-if="detailed && !item.performanceMet && unmetReasonText(item)"
-          class="text-label text-gray bg-screen mt-3 rounded-md p-3"
+        <!-- 미충족 카드를 누르면 왜 미충족인지 사유를 눈에 띄는 회색 박스로 펼쳐 보여준다. 상세 페이지에서만 노출.
+             배지 위로 살짝 내려오듯 펼쳐지게(opacity+translateY만 사용, 레이아웃 프로퍼티는 안 건드림). -->
+        <Transition
+          enter-active-class="transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none"
+          enter-from-class="opacity-0 -translate-y-1"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition-opacity duration-150 ease-out motion-reduce:transition-none"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
         >
-          {{ unmetReasonText(item) }}
-        </p>
+          <p
+            v-if="isExpandable(item) && expandedCardIds.has(item.userCardId)"
+            class="text-label text-gray bg-screen mt-3 w-9/10 mx-auto rounded-md p-3"
+          >
+            {{ unmetReasonText(item) }}
+          </p>
+        </Transition>
       </div>
     </div>
   </div>

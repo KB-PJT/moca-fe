@@ -506,7 +506,11 @@ watch(currentLocation, (coordinates) => {
       @touchmove="onSheetTouchMove"
       @wheel="onSheetWheel"
     >
-      <MerchantBottomSheet :merchant="selectedMerchant" :expanded="sheet.isExpanding.value" />
+      <MerchantBottomSheet
+        :merchant="selectedMerchant"
+        :expanded="sheet.isExpanding.value"
+        :collapsing="sheet.isCollapsing.value"
+      />
     </div>
 
     <LocationPermissionModal
