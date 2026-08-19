@@ -255,38 +255,30 @@ watch(
 
 <style>
 .card-benefit-dialog[data-state='open'] {
-  transform-origin: center 34%;
-  animation: card-benefit-flip-in 650ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: card-benefit-fade-in 180ms ease-out !important;
 }
 
 .card-benefit-dialog[data-state='closed'] {
-  transform-origin: center 34%;
-  animation: card-benefit-flip-out 240ms ease-in both !important;
+  animation: card-benefit-fade-out 120ms ease-in both !important;
 }
 
-@keyframes card-benefit-flip-in {
+@keyframes card-benefit-fade-in {
   from {
     opacity: 0;
-    border-radius: 2rem;
-    transform: perspective(1400px) rotateY(-88deg) scale(0.78);
   }
 
   to {
     opacity: 1;
-    border-radius: 2rem;
-    transform: perspective(1400px) rotateY(0deg) scale(1);
   }
 }
 
-@keyframes card-benefit-flip-out {
+@keyframes card-benefit-fade-out {
   from {
     opacity: 1;
-    transform: perspective(1400px) rotateY(0deg) scale(1);
   }
 
   to {
     opacity: 0;
-    transform: perspective(1400px) rotateY(70deg) scale(0.86);
   }
 }
 
