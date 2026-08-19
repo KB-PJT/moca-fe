@@ -231,15 +231,9 @@ describe('HomeView', () => {
       query: { from: 'home' },
     })
 
-    const memoLink = wrapper
-      .findAllComponents(RouterLinkStub)
-      .find((link) => link.attributes('aria-label') === 'KB My WE:SH 메모 확인하기')
-
-    expect(memoLink?.props('to')).toEqual({
-      name: 'card-detail',
-      params: { id: 'home-kb-wesh' },
-      query: { from: 'home' },
-    })
+    const memoButton = wrapper.get('button[aria-label="KB My WE:SH 혜택 요약 열기"]')
+    expect(memoButton.element.tagName).toBe('BUTTON')
+    expect(memoButton.classes()).toContain('text-left')
     expect(wrapper.get('[data-card-memo]').text()).toContain('스타벅스, 폴바셋 10% 할인')
   })
 
@@ -404,6 +398,20 @@ describe('HomeView', () => {
     expect(document.querySelector('[data-card-benefit-dialog]')?.textContent).toContain(
       '혜택 더 보기',
     )
+  })
+
+  it('카드 위 대표 혜택을 누르면 동일한 혜택 요약 모달을 연다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const benefitDialog = wrapper.getComponent(CardBenefitDetailDialog)
+    expect(benefitDialog.props('open')).toBe(false)
+
+    await wrapper.get('button[aria-label="KB My WE:SH 혜택 요약 열기"]').trigger('click')
+    await flushPromises()
+
+    expect(benefitDialog.props('open')).toBe(true)
+    expect(fetchCardDetail).toHaveBeenCalledWith('home-kb-wesh')
   })
 
   it('카드 혜택 조회 실패를 안내하고 다시 시도할 수 있다', async () => {
