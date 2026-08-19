@@ -46,7 +46,7 @@ const currencyFormatter = new Intl.NumberFormat('ko-KR')
         </p>
         <RouterLink
           :to="{ name: 'report' }"
-          class="flex shrink-0 items-center gap-0.5 text-caption font-semibold text-brown"
+          class="flex shrink-0 items-center gap-0.5 text-caption font-medium text-brown"
         >
           보러가기
           <ChevronRight class="size-3" aria-hidden="true" />

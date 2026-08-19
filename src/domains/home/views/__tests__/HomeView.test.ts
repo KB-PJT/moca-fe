@@ -14,7 +14,9 @@ import HomeView from '@/domains/home/views/HomeView.vue'
 
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 const fetchHomeGreeting = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
-const fetchRecentBenefits = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
+const fetchRecentBenefits = vi.hoisted(() =>
+  vi.fn<(limit?: number, userCardId?: string) => Promise<unknown>>(),
+)
 const fetchCardDetail = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
 vi.mock('@/domains/card/api/cardDetail', async (importOriginal) => ({
@@ -215,7 +217,10 @@ describe('HomeView', () => {
     const availableBenefitLink = wrapper
       .findAllComponents(RouterLinkStub)
       .find((link) => link.attributes('data-available-benefit') !== undefined)
-    expect(receivedBenefitLink?.props('to')).toEqual({ name: 'home-benefits' })
+    expect(receivedBenefitLink?.props('to')).toEqual({
+      name: 'home-benefits',
+      query: { userCardId: 'home-kb-wesh' },
+    })
     expect(availableBenefitLink?.props('to')).toEqual({ name: 'report' })
     expect(wrapper.get('[data-available-benefit]').classes()).not.toContain('underline')
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(76%)')
@@ -252,7 +257,10 @@ describe('HomeView', () => {
     const benefitHistoryLink = wrapper
       .findAllComponents(RouterLinkStub)
       .find((link) => link.text() === '전체보기')
-    expect(benefitHistoryLink?.props('to')).toEqual({ name: 'home-benefits' })
+    expect(benefitHistoryLink?.props('to')).toEqual({
+      name: 'home-benefits',
+      query: { userCardId: 'home-kb-wesh' },
+    })
   })
 
   it('홈 인사 조회 실패 후 다시 시도할 수 있다', async () => {
@@ -335,13 +343,56 @@ describe('HomeView', () => {
     expect(wrapper.text()).not.toContain('이전 요청 가맹점')
   })
 
-  it('옆 카드를 선택하면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
+  it('이전 카드 요청이 늦게 끝나도 현재 카드의 내역과 전체보기 링크를 유지한다', async () => {
+    let resolveFirstCardRequest: ((items: RecentBenefitItem[]) => void) | undefined
+    fetchRecentBenefits
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstCardRequest = resolve
+          }),
+      )
+      .mockResolvedValueOnce([
+        { ...recentBenefits[0]!, id: 'second-card-history', merchantName: '두 번째 카드 승인내역' },
+      ])
     const wrapper = mountView()
     await flushPromises()
 
     await wrapper
       .get('[data-owned-card][data-card-index="1"] [data-card-visual][tabindex="0"]')
       .trigger('click')
+    await flushPromises()
+
+    resolveFirstCardRequest?.([
+      { ...recentBenefits[0]!, id: 'first-card-history', merchantName: '첫 번째 카드 승인내역' },
+    ])
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('두 번째 카드 승인내역')
+    expect(wrapper.text()).not.toContain('첫 번째 카드 승인내역')
+    expect(wrapper.get('[data-selected-card-name]').text()).toBe('KB국민 청춘대로 톡톡카드')
+    const benefitHistoryLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text() === '전체보기')
+    expect(benefitHistoryLink?.props('to')).toEqual({
+      name: 'home-benefits',
+      query: { userCardId: MOCK_HOME_OWNED_CARDS[1]?.id },
+    })
+  })
+
+  it('옆 카드를 선택하면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
+    fetchRecentBenefits
+      .mockResolvedValueOnce(recentBenefits)
+      .mockResolvedValueOnce([
+        { ...recentBenefits[0]!, id: 'selected-card-history', merchantName: '선택 카드 승인내역' },
+      ])
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper
+      .get('[data-owned-card][data-card-index="1"] [data-card-visual][tabindex="0"]')
+      .trigger('click')
+    await flushPromises()
 
     expect(
       wrapper.get('[data-owned-card][aria-current="true"]').attributes('data-card-index'),
@@ -355,6 +406,15 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(80%)')
     expect(wrapper.get('[data-performance-remaining]').text()).toContain('59,000원')
     expect(wrapper.text()).toContain('이번 달 혜택 8,200원을 놓치고 있어요!')
+    expect(fetchRecentBenefits).toHaveBeenLastCalledWith(5, MOCK_HOME_OWNED_CARDS[1]?.id)
+    expect(wrapper.text()).toContain('선택 카드 승인내역')
+    const benefitHistoryLink = wrapper
+      .findAllComponents(RouterLinkStub)
+      .find((link) => link.text() === '전체보기')
+    expect(benefitHistoryLink?.props('to')).toEqual({
+      name: 'home-benefits',
+      query: { userCardId: MOCK_HOME_OWNED_CARDS[1]?.id },
+    })
 
     const detailLink = wrapper
       .findAllComponents(RouterLinkStub)

@@ -20,7 +20,7 @@ function formatAmount(amount: number) {
       <dt class="text-caption text-gray">이번 달 받은 혜택</dt>
       <dd class="mt-0.5">
         <RouterLink
-          :to="{ name: 'home-benefits' }"
+          :to="{ name: 'home-benefits', query: { userCardId: card.id } }"
           :aria-label="`이번 달 받은 혜택 ${formatAmount(card.receivedBenefitAmount)} 최근 혜택 내역 보기`"
           data-received-benefit
           class="inline-block rounded-sm text-heading text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

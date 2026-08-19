@@ -8,6 +8,7 @@ import { Skeleton } from '@/shared/ui/skeleton'
 
 interface Props {
   items: RecentBenefitItem[]
+  selectedCardId?: string | null
   isLoading?: boolean
   error?: string
 }
@@ -40,8 +41,11 @@ function parseOccurredAt(occurredAt: string) {
         최근 전체 내역
       </h2>
       <RouterLink
-        :to="{ name: 'home-benefits' }"
-        class="flex items-center gap-0.5 text-caption font-semibold text-brown"
+        :to="{
+          name: 'home-benefits',
+          query: props.selectedCardId ? { userCardId: props.selectedCardId } : undefined,
+        }"
+        class="flex items-center gap-0.5 text-body font-medium text-brown"
       >
         전체보기
         <ChevronRight class="size-3" aria-hidden="true" />
