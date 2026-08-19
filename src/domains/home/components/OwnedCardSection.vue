@@ -1,14 +1,3 @@
-<script setup lang="ts">
-interface Props {
-  cardCount: number
-  activeIndex?: number
-}
-
-withDefaults(defineProps<Props>(), {
-  activeIndex: 0,
-})
-</script>
-
 <template>
   <section class="mb-6" aria-labelledby="owned-card-title">
     <div class="flex items-center justify-between px-5">
@@ -19,17 +8,6 @@ withDefaults(defineProps<Props>(), {
       >
         관리
       </RouterLink>
-    </div>
-
-    <div v-if="cardCount > 0" class="mt-3 flex h-2 items-center justify-center gap-2">
-      <span
-        v-for="index in cardCount"
-        :key="index"
-        data-card-indicator
-        class="h-2 rounded-full transition-[width,background-color] duration-300 ease-out"
-        :class="index - 1 === activeIndex ? 'w-6 bg-primary' : 'w-2 bg-disabled'"
-        aria-hidden="true"
-      />
     </div>
 
     <div class="mt-5">
