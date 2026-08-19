@@ -39,7 +39,7 @@ function formatAmount(amount: number) {
     </div>
 
     <div
-      class="mt-2 h-2 overflow-hidden rounded-full bg-divider"
+      class="mt-2 h-2 overflow-hidden rounded-full bg-[#F3F0ED]"
       role="progressbar"
       aria-label="카드 실적 달성률"
       aria-valuemin="0"
@@ -47,8 +47,10 @@ function formatAmount(amount: number) {
       :aria-valuenow="progressRate"
     >
       <div
-        class="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
-        :style="{ width: `${progressRate}%` }"
+        :key="card.id"
+        data-performance-fill
+        class="performance-progress-fill h-full w-full rounded-full bg-[linear-gradient(90deg,#F4D7C2_0%,#FFB37D_55%,#FF8836_100%)] shadow-[0_0_8px_rgba(255,136,54,0.22)]"
+        :style="{ '--performance-progress': progressRate / 100 }"
       />
     </div>
 
@@ -59,3 +61,27 @@ function formatAmount(amount: number) {
     </p>
   </section>
 </template>
+
+<style scoped>
+.performance-progress-fill {
+  transform-origin: left;
+  animation: fill-performance-progress 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fill-performance-progress {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(var(--performance-progress));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .performance-progress-fill {
+    animation: none;
+    transform: scaleX(var(--performance-progress));
+  }
+}
+</style>

@@ -241,16 +241,16 @@ watch(
               params: { id: renderedCard.card.id },
               query: { from: 'home' },
             }"
-            class="absolute -left-2.5 bottom-0 flex min-h-16 w-[calc(100%+20px)] items-center justify-between gap-2 rounded-sm bg-[#F7E9DF]/95 px-4 py-3 shadow-card backdrop-blur-sm"
+            class="absolute -left-5 bottom-0 isolate flex min-h-16 w-[calc(100%+40px)] items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(112deg,rgba(255,250,246,0.78)_0%,rgba(243,219,203,0.72)_100%)] px-5 py-3 shadow-[0_12px_30px_rgba(121,84,58,0.14),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-[18px] backdrop-saturate-150 before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_92%_88%,rgba(255,255,255,0.9),transparent_30%)]"
             :aria-label="`${renderedCard.card.name} 메모 확인하기`"
           >
             <p
               data-card-memo
-              class="min-w-0 whitespace-pre-line text-caption font-semibold text-charcoal"
+              class="relative z-10 min-w-0 whitespace-pre-line text-caption leading-5 font-semibold text-charcoal"
             >
               {{ activeMemo }}
             </p>
-            <ChevronRight class="size-4 shrink-0 text-brown" aria-hidden="true" />
+            <ChevronRight class="relative z-10 size-5 shrink-0 text-brown" aria-hidden="true" />
           </RouterLink>
         </Transition>
       </li>
