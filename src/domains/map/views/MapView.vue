@@ -29,6 +29,9 @@ import MerchantBottomSheet from '@/domains/map/components/MerchantBottomSheet.vu
 import PlaceListPanel from '@/domains/map/components/PlaceListPanel.vue'
 import { captureEvent } from '@/plugins/posthog'
 
+// TabLayout에서 <KeepAlive include="MapView">로 이 컴포넌트를 지정하려면 이름이 필요하다.
+defineOptions({ name: 'MapView' })
+
 const route = useRoute()
 
 const mapContainer = ref<HTMLElement | null>(null)
