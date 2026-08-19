@@ -32,7 +32,7 @@ function formatAmount(amount: number) {
   <Sheet v-model:open="open">
     <SheetContent
       side="bottom"
-      class="mx-auto w-full max-w-97.5 gap-0 rounded-t-lg border-0 px-5 pt-4 pb-[max(2.5rem,var(--safe-area-bottom))]"
+      class="mx-auto w-full gap-0 rounded-t-lg border-0 px-5 pt-4 pb-[max(2.5rem,var(--safe-area-bottom))] sm:max-w-[430px]"
     >
       <div class="mx-auto h-1 w-10 rounded-full bg-divider" aria-hidden="true" />
 
