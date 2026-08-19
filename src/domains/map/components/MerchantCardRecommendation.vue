@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onActivated, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { Check, LoaderCircle, Star } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
@@ -55,6 +55,8 @@ const {
 
 const recommendedCard = computed(() => recommendation.value?.recommendedCard ?? null)
 const rankedCards = computed(() => recommendation.value?.rankedCards ?? [])
+// 압축된 하단 시트에서는 공간이 좁아 상위 3장까지만 보여준다. 펼쳐진 상세에서는 전체 순위를 보여준다.
+const topRankedCards = computed(() => rankedCards.value.slice(0, 3))
 
 watch(isError, (hasError) => {
   if (hasError) captureEvent('api_load_failed', { source: 'merchant_card_recommendations' })
@@ -78,6 +80,16 @@ watch(recommendedCard, (card, previousCard) => {
       merchantId: props.merchant.merchantId,
       cardName: card.cardName,
     })
+  }
+})
+
+// 지도 탭이 KeepAlive로 캐싱되면서, 다른 탭에 갔다가 돌아오는 건 recommendedCard가
+// 바뀌는 게 아니라 이 컴포넌트가 비활성화(deactivated)됐다 재활성화(activated)되는
+// 것이다. 위 watch는 값이 "바뀔 때"만 반응해서 이 경우엔 안 걸리므로, 재활성화 시점에
+// 이미 추천 카드가 있으면 게이지가 빈 채로 남지 않도록 다시 채워준다.
+onActivated(() => {
+  if (recommendedCard.value) {
+    isFilled.value = true
   }
 })
 
@@ -162,7 +174,7 @@ watch(merchantId, () => {
           />
 
           <div class="min-w-0 flex-1">
-            <p class="text-body text-charcoal truncate">{{ recommendedCard.cardName }}</p>
+            <p class="text-body font-bold text-charcoal truncate">{{ recommendedCard.cardName }}</p>
             <p class="text-caption text-gray truncate">{{ recommendedCard.benefitTitle }}</p>
           </div>
 
@@ -285,7 +297,7 @@ watch(merchantId, () => {
         </template>
       </div>
 
-      <MyCardRankingPreview v-if="!expanded" :ranked-cards="rankedCards" />
+      <MyCardRankingPreview v-if="!expanded" :ranked-cards="topRankedCards" />
 
       <template v-if="expanded">
         <div
