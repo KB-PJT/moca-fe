@@ -117,6 +117,12 @@ export interface CardRecommendationReason {
   remainingValue: number | null
 }
 
+export interface RankedCardBenefitTier {
+  tier: number
+  requiredPreviousSpendKrw: number
+  monthlyLimitKrw: number | null
+}
+
 export interface RankedCardBenefit {
   rank: number
   userCardId: string
@@ -143,6 +149,7 @@ export interface RankedCardBenefit {
   monthlyRemainingKrw: number | null
   performanceMet: boolean
   recommendationReasons: CardRecommendationReason[]
+  tiers: RankedCardBenefitTier[]
 }
 
 export interface MerchantCardRecommendation {
