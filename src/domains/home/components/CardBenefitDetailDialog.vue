@@ -99,7 +99,7 @@ watch(
     <DialogContent
       data-card-benefit-dialog
       :show-close-button="false"
-      class="card-benefit-dialog top-1/2 left-1/2 max-h-[calc(100dvh-3rem)] w-[calc(100%-2.5rem)] max-w-[335px] translate-x-[-50%] translate-y-[-50%] gap-0 overflow-y-auto rounded-[32px] border border-white/70 bg-transparent p-0 shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:max-w-[335px]"
+      class="card-benefit-dialog top-1/2 left-1/2 max-h-[calc(100dvh-3rem)] w-[calc(100%-2.5rem)] max-w-[335px] translate-x-[-50%] translate-y-[-50%] gap-0 overflow-y-auto rounded-[32px] border border-white/70 bg-transparent p-0 shadow-none sm:max-w-[335px]"
     >
       <article
         v-if="card"
@@ -256,7 +256,7 @@ watch(
 <style>
 .card-benefit-dialog[data-state='open'] {
   transform-origin: center 34%;
-  animation: card-benefit-flip-in 650ms cubic-bezier(0.4, 0, 0.2, 1) both !important;
+  animation: card-benefit-flip-in 650ms cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .card-benefit-dialog[data-state='closed'] {

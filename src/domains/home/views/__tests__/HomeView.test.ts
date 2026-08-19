@@ -398,6 +398,7 @@ describe('HomeView', () => {
     expect(document.querySelector('[data-card-benefit-dialog]')?.textContent).toContain(
       '혜택 더 보기',
     )
+    expect(document.querySelector('[data-card-benefit-dialog]')?.classList).toContain('shadow-none')
   })
 
   it('카드 위 대표 혜택을 누르면 동일한 혜택 요약 모달을 연다', async () => {
