@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
+import { useRoute } from 'vue-router'
 import {
   ChevronDown,
   Info,
@@ -18,6 +19,7 @@ import {
 } from '@/domains/map/api/merchants'
 import { sortByCategoryOrder } from '@/domains/map/utils/categoryIcon'
 import { distanceMeters, type Coordinates } from '@/domains/map/composables/currentLocation'
+import { useCategoryPreference } from '@/domains/map/composables/useCategoryPreference'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
 import { useLocationPermission } from '@/domains/map/composables/useLocationPermission'
 import { useMerchantSheet } from '@/domains/map/composables/useMerchantSheet'
@@ -26,6 +28,8 @@ import LocationPermissionModal from '@/domains/map/components/LocationPermission
 import MerchantBottomSheet from '@/domains/map/components/MerchantBottomSheet.vue'
 import PlaceListPanel from '@/domains/map/components/PlaceListPanel.vue'
 import { captureEvent } from '@/plugins/posthog'
+
+const route = useRoute()
 
 const mapContainer = ref<HTMLElement | null>(null)
 const controlsRef = ref<HTMLElement | null>(null)
@@ -59,6 +63,9 @@ const {
   handleAllowLocation,
   handleLaterLocation,
 } = useLocationPermission(isMapReady)
+
+const { getSavedCategoryId, hasSeenCategoryPicker, markCategoryPickerSeen, saveCategorySelection } =
+  useCategoryPreference()
 
 watch(
   currentLocation,
@@ -96,17 +103,46 @@ const {
 const activeCategoryId = ref<string | null>(null)
 const activeMerchantId = ref<string | null>(null)
 const isCategoryPickerOpen = ref(false)
+// 카테고리 선택이 최초 자동 노출로 이뤄졌는지, 사용자가 직접 버튼을 눌러 바꾼 건지 구분해
+// posthog로 같이 보낸다 — "한 번만 보여줘도 충분한지" 판단할 실사용 데이터로 쓴다.
+const categoryPickerSource = ref<'auto' | 'manual'>('manual')
 
 const orderedCategories = computed(() => sortByCategoryOrder(categories.value ?? []))
 
 watch(
   orderedCategories,
   (list) => {
-    if (list.length && !activeCategoryId.value) {
-      activeCategoryId.value = list[0]!.categoryId
-    }
+    if (!list.length || activeCategoryId.value) return
+
+    const savedCategoryId = getSavedCategoryId()
+    const savedCategory = list.find((category) => category.categoryId === savedCategoryId)
+    activeCategoryId.value = savedCategory ? savedCategory.categoryId : list[0]!.categoryId
   },
   { immediate: true },
+)
+
+// 위치 권한 모달 처리가 끝난 뒤(허용/나중에 둘 다), 카테고리 선택 모달을 한 번도 본 적
+// 없는 사용자에게만 자동으로 띄운다. 선택 여부와 무관하게 한 번 띄우면 다시는 자동으로
+// 뜨지 않으므로, 여는 시점에 곧바로 "봤음"으로 기록한다. 공유 링크 등으로 가맹점 상세
+// URL에 바로 진입한 경우엔 상세 시트와 겹치지 않도록 자동 노출을 건너뛴다.
+watch(
+  () =>
+    [
+      isLocationCheckComplete.value,
+      isLocationModalOpen.value,
+      orderedCategories.value,
+      route.name,
+    ] as const,
+  ([checkComplete, locationModalOpen, list, routeName]) => {
+    if (!checkComplete || locationModalOpen || !list.length) return
+    if (routeName === 'merchant-detail') return
+    if (hasSeenCategoryPicker()) return
+
+    markCategoryPickerSeen()
+    categoryPickerSource.value = 'auto'
+    isCategoryPickerOpen.value = true
+    captureEvent('category_picker_shown')
+  },
 )
 
 const activeCategoryName = computed(
@@ -117,6 +153,7 @@ const activeCategoryName = computed(
 
 function openCategoryPicker() {
   onSheetClose()
+  categoryPickerSource.value = 'manual'
   isCategoryPickerOpen.value = true
 }
 
@@ -130,10 +167,15 @@ function recenterToCurrentLocation() {
 function selectCategory(categoryId: string) {
   activeCategoryId.value = categoryId
   activeMerchantId.value = null
+  saveCategorySelection(categoryId)
   const categoryName = categories.value?.find(
     (category) => category.categoryId === categoryId,
   )?.categoryName
-  captureEvent('map_category_selected', { categoryId, categoryName })
+  captureEvent('map_category_selected', {
+    categoryId,
+    categoryName,
+    source: categoryPickerSource.value,
+  })
 }
 
 function toggleBrandFilter(merchantId: string) {
