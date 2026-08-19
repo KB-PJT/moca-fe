@@ -263,12 +263,12 @@ watch(
     <span
       data-carousel-edge-fade
       aria-hidden="true"
-      class="pointer-events-none absolute inset-y-0 left-0 z-[110] w-9 bg-[linear-gradient(90deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.74)_34%,rgba(255,255,255,0)_100%)]"
+      class="pointer-events-none absolute inset-y-0 left-0 z-[110] w-8 bg-[linear-gradient(90deg,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0.52)_34%,rgba(255,255,255,0)_100%)]"
     />
     <span
       data-carousel-edge-fade
       aria-hidden="true"
-      class="pointer-events-none absolute inset-y-0 right-0 z-[110] w-9 bg-[linear-gradient(270deg,rgba(255,255,255,0.98)_0%,rgba(255,255,255,0.74)_34%,rgba(255,255,255,0)_100%)]"
+      class="pointer-events-none absolute inset-y-0 right-0 z-[110] w-8 bg-[linear-gradient(270deg,rgba(255,255,255,0.9)_0%,rgba(255,255,255,0.52)_34%,rgba(255,255,255,0)_100%)]"
     />
   </div>
 </template>
