@@ -1,4 +1,4 @@
-import { onUnmounted, ref, watch, type Ref } from 'vue'
+import { onActivated, onDeactivated, onUnmounted, ref, watch, type Ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
 import { requestCurrentPosition, type Coordinates } from '@/domains/map/composables/currentLocation'
@@ -43,13 +43,34 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
     )
   }
 
-  function clearWatch() {
+  function pauseWatchingPosition() {
     if (watchId !== null) {
       navigator.geolocation.clearWatch(watchId)
       watchId = null
     }
+  }
+
+  function clearWatch() {
+    pauseWatchingPosition()
     currentLocation.value = null
   }
+
+  // KeepAlive로 지도 탭이 살아있는 상태로 다른 탭에 가있는 동안에도 GPS watch가 백그라운드에서
+  // 계속 돌면 배터리를 불필요하게 쓰므로, 탭을 벗어나면(deactivated) 잠깐 멈추고 다시
+  // 돌아오면(activated) 이어서 추적한다. currentLocation은 유지해서 재진입 시 로딩이 안 보이게 한다.
+  let wasWatchingBeforeDeactivate = false
+
+  onDeactivated(() => {
+    wasWatchingBeforeDeactivate = watchId !== null
+    pauseWatchingPosition()
+  })
+
+  onActivated(() => {
+    if (wasWatchingBeforeDeactivate) {
+      wasWatchingBeforeDeactivate = false
+      startWatchingPosition()
+    }
+  })
 
   onUnmounted(() => {
     clearWatch()
