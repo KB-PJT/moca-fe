@@ -255,7 +255,7 @@ async function handleLogout() {
 
     <section
       aria-labelledby="mypage-profile-heading"
-      class="mb-6 w-full rounded-lg border border-divider/50 bg-card p-5"
+      class="mb-6 w-full rounded-lg border border-divider bg-card p-5"
     >
       <div class="flex items-center">
         <strong id="mypage-profile-heading" class="text-subheading text-charcoal">
@@ -300,7 +300,7 @@ async function handleLogout() {
     </section>
 
     <h2 class="mb-2 px-1 text-body font-semibold text-gray">내 서비스 관리</h2>
-    <SectionCard flush class="overflow-hidden rounded-lg border border-divider/50 bg-card">
+    <SectionCard flush class="overflow-hidden rounded-lg border border-divider bg-card">
       <ListItem
         title="내 카드 관리"
         :description="connectedCardDescription"
@@ -360,7 +360,7 @@ async function handleLogout() {
     </SectionCard>
 
     <h2 class="mb-2 px-1 text-body font-semibold text-gray">고객지원</h2>
-    <SectionCard flush class="overflow-hidden rounded-lg border border-divider/50 bg-card">
+    <SectionCard flush class="overflow-hidden rounded-lg border border-divider bg-card">
       <ListItem title="공지사항" clickable @click="navigateToNotices">
         <template #left>
           <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
@@ -381,7 +381,7 @@ async function handleLogout() {
     </SectionCard>
 
     <h2 class="mb-2 px-1 text-body font-semibold text-gray">계정 관리</h2>
-    <SectionCard flush class="overflow-hidden rounded-lg border border-divider/50 bg-card">
+    <SectionCard flush class="overflow-hidden rounded-lg border border-divider bg-card">
       <ListItem title="로그아웃" clickable @click="isLogoutDialogOpen = true">
         <template #left>
           <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
