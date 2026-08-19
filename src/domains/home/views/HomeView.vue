@@ -66,10 +66,13 @@ async function loadHomeCards() {
       : -1
     activeCardIndex.value = selectedIndex >= 0 ? selectedIndex : 0
     cardManagementStore.setHomeSelectedCardId(cards.value[activeCardIndex.value]?.id ?? null)
+    void loadRecentBenefits(cards.value[activeCardIndex.value]?.id)
   } catch {
     cards.value = []
     cardManagementStore.setDetailNavigationCardIds([])
     activeCardIndex.value = 0
+    recentBenefits.value = []
+    isRecentBenefitsLoading.value = false
     cardsError.value = '보유카드를 불러오지 못했어요.'
     captureEvent('api_load_failed', { source: 'home_cards' })
   } finally {
@@ -77,13 +80,19 @@ async function loadHomeCards() {
   }
 }
 
-async function loadRecentBenefits() {
+async function loadRecentBenefits(userCardId = activeCard.value?.id) {
+  if (!userCardId) {
+    recentBenefits.value = []
+    isRecentBenefitsLoading.value = false
+    return
+  }
+
   const requestId = ++recentBenefitsRequestId
   isRecentBenefitsLoading.value = true
   recentBenefitsError.value = ''
 
   try {
-    const result = await fetchRecentBenefits(5)
+    const result = await fetchRecentBenefits(5, userCardId)
     if (requestId !== recentBenefitsRequestId) return
     recentBenefits.value = result
   } catch {
@@ -99,7 +108,6 @@ async function loadRecentBenefits() {
 onMounted(() => {
   void loadHomeGreeting()
   void loadHomeCards()
-  void loadRecentBenefits()
 })
 
 function openBenefitDetail(item: RecentBenefitItem) {
@@ -109,7 +117,9 @@ function openBenefitDetail(item: RecentBenefitItem) {
 
 function selectCard(index: number) {
   activeCardIndex.value = index
-  cardManagementStore.setHomeSelectedCardId(cards.value[index]?.id ?? null)
+  const selectedCardId = cards.value[index]?.id ?? null
+  cardManagementStore.setHomeSelectedCardId(selectedCardId)
+  if (selectedCardId) void loadRecentBenefits(selectedCardId)
 }
 </script>
 
@@ -168,6 +178,7 @@ function selectCard(index: number) {
 
     <RecentBenefitHistory
       :items="recentBenefits"
+      :selected-card-id="activeCard?.id"
       :is-loading="isRecentBenefitsLoading"
       :error="recentBenefitsError"
       @select="openBenefitDetail"

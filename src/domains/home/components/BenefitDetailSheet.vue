@@ -45,7 +45,7 @@ function formatAmount(amount: number) {
         <section class="min-h-18.5 rounded-md bg-screen px-4 py-3.5">
           <div>
             <p class="text-caption text-[#8C7F74]">{{ item.occurredAt }}</p>
-            <strong class="mt-1 block text-heading font-bold text-charcoal">
+            <strong class="mt-1 block text-subheading font-semibold text-charcoal">
               {{ item.merchantName }}
             </strong>
           </div>
@@ -54,26 +54,26 @@ function formatAmount(amount: number) {
         <dl class="mt-5 divide-y divide-divider">
           <div class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">사용 카드</dt>
-            <dd class="text-body font-semibold text-charcoal">
+            <dd class="text-body font-normal text-charcoal">
               {{ item.cardName }}
               <template v-if="item.cardLastFour">•••• {{ item.cardLastFour }}</template>
             </dd>
           </div>
           <div class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">결제금액</dt>
-            <dd class="text-body font-semibold text-charcoal">
+            <dd class="text-body font-normal text-charcoal">
               {{ formatAmount(item.paymentAmount) }}
             </dd>
           </div>
           <div v-if="hasMissedBenefit" class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">놓친 혜택</dt>
-            <dd class="text-body font-bold text-primary">
+            <dd class="text-body font-normal text-primary">
               {{ formatAmount(item.missedBenefitAmount) }} {{ item.benefitType }}
             </dd>
           </div>
           <div v-else-if="item.benefitType" class="flex items-center justify-between py-3">
             <dt class="text-body text-[#8C7F74]">받은 혜택</dt>
-            <dd class="text-body font-bold text-benefit">
+            <dd class="text-body font-normal text-benefit">
               -{{ formatAmount(item.benefitAmount) }} {{ item.benefitType }}
             </dd>
           </div>
@@ -81,24 +81,24 @@ function formatAmount(amount: number) {
             <dt class="text-body text-[#8C7F74]">
               {{ hasMissedBenefit ? '놓친 혜택 정보' : '적용 혜택' }}
             </dt>
-            <dd class="text-body font-semibold text-charcoal">{{ item.description }}</dd>
+            <dd class="text-body font-normal text-charcoal">{{ item.description }}</dd>
           </div>
           <template v-if="hasMissedBenefit && item.performanceShortfall">
             <div class="flex items-center justify-between py-3">
               <dt class="text-body text-[#8C7F74]">전월 실적</dt>
-              <dd class="text-body font-semibold text-charcoal">
+              <dd class="text-body font-normal text-charcoal">
                 {{ formatAmount(item.performanceShortfall.achievedAmount) }}
               </dd>
             </div>
             <div class="flex items-center justify-between py-3">
               <dt class="text-body text-[#8C7F74]">필요 실적</dt>
-              <dd class="text-body font-semibold text-charcoal">
+              <dd class="text-body font-normal text-charcoal">
                 {{ formatAmount(item.performanceShortfall.requiredAmount) }}
               </dd>
             </div>
             <div class="flex items-center justify-between py-3">
               <dt class="text-body text-[#8C7F74]">부족 실적</dt>
-              <dd class="text-body font-semibold text-primary">
+              <dd class="text-body font-normal text-primary">
                 {{ formatAmount(item.performanceShortfall.remainingAmount) }}
               </dd>
             </div>
@@ -111,7 +111,7 @@ function formatAmount(amount: number) {
           aria-labelledby="monthly-benefit-status-title"
         >
           <div class="flex items-center justify-between">
-            <h3 id="monthly-benefit-status-title" class="text-caption font-semibold text-charcoal">
+            <h3 id="monthly-benefit-status-title" class="text-caption font-normal text-charcoal">
               월 혜택 사용 현황
             </h3>
             <p class="text-caption text-[#8C7F74]">
@@ -134,7 +134,7 @@ function formatAmount(amount: number) {
           </div>
           <p class="mt-2 text-caption text-[#8C7F74]">
             이번 혜택 적용 후 남은 한도
-            <strong class="font-semibold text-charcoal">
+            <strong class="font-normal text-charcoal">
               {{ formatAmount(remainingBenefitAmount) }}
             </strong>
           </p>

@@ -6,7 +6,9 @@ import {
 } from '@/domains/home/api/recentBenefits'
 
 const apiClientMocks = vi.hoisted(() => ({
-  get: vi.fn<(url: string, config: { params: { limit: number } }) => Promise<unknown>>(),
+  get: vi.fn<
+    (url: string, config: { params: { limit: number; userCardId?: string } }) => Promise<unknown>
+  >(),
 }))
 
 vi.mock('@/shared/api/client', () => ({
@@ -57,6 +59,18 @@ describe('recentBenefits API', () => {
     ])
     expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/home/recent-history', {
       params: { limit: 5 },
+    })
+  })
+
+  it('선택한 카드의 최근 승인 내역을 요청한다', async () => {
+    apiClientMocks.get.mockResolvedValue({
+      data: { success: true, data: { history: [benefit] } },
+    })
+
+    await fetchRecentBenefits(5, 'card-1')
+
+    expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/home/recent-history', {
+      params: { limit: 5, userCardId: 'card-1' },
     })
   })
 

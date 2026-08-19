@@ -39,6 +39,7 @@ const historyItems = ref<RecentBenefitItem[]>([])
 const historySummary = ref<BenefitHistorySummary>(emptySummary())
 const totalCount = ref(0)
 const isLoading = ref(true)
+const hasLoadedHistory = ref(false)
 const loadError = ref('')
 let historyRequestId = 0
 const cardFilterDetails = ref<HTMLDetailsElement | null>(null)
@@ -51,6 +52,12 @@ const sortOptions = [
 ] as const
 
 const displayedMonth = computed(() => Number(yearMonth.value.slice(5, 7)))
+const displayedYearMonth = computed(() => {
+  const [year, month] = yearMonth.value.split('-')
+  return `${year}년 ${Number(month)}월`
+})
+const canGoNextMonth = computed(() => yearMonth.value < currentYearMonth)
+const isInitialLoading = computed(() => isLoading.value && !hasLoadedHistory.value)
 const selectedCard = computed(() => cards.value.find((card) => card.id === selectedCardId.value))
 const monthlyBenefitTotal = computed(() => historySummary.value.totalBenefitAmount)
 const totalPaymentAmount = computed(() =>
@@ -113,12 +120,14 @@ async function loadHistory() {
     historyItems.value = result.items
     historySummary.value = result.summary
     totalCount.value = result.totalCount
+    hasLoadedHistory.value = true
   } catch {
     if (requestId !== historyRequestId) return
     historyItems.value = []
     historySummary.value = emptySummary()
     totalCount.value = 0
     loadError.value = '혜택 내역을 불러오지 못했어요.'
+    hasLoadedHistory.value = true
     captureEvent('api_load_failed', { source: 'benefit_history' })
   } finally {
     if (requestId === historyRequestId) isLoading.value = false
@@ -148,9 +157,13 @@ async function loadCardsAndHistory() {
       ? (preferredCardId ?? '')
       : (cards.value[0]?.id ?? '')
     if (selectedCardId.value) await loadHistory()
-    else isLoading.value = false
+    else {
+      hasLoadedHistory.value = true
+      isLoading.value = false
+    }
   } catch {
     cards.value = []
+    hasLoadedHistory.value = true
     isLoading.value = false
     loadError.value = '혜택 내역을 불러오지 못했어요.'
   }
@@ -163,6 +176,8 @@ function selectCard(cardId: string) {
 }
 
 function changeMonth(offset: number) {
+  if (offset > 0 && !canGoNextMonth.value) return
+
   const [year, month] = yearMonth.value.split('-').map(Number)
   const date = new Date(year ?? now.getFullYear(), (month ?? 1) - 1 + offset, 1)
   yearMonth.value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -233,13 +248,14 @@ onMounted(loadCardsAndHistory)
           >
             <ChevronLeft class="size-4" aria-hidden="true" />
           </button>
-          <strong class="w-9 text-center text-body font-semibold text-charcoal">
-            {{ displayedMonth }}월
+          <strong class="min-w-20 text-center text-body font-semibold text-charcoal">
+            {{ displayedYearMonth }}
           </strong>
           <button
             type="button"
-            class="flex size-8 items-center justify-center text-gray"
+            class="flex size-8 items-center justify-center text-gray disabled:cursor-not-allowed disabled:opacity-30"
             aria-label="다음 달"
+            :disabled="!canGoNextMonth"
             @click="changeMonth(1)"
           >
             <ChevronRight class="size-4" aria-hidden="true" />
@@ -247,7 +263,7 @@ onMounted(loadCardsAndHistory)
         </div>
       </div>
 
-      <div v-if="isLoading" class="space-y-4 px-5" aria-label="혜택 내역 로딩 중">
+      <div v-if="isInitialLoading" class="space-y-4 px-5" aria-label="혜택 내역 로딩 중">
         <Skeleton class="h-64 w-full rounded-md" />
         <Skeleton v-for="index in 3" :key="index" class="h-18 w-full rounded-md" />
       </div>
@@ -331,7 +347,7 @@ onMounted(loadCardsAndHistory)
         </div>
       </section>
 
-      <div v-if="!isLoading && !loadError && groupedBenefits.length" class="px-7 pt-5 pb-6">
+      <div v-if="hasLoadedHistory && !loadError && groupedBenefits.length" class="px-7 pt-5 pb-6">
         <div class="mb-2 flex items-center justify-between">
           <strong class="text-caption font-semibold text-gray">총 {{ totalCount }}건</strong>
           <details ref="sortDetails" class="relative">
@@ -368,7 +384,7 @@ onMounted(loadCardsAndHistory)
       </div>
 
       <p
-        v-else-if="!isLoading && !loadError"
+        v-else-if="hasLoadedHistory && !loadError"
         class="px-5 py-20 text-center text-body text-[#8C7F74]"
       >
         해당 월의 혜택 내역이 없어요.

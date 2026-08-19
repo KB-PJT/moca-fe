@@ -219,6 +219,40 @@ describe('BenefitHistoryView', () => {
     expect(fetchBenefitHistory.mock.calls[1]?.[0].yearMonth).not.toBe(firstYearMonth)
   })
 
+  it('연도와 월을 함께 표시하고 현재 월 이후로는 이동하지 않는다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const now = new Date()
+
+    expect(wrapper.text()).toContain(`${now.getFullYear()}년 ${now.getMonth() + 1}월`)
+
+    const nextButton = wrapper.get('button[aria-label="다음 달"]')
+    expect(nextButton.attributes('disabled')).toBeDefined()
+    await nextButton.trigger('click')
+
+    expect(fetchBenefitHistory).toHaveBeenCalledTimes(1)
+  })
+
+  it('월 이동 중에는 기존 내역을 유지하고 전체 로딩 화면을 표시하지 않는다', async () => {
+    let resolveNextRequest: ((result: BenefitHistoryResult) => void) | undefined
+    const wrapper = mountView()
+    await flushPromises()
+    fetchBenefitHistory.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveNextRequest = resolve as (result: BenefitHistoryResult) => void
+        }),
+    )
+
+    await wrapper.get('button[aria-label="이전 달"]').trigger('click')
+
+    expect(wrapper.text()).toContain('스타벅스')
+    expect(wrapper.find('[aria-label="혜택 내역 로딩 중"]').exists()).toBe(false)
+
+    resolveNextRequest?.(historyResult)
+    await flushPromises()
+  })
+
   it('혜택금액순을 선택하면 서버 정렬 조건으로 다시 조회한다', async () => {
     const wrapper = mountView()
     await flushPromises()
