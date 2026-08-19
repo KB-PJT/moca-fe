@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { BellOff } from '@lucide/vue'
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import {
+  fetchNotificationSettings,
+  type NotificationSettings,
+  updateNotificationSettings,
+} from '@/domains/notification/api/notificationSettings'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { Switch } from '@/shared/ui/switch'
@@ -8,11 +13,17 @@ import { Switch } from '@/shared/ui/switch'
 const isDeviceNotificationAllowed = ref(
   typeof Notification !== 'undefined' && Notification.permission === 'granted',
 )
-const allNotificationsEnabled = ref(true)
-const performanceNotificationEnabled = ref(true)
-const nearbyBenefitNotificationEnabled = ref(true)
-const benefitLimitNotificationEnabled = ref(false)
-const marketingNotificationEnabled = ref(false)
+const settings = ref<NotificationSettings>({
+  performanceClosingEnabled: false,
+  nearbyBenefitEnabled: false,
+  benefitLimitEnabled: false,
+  marketingEnabled: false,
+})
+const isLoading = ref(true)
+const isSaving = ref(false)
+const settingsError = ref('')
+
+const allNotificationsEnabled = computed(() => Object.values(settings.value).every(Boolean))
 
 async function requestNotificationPermission() {
   if (typeof Notification === 'undefined') return
@@ -21,16 +32,51 @@ async function requestNotificationPermission() {
   isDeviceNotificationAllowed.value = permission === 'granted'
 }
 
-function updateAllNotifications(enabled: boolean) {
-  allNotificationsEnabled.value = enabled
+async function loadNotificationSettings() {
+  isLoading.value = true
+  settingsError.value = ''
 
-  if (!enabled) {
-    performanceNotificationEnabled.value = false
-    nearbyBenefitNotificationEnabled.value = false
-    benefitLimitNotificationEnabled.value = false
-    marketingNotificationEnabled.value = false
+  try {
+    settings.value = await fetchNotificationSettings()
+  } catch {
+    settingsError.value = '알림 설정을 불러오지 못했어요.'
+  } finally {
+    isLoading.value = false
   }
 }
+
+async function saveNotificationSettings(nextSettings: NotificationSettings) {
+  if (isSaving.value) return
+
+  const previousSettings = { ...settings.value }
+  settings.value = nextSettings
+  isSaving.value = true
+  settingsError.value = ''
+
+  try {
+    settings.value = await updateNotificationSettings(nextSettings)
+  } catch {
+    settings.value = previousSettings
+    settingsError.value = '알림 설정을 저장하지 못했어요. 다시 시도해주세요.'
+  } finally {
+    isSaving.value = false
+  }
+}
+
+function updateAllNotifications(enabled: boolean) {
+  void saveNotificationSettings({
+    performanceClosingEnabled: enabled,
+    nearbyBenefitEnabled: enabled,
+    benefitLimitEnabled: enabled,
+    marketingEnabled: enabled,
+  })
+}
+
+function updateNotificationSetting(key: keyof NotificationSettings, enabled: boolean) {
+  void saveNotificationSettings({ ...settings.value, [key]: enabled })
+}
+
+onMounted(loadNotificationSettings)
 </script>
 
 <template>
@@ -60,6 +106,22 @@ function updateAllNotifications(enabled: boolean) {
       </aside>
 
       <div class="px-5 pt-4">
+        <div
+          v-if="settingsError"
+          role="alert"
+          class="mb-3 flex items-center justify-between gap-3 rounded-md bg-error/8 px-4 py-3 text-caption text-error"
+        >
+          <span>{{ settingsError }}</span>
+          <button
+            v-if="!isSaving"
+            type="button"
+            class="shrink-0 font-bold underline underline-offset-2"
+            @click="loadNotificationSettings"
+          >
+            다시 시도
+          </button>
+        </div>
+
         <SectionCard
           flush
           aria-label="전체 알림 설정"
@@ -69,6 +131,7 @@ function updateAllNotifications(enabled: boolean) {
             <span class="text-body flex-1 font-semibold text-charcoal">전체 알림</span>
             <Switch
               :model-value="allNotificationsEnabled"
+              :disabled="isLoading || isSaving"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="전체 알림"
               @update:model-value="updateAllNotifications"
@@ -91,10 +154,11 @@ function updateAllNotifications(enabled: boolean) {
               </span>
             </span>
             <Switch
-              v-model="performanceNotificationEnabled"
-              :disabled="!allNotificationsEnabled"
+              :model-value="settings.performanceClosingEnabled"
+              :disabled="isLoading || isSaving"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="실적 마감 알림"
+              @update:model-value="updateNotificationSetting('performanceClosingEnabled', $event)"
             />
           </div>
 
@@ -106,10 +170,11 @@ function updateAllNotifications(enabled: boolean) {
               </span>
             </span>
             <Switch
-              v-model="nearbyBenefitNotificationEnabled"
-              :disabled="!allNotificationsEnabled"
+              :model-value="settings.nearbyBenefitEnabled"
+              :disabled="isLoading || isSaving"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="주변 혜택 알림"
+              @update:model-value="updateNotificationSetting('nearbyBenefitEnabled', $event)"
             />
           </div>
 
@@ -121,10 +186,11 @@ function updateAllNotifications(enabled: boolean) {
               </span>
             </span>
             <Switch
-              v-model="benefitLimitNotificationEnabled"
-              :disabled="!allNotificationsEnabled"
+              :model-value="settings.benefitLimitEnabled"
+              :disabled="isLoading || isSaving"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="혜택 한도 알림"
+              @update:model-value="updateNotificationSetting('benefitLimitEnabled', $event)"
             />
           </div>
         </SectionCard>
@@ -144,10 +210,11 @@ function updateAllNotifications(enabled: boolean) {
               </span>
             </span>
             <Switch
-              v-model="marketingNotificationEnabled"
-              :disabled="!allNotificationsEnabled"
+              :model-value="settings.marketingEnabled"
+              :disabled="isLoading || isSaving"
               class="h-6 w-10 [&_[data-slot=switch-thumb]]:size-5"
               aria-label="마케팅 정보 알림"
+              @update:model-value="updateNotificationSetting('marketingEnabled', $event)"
             />
           </div>
         </SectionCard>
