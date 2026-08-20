@@ -3,6 +3,7 @@ import {
   Bell,
   ChevronRight,
   CreditCard,
+  Heart,
   LogOut,
   MapPin,
   Megaphone,
@@ -12,10 +13,11 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { logoutFromMoca } from '@/domains/auth/api/auth'
-import { removeFcmToken } from '@/domains/notification/services/firebaseMessaging'
+import { fetchBenefitPreference, logoutFromMoca } from '@/domains/auth/api/auth'
+import { getBenefitPreferenceLabel } from '@/domains/auth/constants/benefitPreference'
 import { fetchMyCards } from '@/domains/card/api/cardManagement'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
+import { removeFcmToken } from '@/domains/notification/services/firebaseMessaging'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import ListItem from '@/shared/components/ListItem.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
@@ -116,6 +118,15 @@ const {
   queryFn: fetchMyCards,
 })
 
+const {
+  data: benefitPreference,
+  isPending: isBenefitPreferencePending,
+  isError: isBenefitPreferenceError,
+} = useQuery({
+  queryKey: ['auth', 'benefit-preference'],
+  queryFn: fetchBenefitPreference,
+})
+
 const { mutateAsync: updateLocationPermission, isPending: isLocationPermissionUpdating } =
   useMutation({
     mutationFn: updateLocationPermissionGranted,
@@ -134,6 +145,11 @@ const connectedCardDescription = computed(() => {
 const locationRecommendationEnabled = computed(
   () => summary.value?.locationRecommendationEnabled ?? false,
 )
+const benefitPreferenceDescription = computed(() => {
+  if (isBenefitPreferencePending.value) return '선호 혜택을 불러오는 중'
+  if (isBenefitPreferenceError.value) return '선호 혜택을 불러오지 못했어요'
+  return getBenefitPreferenceLabel(benefitPreference.value!)
+})
 const locationSettingDescription = computed(() => {
   if (isSummaryPending.value) return '설정을 불러오는 중'
   if (isSummaryError.value) return '설정을 불러오지 못했어요'
@@ -161,6 +177,10 @@ function navigateToProfile() {
 
 function navigateToNotificationSettings() {
   void router.push({ name: 'notification-settings' })
+}
+
+function navigateToBenefitPreference() {
+  void router.push({ name: 'mypage-benefit-preference' })
 }
 
 function navigateToNotices() {
@@ -312,6 +332,20 @@ async function handleLogout() {
         <template #left>
           <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
             <CreditCard class="size-4" />
+          </span>
+        </template>
+        <template #right><ChevronRight class="size-4 text-gray" /></template>
+      </ListItem>
+
+      <ListItem
+        title="혜택 선호 관리"
+        :description="benefitPreferenceDescription"
+        clickable
+        @click="navigateToBenefitPreference"
+      >
+        <template #left>
+          <span class="flex size-8 items-center justify-center rounded-full bg-screen text-primary">
+            <Heart class="size-4" />
           </span>
         </template>
         <template #right><ChevronRight class="size-4 text-gray" /></template>

@@ -179,7 +179,7 @@ watch(merchantId, () => {
         MOCA 추천 카드
       </p>
 
-      <div class="bg-accent mt-2 space-y-3 rounded-md p-3">
+      <div class="recommend-card-surface relative mt-2 space-y-3 overflow-hidden rounded-md p-3">
         <div class="flex items-center gap-3">
           <CardImage
             :src="recommendedCard.cardImageUrl"
@@ -207,17 +207,19 @@ watch(merchantId, () => {
 
         <template v-if="hasPerformanceRequirement(recommendedCard)">
           <div
-            class="bg-divider relative h-3 rounded-full"
+            class="relative h-3"
             role="progressbar"
             aria-label="전월 실적 달성률"
             aria-valuemin="0"
             aria-valuemax="100"
             :aria-valuenow="gaugeFillPercent(recommendedCard)"
           >
-            <div
-              class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
-              :style="{ width: `${isFilled ? gaugeFillPercent(recommendedCard) : 0}%` }"
-            />
+            <div class="bg-divider h-full overflow-hidden rounded-full">
+              <div
+                class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
+                :style="{ width: `${isFilled ? gaugeFillPercent(recommendedCard) : 0}%` }"
+              />
+            </div>
             <span
               class="text-label absolute inset-0 flex items-center justify-center text-charcoal"
             >
@@ -273,7 +275,7 @@ watch(merchantId, () => {
               type="number"
               inputmode="numeric"
               placeholder="결제 금액을 입력해보세요"
-              class="bg-card"
+              class="bg-card focus-visible:ring-0"
               autofocus
             />
             <p
@@ -323,7 +325,7 @@ watch(merchantId, () => {
         class="transition-opacity duration-300"
         :class="collapsing ? 'opacity-0' : 'opacity-100'"
       >
-        <div v-if="conditionItems.length" class="mt-4">
+        <div v-if="conditionItems.length" class="mt-6">
           <p class="text-subheading text-charcoal">추천 이유</p>
           <div class="mt-3">
             <!-- startDelayMs 160 = 바텀시트 expand() 트랜지션(320ms, useSheetTransition.ts)의
@@ -346,6 +348,24 @@ watch(merchantId, () => {
 </template>
 
 <style scoped>
+.recommend-card-surface {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(224, 130, 148, 0.24), transparent 42%),
+    radial-gradient(circle at 4% 96%, rgba(255, 136, 54, 0.24), transparent 46%),
+    linear-gradient(145deg, #fffaf3 0%, #fff2e4 50%, #fde8d6 100%);
+}
+
+/* 미세 노이즈로 매끈한 평면 대신 표면감을 준다 — 텍스트 위에는 거의 안 보일 정도로 옅게. */
+.recommend-card-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gauge-fill {
     transition: none !important;
