@@ -152,6 +152,11 @@ const router = createRouter({
           component: () => import('@/domains/notification/views/NotificationSettingsView.vue'),
         },
         {
+          path: 'mypage/benefit-preference',
+          name: 'mypage-benefit-preference',
+          component: () => import('@/domains/mypage/views/BenefitPreferenceView.vue'),
+        },
+        {
           path: 'mypage/notices',
           name: 'mypage-notices',
           component: () => import('@/domains/mypage/views/NoticeView.vue'),

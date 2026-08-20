@@ -19,6 +19,12 @@ const summaryQueryState = vi.hoisted(() => ({
   isError: false,
   refetch: vi.fn<() => void>(),
 }))
+const benefitPreferenceQueryState = vi.hoisted(() => ({
+  data: 'IMMEDIATE_SAVINGS' as string,
+  isPending: false,
+  isError: false,
+  refetch: vi.fn<() => void>(),
+}))
 const locationMutationState = vi.hoisted(() => ({
   mutateAsync: vi.fn<(enabled: boolean) => Promise<void>>(),
 }))
@@ -28,20 +34,30 @@ vi.mock('vue-router', () => ({
 }))
 
 vi.mock('@tanstack/vue-query', () => ({
-  useQuery: ({ queryKey }: { queryKey: string[] }) =>
-    queryKey[0] === 'cards'
-      ? {
-          data: ref(cardQueryState.data),
-          isPending: ref(cardQueryState.isPending),
-          isError: ref(cardQueryState.isError),
-          refetch: cardQueryState.refetch,
-        }
-      : {
-          data: ref(summaryQueryState.data),
-          isPending: ref(summaryQueryState.isPending),
-          isError: ref(summaryQueryState.isError),
-          refetch: summaryQueryState.refetch,
-        },
+  useQuery: ({ queryKey }: { queryKey: string[] }) => {
+    if (queryKey[0] === 'cards') {
+      return {
+        data: ref(cardQueryState.data),
+        isPending: ref(cardQueryState.isPending),
+        isError: ref(cardQueryState.isError),
+        refetch: cardQueryState.refetch,
+      }
+    }
+    if (queryKey[0] === 'auth') {
+      return {
+        data: ref(benefitPreferenceQueryState.data),
+        isPending: ref(benefitPreferenceQueryState.isPending),
+        isError: ref(benefitPreferenceQueryState.isError),
+        refetch: benefitPreferenceQueryState.refetch,
+      }
+    }
+    return {
+      data: ref(summaryQueryState.data),
+      isPending: ref(summaryQueryState.isPending),
+      isError: ref(summaryQueryState.isError),
+      refetch: summaryQueryState.refetch,
+    }
+  },
   useQueryClient: () => ({
     setQueryData: vi.fn<() => void>(),
   }),
@@ -72,6 +88,10 @@ describe('MypageView', () => {
     summaryQueryState.isPending = false
     summaryQueryState.isError = false
     summaryQueryState.refetch.mockClear()
+    benefitPreferenceQueryState.data = 'IMMEDIATE_SAVINGS'
+    benefitPreferenceQueryState.isPending = false
+    benefitPreferenceQueryState.isError = false
+    benefitPreferenceQueryState.refetch.mockClear()
     locationMutationState.mutateAsync.mockReset()
     locationMutationState.mutateAsync.mockResolvedValue()
     window.history.replaceState({}, '')
@@ -266,6 +286,42 @@ describe('MypageView', () => {
     })
     expect(wrapper.text()).toContain('연결 카드 2개')
     expect(wrapper.text()).toContain('등록한 카드 2개')
+  })
+
+  it('혜택 선호 관리 화면으로 이동하며 현재 선호를 표시한다', async () => {
+    const wrapper = shallowMount(MypageView, {
+      global: {
+        stubs: {
+          PageLayout: { template: '<main><slot /></main>' },
+          MainHeader: { template: '<header />' },
+          SectionCard: { template: '<section><slot /></section>' },
+          ListItem: {
+            props: ['title', 'description'],
+            emits: ['click'],
+            template:
+              '<button @click="$emit(\'click\')">{{ title }} {{ description }}<slot /></button>',
+          },
+          Dialog: { template: '<div><slot /></div>' },
+          DialogContent: { template: '<div><slot /></div>' },
+          DialogHeader: { template: '<div><slot /></div>' },
+          DialogTitle: { template: '<div><slot /></div>' },
+          DialogDescription: { template: '<div><slot /></div>' },
+          DialogFooter: { template: '<div><slot /></div>' },
+          DialogClose: { template: '<div><slot /></div>' },
+          MocaButton: { template: '<button><slot /></button>' },
+          Switch: { template: '<span />' },
+        },
+      },
+    })
+
+    expect(wrapper.text()).toContain('바로 할인받기')
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('혜택 선호 관리'))
+      ?.trigger('click')
+
+    expect(push).toHaveBeenCalledWith({ name: 'mypage-benefit-preference' })
   })
 
   it('문의하기 화면으로 이동한다', async () => {
