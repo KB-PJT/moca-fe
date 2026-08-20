@@ -1,11 +1,14 @@
 import {
+  Book,
   Brush,
   Building2,
   Clapperboard,
   Coffee,
   Croissant,
+  Droplet,
   FerrisWheel,
   Fuel,
+  Hamburger,
   ShoppingBag,
   ShoppingCart,
   Utensils,
@@ -19,13 +22,23 @@ export const categoryIcon: Record<string, typeof Utensils> = {
   음식점: Utensils,
   카페: Coffee,
   편의점: ShoppingBag,
-  마트: ShoppingCart,
+  대형마트: ShoppingCart,
   뷰티: Brush,
   주유소: Fuel,
+  주유: Droplet,
+  도서: Book,
+  패스트푸드: Hamburger,
   테마파크: FerrisWheel,
   백화점: Building2,
   영화: Clapperboard,
   베이커리: Croissant,
+}
+
+// 등록된 브랜드가 없어 선택해도 빈 화면만 나오는 카테고리는 목록/선택 시트에서 아예 제외한다.
+export const EXCLUDED_CATEGORY_NAMES = ['마트', '병원', '약국', '동물병원']
+
+export function isVisibleCategory({ categoryName }: { categoryName: string }): boolean {
+  return !EXCLUDED_CATEGORY_NAMES.includes(categoryName)
 }
 
 // 자주 쓰는 카테고리를 앞에 두는 화면 표시 순서. 이 목록에 없는(=API에 새로 추가된) 카테고리는
@@ -36,7 +49,7 @@ const CATEGORY_DISPLAY_ORDER = [
   '카페',
   '뷰티',
   '베이커리',
-  '마트',
+  '대형마트',
   '주유소',
   '백화점',
   '영화',

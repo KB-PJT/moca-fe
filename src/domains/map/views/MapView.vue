@@ -17,7 +17,7 @@ import {
   fetchNearbyMerchants,
   toMerchant,
 } from '@/domains/map/api/merchants'
-import { sortByCategoryOrder } from '@/domains/map/utils/categoryIcon'
+import { isVisibleCategory, sortByCategoryOrder } from '@/domains/map/utils/categoryIcon'
 import { distanceMeters, type Coordinates } from '@/domains/map/composables/currentLocation'
 import { useCategoryPreference } from '@/domains/map/composables/useCategoryPreference'
 import { useKakaoMap } from '@/domains/map/composables/useKakaoMap'
@@ -110,7 +110,9 @@ const isCategoryPickerOpen = ref(false)
 // posthog로 같이 보낸다 — "한 번만 보여줘도 충분한지" 판단할 실사용 데이터로 쓴다.
 const categoryPickerSource = ref<'auto' | 'manual'>('manual')
 
-const orderedCategories = computed(() => sortByCategoryOrder(categories.value ?? []))
+const orderedCategories = computed(() =>
+  sortByCategoryOrder((categories.value ?? []).filter(isVisibleCategory)),
+)
 
 watch(
   orderedCategories,
