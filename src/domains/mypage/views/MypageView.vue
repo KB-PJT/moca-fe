@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { logoutFromMoca } from '@/domains/auth/api/auth'
+import { removeFcmToken } from '@/domains/notification/services/firebaseMessaging'
 import { fetchMyCards } from '@/domains/card/api/cardManagement'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
 import { useAuthStore } from '@/domains/auth/stores/auth'
@@ -225,6 +226,7 @@ async function confirmTurnOffLocation() {
 
 async function handleLogout() {
   try {
+    await removeFcmToken().catch(() => undefined)
     await logoutFromMoca()
   } finally {
     authStore.clearSession()

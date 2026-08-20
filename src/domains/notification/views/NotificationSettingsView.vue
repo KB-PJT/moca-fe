@@ -9,6 +9,10 @@ import {
 import PageLayout from '@/shared/components/PageLayout.vue'
 import SectionCard from '@/shared/components/SectionCard.vue'
 import { Switch } from '@/shared/ui/switch'
+import {
+  requestAndRegisterPushNotifications,
+  synchronizeFcmToken,
+} from '@/domains/notification/services/firebaseMessaging'
 
 const isDeviceNotificationAllowed = ref(
   typeof Notification !== 'undefined' && Notification.permission === 'granted',
@@ -34,7 +38,7 @@ const isSettingsInteractionDisabled = computed(
 async function requestNotificationPermission() {
   if (typeof Notification === 'undefined') return
 
-  const permission = await Notification.requestPermission()
+  const permission = await requestAndRegisterPushNotifications()
   isDeviceNotificationAllowed.value = permission === 'granted'
 }
 
@@ -68,6 +72,13 @@ async function saveNotificationSettings(nextSettings: NotificationSettings) {
 
   try {
     settings.value = await updateNotificationSettings(nextSettings)
+    if (
+      Object.values(settings.value).some(Boolean) &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+    ) {
+      void synchronizeFcmToken().catch(() => undefined)
+    }
   } catch {
     settings.value = previousSettings
     settingsError.value = '알림 설정을 저장하지 못했어요. 다시 시도해주세요.'
