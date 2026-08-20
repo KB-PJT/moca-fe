@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
+import { CircleCheck, CircleDashed, Target, TrendingUp } from '@lucide/vue'
 import type {
   PerformanceSummary,
   PerformanceSummaryCardItem,
 } from '@/domains/benefit-report/api/performanceReport'
-import { formatAmountWithUnit } from '@/shared/utils/format'
+import { formatAmount, formatAmountWithUnit } from '@/shared/utils/format'
+import Skeleton from '@/shared/ui/skeleton/Skeleton.vue'
 
 interface NearestAchievement {
   cardName: string
@@ -13,33 +15,13 @@ interface NearestAchievement {
 
 const props = defineProps<{
   summary: PerformanceSummary
+  // 카드별 실적 목록(다른 API 응답)에서 합산해 넘겨받는 이번 달 실적 총액. 두 API가 다
+  // 응답해야 채워지므로 아직 없을 수 있어 optional(그동안 스켈레톤을 보여준다).
+  totalPerformanceAmount?: number | null
   // 카드별 실적 목록(다른 API 응답)에서 계산해 넘겨받는, 미달성 카드 중 남은 금액이
   // 가장 적은 카드. 두 API가 다 응답해야 채워지므로 아직 없을 수 있어 optional.
   nearestAchievement?: NearestAchievement | null
 }>()
-
-const RADIUS = 42
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-
-const achievementPercent = computed(() => {
-  if (props.summary.cardCount === 0) return 0
-  return Math.round((props.summary.achievedCardCount / props.summary.cardCount) * 100)
-})
-
-// 혜택 탭 도넛(BenefitDonutChart, Chart.js)은 마운트 시 항상 0에서 실제 값까지 그려지며
-// 등장한다. 이 SVG 버전도 같은 느낌을 내려면 최종 값으로 바로 그려지지 않고, 마운트 이후
-// 한 프레임 뒤에 실제 값으로 바뀌면서 트랜지션이 재생되게 해야 한다.
-const isFilled = ref(false)
-
-onMounted(() => {
-  requestAnimationFrame(() => {
-    isFilled.value = true
-  })
-})
-
-const dashOffset = computed(
-  () => CIRCUMFERENCE * (1 - (isFilled.value ? achievementPercent.value : 0) / 100),
-)
 
 function isInProgress(card: PerformanceSummaryCardItem): boolean {
   return !card.isCurrentTierAchieved && card.achievementRate > 0
@@ -52,64 +34,60 @@ const notStartedCount = computed(
 </script>
 
 <template>
-  <div class="rounded-lg bg-accent p-4">
-    <div class="grid grid-cols-[minmax(0,35%)_minmax(0,65%)] gap-4">
-      <div class="relative mx-auto aspect-square self-stretch">
-        <svg viewBox="0 0 100 100" class="size-full -rotate-90">
-          <circle cx="50" cy="50" r="42" fill="none" stroke-width="10" class="stroke-divider" />
-          <circle
-            cx="50"
-            cy="50"
-            r="42"
-            fill="none"
-            stroke-width="10"
-            stroke-linecap="round"
-            class="stroke-primary transition-[stroke-dashoffset] duration-400 ease-in-out"
-            :stroke-dasharray="CIRCUMFERENCE"
-            :stroke-dashoffset="dashOffset"
-          />
-        </svg>
-        <div class="absolute inset-0 flex flex-col items-center justify-center">
-          <span class="text-subheading font-bold text-charcoal">{{ achievementPercent }}%</span>
-          <span class="text-micro text-gray">금액 기준</span>
-        </div>
+  <div class="rounded-lg border border-divider/60 bg-linear-to-br from-card to-accent p-4">
+    <div class="flex items-center justify-between gap-2">
+      <p class="text-subheading font-bold text-charcoal">
+        {{ Number(summary.yearMonth.split('-')[1]) }}월 실적 금액
+      </p>
+      <span class="shrink-0 rounded-full bg-white/70 px-2.5 py-1 text-label text-gray">
+        보유 카드 {{ summary.cardCount }}장
+      </span>
+    </div>
+    <div class="mt-1 flex items-baseline gap-1">
+      <Skeleton v-if="totalPerformanceAmount == null" class="h-8 w-32" />
+      <span v-else class="text-display font-bold text-primary">{{
+        formatAmount(totalPerformanceAmount)
+      }}</span>
+      <span v-if="totalPerformanceAmount != null" class="text-caption font-semibold text-gray"
+        >원</span
+      >
+    </div>
+
+    <div class="mt-3 grid min-w-0 grid-cols-3 gap-1.5">
+      <div class="flex flex-col items-center gap-1 rounded-md bg-success/10 py-2.5">
+        <CircleCheck class="size-4 text-success" />
+        <p class="text-subheading font-bold text-success">{{ summary.achievedCardCount }}</p>
+        <p class="text-caption font-semibold text-gray">달성</p>
       </div>
-
-      <div class="flex min-w-0 flex-col justify-center">
-        <p class="text-caption text-gray">
-          {{ Number(summary.yearMonth.split('-')[1]) }}월 실적 달성
-        </p>
-        <p class="mt-0.5 text-subheading font-bold text-charcoal">
-          카드 {{ summary.cardCount }}장 중
-          <span class="text-primary">{{ summary.achievedCardCount }}장</span>
-        </p>
-
-        <div class="mt-2 grid min-w-0 grid-cols-3 gap-1">
-          <div class="rounded-md bg-success/10 py-2 text-center">
-            <p class="text-caption font-bold text-success">{{ summary.achievedCardCount }}</p>
-            <p class="text-label text-gray">달성</p>
-          </div>
-          <div class="rounded-md bg-primary/10 py-2 text-center">
-            <p class="text-caption font-bold text-primary">{{ inProgressCount }}</p>
-            <p class="text-label text-gray">진행 중</p>
-          </div>
-          <div class="rounded-md bg-divider py-2 text-center">
-            <p class="text-caption font-bold text-gray">{{ notStartedCount }}</p>
-            <p class="text-label text-gray">미시작</p>
-          </div>
-        </div>
+      <div class="flex flex-col items-center gap-1 rounded-md bg-primary/10 py-2.5">
+        <TrendingUp class="size-4 text-primary" />
+        <p class="text-subheading font-bold text-primary">{{ inProgressCount }}</p>
+        <p class="text-caption font-semibold text-gray">진행 중</p>
+      </div>
+      <div class="flex flex-col items-center gap-1 rounded-md bg-[#8C7F74]/10 py-2.5">
+        <CircleDashed class="size-4 text-[#8C7F74]" />
+        <p class="text-subheading font-bold text-[#8C7F74]">{{ notStartedCount }}</p>
+        <p class="text-caption font-semibold text-gray">미사용</p>
       </div>
     </div>
 
     <template v-if="nearestAchievement">
       <div class="my-3 border-t border-dashed border-divider" />
-      <div class="flex items-center justify-between gap-2">
-        <p class="text-caption text-gray">가장 가까운 다음 달성</p>
-        <p class="text-caption font-bold text-charcoal">
-          {{ nearestAchievement.cardName }} ·
-          <span class="text-primary">{{
-            formatAmountWithUnit(nearestAchievement.remainingAmount)
-          }}</span>
+      <div class="flex items-center gap-2">
+        <p class="flex shrink-0 items-center gap-1 text-caption whitespace-nowrap text-gray">
+          <Target class="size-3.5 text-primary" />
+          가장 가까운 다음 달성
+        </p>
+        <p
+          class="flex min-w-0 flex-1 items-center justify-end gap-1 text-caption font-bold text-charcoal"
+        >
+          <span class="truncate">{{ nearestAchievement.cardName }}</span>
+          <span class="shrink-0 whitespace-nowrap">
+            ·
+            <span class="text-primary">{{
+              formatAmountWithUnit(nearestAchievement.remainingAmount)
+            }}</span>
+          </span>
         </p>
       </div>
     </template>
