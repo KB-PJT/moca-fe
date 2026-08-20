@@ -252,15 +252,21 @@ async function handleLogout() {
   if (isLoggingOut.value) return
   isLoggingOut.value = true
 
+  const fcmToken = await getCurrentFcmToken().catch(() => null)
+
   try {
-    const fcmToken = await getCurrentFcmToken().catch(() => null)
     await logoutFromMoca(fcmToken)
-    await removeFcmToken().catch(() => undefined)
-  } finally {
-    authStore.clearSession()
-    isLogoutDialogOpen.value = false
-    await router.replace({ name: 'login' })
+  } catch {
+    isLoggingOut.value = false
+    showToast('로그아웃하지 못했어요. 다시 시도해주세요.', 'alert')
+    return
   }
+
+  await removeFcmToken().catch(() => undefined)
+  authStore.clearSession()
+  isLogoutDialogOpen.value = false
+  await router.replace({ name: 'login' }).catch(() => undefined)
+  isLoggingOut.value = false
 }
 </script>
 
