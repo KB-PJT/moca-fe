@@ -231,7 +231,7 @@ async function handleNext() {
     <template #footer>
       <MocaButton
         block
-        class="h-13 rounded-md text-subheading"
+        class="h-13 rounded-md text-subheading text-white!"
         :disabled="isLastStep && !selectedPreference"
         :loading="isSubmitting"
         @click="handleNext"

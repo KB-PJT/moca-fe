@@ -152,7 +152,7 @@ async function handleSave() {
     <template #footer>
       <MocaButton
         block
-        class="h-13 rounded-md text-subheading"
+        class="h-13 rounded-md text-subheading text-white!"
         :disabled="!canSave"
         :loading="isSaving"
         @click="handleSave"
