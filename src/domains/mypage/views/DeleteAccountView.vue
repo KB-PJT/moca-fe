@@ -101,13 +101,13 @@ async function submitDeleteAccount() {
 
       <fieldset class="mt-6">
         <legend class="mb-3 text-subheading font-bold text-charcoal">탈퇴 사유 (선택)</legend>
-        <div class="overflow-hidden rounded-lg border border-divider/60 bg-card shadow-card">
+        <div class="overflow-hidden rounded-lg border border-divider bg-card">
           <button
             v-for="reason in DELETE_ACCOUNT_REASONS"
             :key="reason"
             type="button"
             :aria-pressed="selectedReason === reason"
-            class="flex min-h-14 w-full cursor-pointer items-center gap-3 border-b border-divider/70 px-5 text-left last:border-b-0"
+            class="flex min-h-14 w-full cursor-pointer items-center gap-3 border-b border-divider px-5 text-left last:border-b-0"
             @click="toggleReason(reason)"
           >
             <span

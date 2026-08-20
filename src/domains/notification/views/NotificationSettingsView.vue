@@ -198,8 +198,9 @@ onMounted(loadNotificationSettings)
 
         <SectionCard
           flush
+          :shadow="false"
           aria-label="전체 알림 설정"
-          class="mb-0 overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
+          class="mb-0 overflow-hidden rounded-lg border border-divider bg-card"
         >
           <div class="flex min-h-14.25 items-center gap-3 px-5">
             <span class="text-body flex-1 font-semibold text-charcoal">전체 알림</span>
@@ -218,9 +219,10 @@ onMounted(loadNotificationSettings)
         <h2 class="text-caption mb-2 font-bold tracking-[0.05em] text-[#8C7F74]">알림 종류</h2>
         <SectionCard
           flush
-          class="mb-0 overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
+          :shadow="false"
+          class="mb-0 overflow-hidden rounded-lg border border-divider bg-card"
         >
-          <div class="flex min-h-17.25 items-center gap-3 border-b border-black/5 px-5 py-4">
+          <div class="flex min-h-17.25 items-center gap-3 border-b border-divider px-5 py-4">
             <span class="min-w-0 flex-1">
               <strong class="text-body block font-semibold text-charcoal">실적 마감 알림</strong>
               <span class="text-label mt-0.5 block font-normal text-[#8C7F74]">
@@ -236,7 +238,7 @@ onMounted(loadNotificationSettings)
             />
           </div>
 
-          <div class="flex min-h-17.25 items-center gap-3 border-b border-black/5 px-5 py-4">
+          <div class="flex min-h-17.25 items-center gap-3 border-b border-divider px-5 py-4">
             <span class="min-w-0 flex-1">
               <strong class="text-body block font-semibold text-charcoal">주변 혜택 알림</strong>
               <span class="text-label mt-0.5 block font-normal text-[#8C7F74]">
@@ -274,7 +276,8 @@ onMounted(loadNotificationSettings)
         <h2 class="text-caption mb-2 font-bold tracking-[0.05em] text-[#8C7F74]">선택 알림</h2>
         <SectionCard
           flush
-          class="mb-0 overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
+          :shadow="false"
+          class="mb-0 overflow-hidden rounded-lg border border-divider bg-card"
         >
           <div class="flex min-h-17.25 items-center gap-3 px-5 py-4">
             <span class="min-w-0 flex-1">
