@@ -10,6 +10,7 @@ import {
 import {
   fetchPerformanceCards,
   fetchPerformanceSummary,
+  type PerformanceCardItem,
 } from '@/domains/benefit-report/api/performanceReport'
 import PageLayout from '@/shared/components/PageLayout.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
@@ -125,6 +126,26 @@ const {
   queryKey: computed(() => ['performance-report', 'cards', activeYearMonth.value]),
   queryFn: () => fetchPerformanceCards(activeYearMonth.value),
   enabled: isPerformanceTabActive,
+})
+
+// 카드가 줄 수 있는 최종(최고) 구간 목표금액. CardPerformanceList의 동명 함수와 같은 계산이다.
+function maxTierTarget(card: PerformanceCardItem): number {
+  if (!card.tiers.length) return 0
+  return Math.max(...card.tiers.map((tier) => tier.targetAmount))
+}
+
+// 실적 상단 요약 카드의 실적 총액. summary API엔 개수만 있고 금액이 없어 카드별 목록
+// 응답(currentPerformanceAmount)을 합산해 내려준다. 최고 구간을 넘겨 쓴 금액은 혜택에
+// 더 기여하지 않으므로, 카드별로 최고 구간 목표금액을 넘지 않게 잘라서 합산한다.
+// 아직 안 불러왔으면 null로 둬서 요약 카드가 스켈레톤을 보여주게 한다.
+const totalPerformanceAmount = computed(() => {
+  if (!performanceCards.value) return null
+  return performanceCards.value.cards.reduce((sum, card) => {
+    const cap = maxTierTarget(card)
+    const amount =
+      cap > 0 ? Math.min(card.currentPerformanceAmount, cap) : card.currentPerformanceAmount
+    return sum + amount
+  }, 0)
 })
 
 // 실적 상단 요약 카드에 "가장 가까운 다음 달성"으로 보여줄, 미달성 카드 중 남은 금액이
@@ -250,6 +271,7 @@ const nearestAchievement = computed(() => {
         <CardPerformanceSummary
           v-else-if="performanceSummary"
           :summary="performanceSummary"
+          :total-performance-amount="totalPerformanceAmount"
           :nearest-achievement="nearestAchievement"
         />
 
