@@ -45,10 +45,10 @@ function toggleReason(userCardId: string) {
 </script>
 
 <template>
-  <div v-if="rankedCards.length" class="mt-4">
+  <div v-if="rankedCards.length" class="mt-6">
     <p class="text-subheading text-charcoal">내 카드 혜택 순위</p>
 
-    <div class="mt-2 space-y-3">
+    <div class="mt-3 space-y-3">
       <div v-for="item in rankedCards" :key="item.userCardId">
         <component
           :is="isExpandable(item) ? 'button' : 'div'"
@@ -110,9 +110,14 @@ function toggleReason(userCardId: string) {
                   : formatRewardLabel(item)
               }}
             </span>
-            <!-- 미충족 카드도 조건만 채우면 받을 수 있는 혜택이 뭔지 바로 보여줘 판단에 도움을 준다. -->
+            <!-- 미충족 카드도 조건만 채우면 받을 수 있는 혜택이 뭔지 바로 보여줘 판단에 도움을 준다.
+                 계산기로 결제 금액을 입력한 상태면, 요율 대신 그 금액 기준 실제 혜택 금액을 보여준다. -->
             <span v-if="!item.performanceMet" class="text-caption text-gray whitespace-nowrap">
-              {{ formatRewardLabel(item) }}
+              {{
+                appliedAmount !== null
+                  ? formatAmountWithUnit(item.estimatedValueKrw)
+                  : formatRewardLabel(item)
+              }}
             </span>
           </div>
         </component>
