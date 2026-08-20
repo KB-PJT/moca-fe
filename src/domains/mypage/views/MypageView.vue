@@ -17,7 +17,10 @@ import { fetchBenefitPreference, logoutFromMoca } from '@/domains/auth/api/auth'
 import { getBenefitPreferenceLabel } from '@/domains/auth/constants/benefitPreference'
 import { fetchMyCards } from '@/domains/card/api/cardManagement'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
-import { removeFcmToken } from '@/domains/notification/services/firebaseMessaging'
+import {
+  getCurrentFcmToken,
+  removeFcmToken,
+} from '@/domains/notification/services/firebaseMessaging'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import ListItem from '@/shared/components/ListItem.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
@@ -249,14 +252,21 @@ async function handleLogout() {
   if (isLoggingOut.value) return
   isLoggingOut.value = true
 
+  const fcmToken = await getCurrentFcmToken().catch(() => null)
+
   try {
-    await removeFcmToken().catch(() => undefined)
-    await logoutFromMoca()
-  } finally {
-    authStore.clearSession()
-    isLogoutDialogOpen.value = false
-    await router.replace({ name: 'login' })
+    await logoutFromMoca(fcmToken)
+  } catch {
+    isLoggingOut.value = false
+    showToast('로그아웃하지 못했어요. 다시 시도해주세요.', 'alert')
+    return
   }
+
+  await removeFcmToken().catch(() => undefined)
+  authStore.clearSession()
+  isLogoutDialogOpen.value = false
+  await router.replace({ name: 'login' }).catch(() => undefined)
+  isLoggingOut.value = false
 }
 </script>
 

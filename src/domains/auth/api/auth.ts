@@ -71,6 +71,6 @@ export async function updateBenefitPreference(
   await apiClient.patch('/api/v1/me/benefit-preference', { benefitPreferenceType })
 }
 
-export async function logoutFromMoca(): Promise<void> {
-  await apiClient.post('/api/v1/auth/logout')
+export async function logoutFromMoca(fcmToken?: string | null): Promise<void> {
+  await apiClient.post('/api/v1/auth/logout', fcmToken ? { fcmToken } : undefined)
 }
