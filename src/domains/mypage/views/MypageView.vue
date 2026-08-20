@@ -39,6 +39,7 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const authStore = useAuthStore()
 const isLogoutDialogOpen = ref(false)
+const isLoggingOut = ref(false)
 const isLocationOffConfirmOpen = ref(false)
 const locationPermissionError = ref('')
 const browserLocationPermission = ref<PermissionState | 'unsupported'>('prompt')
@@ -245,6 +246,9 @@ async function confirmTurnOffLocation() {
 }
 
 async function handleLogout() {
+  if (isLoggingOut.value) return
+  isLoggingOut.value = true
+
   try {
     await removeFcmToken().catch(() => undefined)
     await logoutFromMoca()
@@ -452,7 +456,7 @@ async function handleLogout() {
         <DialogClose as-child>
           <MocaButton variant="secondary" block>취소</MocaButton>
         </DialogClose>
-        <MocaButton block @click="handleLogout">로그아웃</MocaButton>
+        <MocaButton block :loading="isLoggingOut" @click="handleLogout">로그아웃</MocaButton>
       </DialogFooter>
     </DialogContent>
   </Dialog>

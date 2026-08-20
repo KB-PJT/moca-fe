@@ -31,6 +31,13 @@ describe('FCM API', () => {
     })
   })
 
+  it('FCM 토큰 등록 실패를 호출자에게 전달한다', async () => {
+    const error = new Error('token registration failed')
+    vi.mocked(apiClient.post).mockRejectedValue(error)
+
+    await expect(registerFcmToken('fcm-token')).rejects.toBe(error)
+  })
+
   it('최근 위치를 백엔드에 갱신한다', async () => {
     vi.mocked(apiClient.put).mockResolvedValue({} as never)
 
@@ -41,5 +48,12 @@ describe('FCM API', () => {
       latitude: 35.123456,
       longitude: 129.123456,
     })
+  })
+
+  it('최근 위치 갱신 실패를 호출자에게 전달한다', async () => {
+    const error = new Error('location update failed')
+    vi.mocked(apiClient.put).mockRejectedValue(error)
+
+    await expect(updateRecentLocation(35.123456, 129.123456)).rejects.toBe(error)
   })
 })

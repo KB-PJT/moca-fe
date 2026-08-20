@@ -29,6 +29,8 @@ const hasLoadedSettings = ref(false)
 const settingsError = ref('')
 const settingsErrorType = ref<'load' | 'save' | null>(null)
 const failedSaveSettings = ref<NotificationSettings | null>(null)
+const tokenSyncError = ref('')
+const isTokenSyncing = ref(false)
 
 const allNotificationsEnabled = computed(() => Object.values(settings.value).every(Boolean))
 const isSettingsInteractionDisabled = computed(
@@ -38,8 +40,29 @@ const isSettingsInteractionDisabled = computed(
 async function requestNotificationPermission() {
   if (typeof Notification === 'undefined') return
 
-  const permission = await requestAndRegisterPushNotifications()
-  isDeviceNotificationAllowed.value = permission === 'granted'
+  tokenSyncError.value = ''
+  isTokenSyncing.value = true
+  try {
+    const permission = await requestAndRegisterPushNotifications()
+    isDeviceNotificationAllowed.value = permission === 'granted'
+  } catch {
+    isDeviceNotificationAllowed.value = Notification.permission === 'granted'
+    tokenSyncError.value = '알림 권한은 허용됐지만 기기 등록에 실패했어요.'
+  } finally {
+    isTokenSyncing.value = false
+  }
+}
+
+async function retryFcmTokenSync() {
+  tokenSyncError.value = ''
+  isTokenSyncing.value = true
+  try {
+    await synchronizeFcmToken()
+  } catch {
+    tokenSyncError.value = '기기 등록에 실패했어요. 다시 시도해주세요.'
+  } finally {
+    isTokenSyncing.value = false
+  }
 }
 
 async function loadNotificationSettings() {
@@ -77,7 +100,7 @@ async function saveNotificationSettings(nextSettings: NotificationSettings) {
       typeof Notification !== 'undefined' &&
       Notification.permission === 'granted'
     ) {
-      void synchronizeFcmToken().catch(() => undefined)
+      void retryFcmTokenSync()
     }
   } catch {
     settings.value = previousSettings
@@ -134,13 +157,29 @@ onMounted(loadNotificationSettings)
         <button
           type="button"
           class="text-label shrink-0 rounded-full bg-[#92400E] px-2.5 py-1.5 font-bold text-white"
+          :disabled="isTokenSyncing"
           @click="requestNotificationPermission"
         >
-          설정으로 이동
+          {{ isTokenSyncing ? '등록 중' : '설정으로 이동' }}
         </button>
       </aside>
 
       <div class="px-5 pt-4">
+        <div
+          v-if="tokenSyncError"
+          role="alert"
+          class="mb-3 flex items-center justify-between gap-3 rounded-md bg-error/8 px-4 py-3 text-caption text-error"
+        >
+          <span>{{ tokenSyncError }}</span>
+          <button
+            type="button"
+            class="shrink-0 font-bold underline underline-offset-2"
+            :disabled="isTokenSyncing"
+            @click="retryFcmTokenSync"
+          >
+            다시 시도
+          </button>
+        </div>
         <div
           v-if="settingsError"
           role="alert"

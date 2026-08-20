@@ -8,9 +8,8 @@ import {
   type MessagePayload,
   type Messaging,
 } from 'firebase/messaging'
+import { useAuthStore } from '@/domains/auth/stores/auth'
 import { registerFcmToken } from '@/domains/notification/api/fcm'
-
-const LAST_FCM_TOKEN_KEY = 'moca:last-fcm-token'
 
 const firebaseOptions: FirebaseOptions = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -59,7 +58,9 @@ export function isPushNotificationConfigured(): boolean {
   return hasFirebaseConfig()
 }
 
-export async function synchronizeFcmToken(): Promise<string | null> {
+export async function synchronizeFcmToken(
+  expectedAccessToken = useAuthStore().accessToken,
+): Promise<string | null> {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null
 
   const [messaging, serviceWorkerRegistration] = await Promise.all([
@@ -73,9 +74,9 @@ export async function synchronizeFcmToken(): Promise<string | null> {
     serviceWorkerRegistration,
   })
   if (!token) return null
+  if (!expectedAccessToken || useAuthStore().accessToken !== expectedAccessToken) return null
 
   await registerFcmToken(token)
-  localStorage.setItem(LAST_FCM_TOKEN_KEY, token)
   return token
 }
 
@@ -88,12 +89,8 @@ export async function requestAndRegisterPushNotifications(): Promise<Notificatio
 }
 
 export async function removeFcmToken(): Promise<void> {
-  try {
-    const messaging = await resolveMessaging()
-    if (messaging) await deleteToken(messaging).catch(() => false)
-  } finally {
-    localStorage.removeItem(LAST_FCM_TOKEN_KEY)
-  }
+  const messaging = await resolveMessaging()
+  if (messaging) await deleteToken(messaging)
 }
 
 export async function listenForForegroundMessages(

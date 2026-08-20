@@ -36,8 +36,9 @@ async function displayForegroundNotification(
   })
 }
 
-async function synchronizeRecentLocation(force = false) {
-  if (!authStore.accessToken || document.visibilityState !== 'visible') return
+async function synchronizeRecentLocation(expectedAccessToken: string, force = false) {
+  if (authStore.accessToken !== expectedAccessToken || document.visibilityState !== 'visible')
+    return
   if (!force && Date.now() - lastLocationSyncedAt < LOCATION_SYNC_INTERVAL_MS) return
 
   try {
@@ -45,6 +46,7 @@ async function synchronizeRecentLocation(force = false) {
       fetchMyPageSummary(),
       fetchNotificationSettings(),
     ])
+    if (authStore.accessToken !== expectedAccessToken) return
     if (
       !locationSettings.locationRecommendationEnabled ||
       !notificationSettings.nearbyBenefitEnabled
@@ -53,9 +55,10 @@ async function synchronizeRecentLocation(force = false) {
     }
 
     const coordinates = await requestCurrentPosition()
-    if (!coordinates) return
+    if (!coordinates || authStore.accessToken !== expectedAccessToken) return
 
     await updateRecentLocation(coordinates.latitude, coordinates.longitude)
+    if (authStore.accessToken !== expectedAccessToken) return
     lastLocationSyncedAt = Date.now()
   } catch {
     // 토큰/위치 동기화 실패가 앱 사용을 막지 않도록 다음 활성화 시 재시도한다.
@@ -68,7 +71,10 @@ function handleServiceWorkerMessage(event: MessageEvent<FcmServiceWorkerMessage>
 }
 
 function handleVisibilityChange() {
-  if (document.visibilityState === 'visible') void synchronizeRecentLocation()
+  const accessToken = authStore.accessToken
+  if (document.visibilityState === 'visible' && accessToken) {
+    void synchronizeRecentLocation(accessToken)
+  }
 }
 
 onMounted(async () => {
@@ -95,8 +101,8 @@ watch(
       return
     }
 
-    void synchronizeFcmToken().catch(() => undefined)
-    void synchronizeRecentLocation(true)
+    void synchronizeFcmToken(accessToken).catch(() => undefined)
+    void synchronizeRecentLocation(accessToken, true)
   },
   { immediate: true },
 )
