@@ -35,13 +35,26 @@ const router = useRouter()
 
 // 실적 탭에서 카드 눌러 다른 화면으로 갔다가 뒤로가기로 돌아왔을 때도 실적 탭이 유지되도록
 // 탭 상태를 URL 쿼리에 반영한다. 뒤로가기는 그 시점 URL(쿼리 포함)을 그대로 복원해준다.
-const activeTab = ref<'benefit' | 'performance'>(
-  route.query.tab === 'performance' ? 'performance' : 'benefit',
-)
+// 다만 하단 탭바로 지도 등 아예 다른 화면에 갔다 오면 '/report'로 쿼리 없이 새로 이동하므로,
+// 그 경우엔 마지막으로 선택했던 탭을 localStorage에서 복원한다. URL 쿼리가 명시돼 있으면
+// (공유 링크 등) 그게 항상 우선한다.
+const REPORT_TAB_STORAGE_KEY = 'report:activeTab'
+
+function getStoredTab(): 'benefit' | 'performance' {
+  return localStorage.getItem(REPORT_TAB_STORAGE_KEY) === 'performance' ? 'performance' : 'benefit'
+}
+
+function initialTab(): 'benefit' | 'performance' {
+  if (route.query.tab === 'performance' || route.query.tab === 'benefit') return route.query.tab
+  return getStoredTab()
+}
+
+const activeTab = ref<'benefit' | 'performance'>(initialTab())
 const activeYearMonth = ref(currentYearMonth())
 
 function setActiveTab(tab: 'benefit' | 'performance') {
   activeTab.value = tab
+  localStorage.setItem(REPORT_TAB_STORAGE_KEY, tab)
   void router.replace({ query: { ...route.query, tab } })
 }
 
@@ -112,6 +125,19 @@ const {
   queryKey: computed(() => ['performance-report', 'cards', activeYearMonth.value]),
   queryFn: () => fetchPerformanceCards(activeYearMonth.value),
   enabled: isPerformanceTabActive,
+})
+
+// 실적 상단 요약 카드에 "가장 가까운 다음 달성"으로 보여줄, 미달성 카드 중 남은 금액이
+// 가장 적은 카드. summary API엔 없는 정보라 카드별 목록 응답에서 계산해 내려준다.
+const nearestAchievement = computed(() => {
+  const cards = performanceCards.value?.cards ?? []
+  const unmetCards = cards.filter((card) => !card.isCurrentTierAchieved)
+  if (!unmetCards.length) return null
+
+  const nearest = unmetCards.reduce((closest, card) =>
+    card.remainingAmountToNextTier < closest.remainingAmountToNextTier ? card : closest,
+  )
+  return { cardName: nearest.cardName, remainingAmount: nearest.remainingAmountToNextTier }
 })
 </script>
 
@@ -221,7 +247,11 @@ const {
             {{ isPerformanceSummaryFetching ? '재시도 중...' : '다시 시도' }}
           </button>
         </div>
-        <CardPerformanceSummary v-else-if="performanceSummary" :summary="performanceSummary" />
+        <CardPerformanceSummary
+          v-else-if="performanceSummary"
+          :summary="performanceSummary"
+          :nearest-achievement="nearestAchievement"
+        />
 
         <div>
           <p class="text-subheading font-bold text-charcoal">카드별 실적 달성 현황</p>
