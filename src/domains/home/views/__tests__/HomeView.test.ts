@@ -345,6 +345,7 @@ describe('HomeView', () => {
 
   it('이전 카드 요청이 늦게 끝나도 현재 카드의 내역과 전체보기 링크를 유지한다', async () => {
     let resolveFirstCardRequest: ((items: RecentBenefitItem[]) => void) | undefined
+    let resolveSecondCardRequest: ((items: RecentBenefitItem[]) => void) | undefined
     fetchRecentBenefits
       .mockImplementationOnce(
         () =>
@@ -352,16 +353,25 @@ describe('HomeView', () => {
             resolveFirstCardRequest = resolve
           }),
       )
-      .mockResolvedValueOnce([
-        { ...recentBenefits[0]!, id: 'second-card-history', merchantName: '두 번째 카드 승인내역' },
-      ])
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecondCardRequest = resolve
+          }),
+      )
     const wrapper = mountView()
     await flushPromises()
 
     await wrapper
       .get('[data-owned-card][data-card-index="1"] [data-card-visual][tabindex="0"]')
       .trigger('click')
+
+    resolveSecondCardRequest?.([
+      { ...recentBenefits[0]!, id: 'second-card-history', merchantName: '두 번째 카드 승인내역' },
+    ])
     await flushPromises()
+
+    expect(wrapper.text()).toContain('두 번째 카드 승인내역')
 
     resolveFirstCardRequest?.([
       { ...recentBenefits[0]!, id: 'first-card-history', merchantName: '첫 번째 카드 승인내역' },
