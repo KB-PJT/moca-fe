@@ -10,6 +10,7 @@ interface Props {
   items: RecentBenefitItem[]
   selectedCardId?: string | null
   isLoading?: boolean
+  isPending?: boolean
   error?: string
 }
 
@@ -55,6 +56,7 @@ function parseOccurredAt(occurredAt: string) {
     <div v-if="isLoading" aria-label="최근 결제 내역 로딩 중" class="space-y-2">
       <Skeleton v-for="index in 3" :key="index" class="h-16.5 w-full rounded-md" />
     </div>
+    <div v-else-if="isPending" class="min-h-49" aria-busy="true" />
     <EmptyState
       v-else-if="error"
       :title="error"

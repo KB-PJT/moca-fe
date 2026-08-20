@@ -15,7 +15,7 @@ import HomeView from '@/domains/home/views/HomeView.vue'
 const fetchHomeCards = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 const fetchHomeGreeting = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 const fetchRecentBenefits = vi.hoisted(() =>
-  vi.fn<(limit?: number, userCardId?: string) => Promise<unknown>>(),
+  vi.fn<(params: { yearMonth: string; userCardId: string; limit?: number }) => Promise<unknown>>(),
 )
 const fetchCardDetail = vi.hoisted(() => vi.fn<() => Promise<unknown>>())
 
@@ -380,6 +380,32 @@ describe('HomeView', () => {
     })
   })
 
+  it('카드 전환 중에는 기존 내역을 유지하고 로딩 화면으로 교체하지 않는다', async () => {
+    let resolveNextCardRequest: ((items: RecentBenefitItem[]) => void) | undefined
+    const wrapper = mountView()
+    await flushPromises()
+    fetchRecentBenefits.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveNextCardRequest = resolve
+        }),
+    )
+
+    await wrapper
+      .get('[data-owned-card][data-card-index="1"] [data-card-visual][tabindex="0"]')
+      .trigger('click')
+
+    expect(wrapper.text()).toContain('스타벅스')
+    expect(wrapper.find('[aria-label="최근 결제 내역 로딩 중"]').exists()).toBe(false)
+
+    resolveNextCardRequest?.([
+      { ...recentBenefits[0]!, id: 'next-card-history', merchantName: '새 카드 승인내역' },
+    ])
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('새 카드 승인내역')
+  })
+
   it('옆 카드를 선택하면 선택 카드와 페이지 표시가 함께 변경된다', async () => {
     fetchRecentBenefits
       .mockResolvedValueOnce(recentBenefits)
@@ -406,7 +432,11 @@ describe('HomeView', () => {
     expect(wrapper.get('[data-performance-rate]').text()).toBe('실적 달성 현황(80%)')
     expect(wrapper.get('[data-performance-remaining]').text()).toContain('59,000원')
     expect(wrapper.text()).toContain('이번 달 혜택 8,200원을 놓치고 있어요!')
-    expect(fetchRecentBenefits).toHaveBeenLastCalledWith(5, MOCK_HOME_OWNED_CARDS[1]?.id)
+    expect(fetchRecentBenefits).toHaveBeenLastCalledWith({
+      yearMonth: '2026-08',
+      userCardId: MOCK_HOME_OWNED_CARDS[1]?.id,
+      limit: 5,
+    })
     expect(wrapper.text()).toContain('선택 카드 승인내역')
     const benefitHistoryLink = wrapper
       .findAllComponents(RouterLinkStub)
