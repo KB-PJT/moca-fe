@@ -108,7 +108,7 @@ function toggleNotice(id: number) {
           <input
             v-model="searchQuery"
             type="search"
-            class="text-body h-11.5 w-full rounded-md border border-black/8 bg-card pr-4 pl-10 text-charcoal outline-none placeholder:text-charcoal/50 focus:border-primary focus:ring-3 focus:ring-primary/15"
+            class="text-body h-11.5 w-full rounded-md border border-divider bg-card pr-4 pl-10 text-charcoal outline-none placeholder:text-charcoal/50 focus:border-primary focus:ring-3 focus:ring-primary/15"
             placeholder="궁금한 내용을 검색해보세요"
           />
         </label>
@@ -134,14 +134,14 @@ function toggleNotice(id: number) {
       </div>
 
       <section
-        class="mx-5 mt-4 overflow-hidden rounded-lg border border-divider/50 bg-card shadow-card"
+        class="mx-5 mt-4 overflow-hidden rounded-lg border border-divider bg-card"
         aria-label="공지사항 목록"
       >
         <template v-if="filteredNoticeItems.length">
           <article
             v-for="notice in filteredNoticeItems"
             :key="notice.id"
-            class="border-b border-black/5 last:border-b-0"
+            class="border-b border-divider last:border-b-0"
           >
             <button
               type="button"
@@ -169,7 +169,7 @@ function toggleNotice(id: number) {
             <div
               v-show="expandedNoticeIds.has(notice.id)"
               :id="`notice-content-${notice.id}`"
-              class="border-t border-black/5 bg-screen px-5 py-4"
+              class="border-t border-divider bg-screen px-5 py-4"
             >
               <p class="text-body leading-6 text-gray">{{ notice.content }}</p>
             </div>

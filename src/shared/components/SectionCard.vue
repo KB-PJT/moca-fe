@@ -2,10 +2,12 @@
 interface Props {
   title?: string
   flush?: boolean
+  shadow?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   flush: false,
+  shadow: true,
 })
 </script>
 
@@ -16,7 +18,7 @@ withDefaults(defineProps<Props>(), {
       <slot name="action" />
     </div>
 
-    <div class="bg-card shadow-tile rounded-md" :class="!flush && 'p-4'">
+    <div class="rounded-md bg-card" :class="[!flush && 'p-4', shadow && 'shadow-tile']">
       <slot />
     </div>
   </section>
