@@ -228,7 +228,7 @@ export function currentLocationMarkerImage() {
 function brandPinBadge(brand: BrandMark): string {
   const cx = 22
   const cy = 19
-  const r = 12
+  const r = 14
 
   const box = inscribedBox(r, brand.aspectRatio)
 
@@ -249,7 +249,7 @@ export function pinMarkerImage(category: string, brandName?: string) {
 
   // 점 마커(32px)보다 선택 상태가 뚜렷이 더 커 보이도록 비례해서 키운 크기.
   const width = 44
-  const height = 54
+  const height = 56
   const brand = brandName ? brandMark[brandName] : undefined
   const fillColor = brand ? brand.fill : DOT_COLOR
 
@@ -259,6 +259,9 @@ export function pinMarkerImage(category: string, brandName?: string) {
       ${categoryIcon[category] ?? DEFAULT_ICON}
     </g>`
 
+  // 머리(원, 중심 22,19 반지름 16)의 가장 넓은 지점(양옆 적도, 6·38)에서 시작해 곡선으로
+  // 꼬리 끝(22,51)까지 이어지는 경로. 시작점에서 첫 제어점이 수직 방향이라 원의 접선과
+  // 자연스럽게 이어지고(이음매 없음), 꼬리 길이를 원 반지름만큼 줘서 도톰하게 보이게 했다.
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}">
     <defs>
       <filter id="pin-shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -266,8 +269,10 @@ export function pinMarkerImage(category: string, brandName?: string) {
       </filter>
     </defs>
     <g filter="url(#pin-shadow)">
-      <circle cx="22" cy="19" r="14" fill="${fillColor}" />
-      <path d="M8 27 L22 49 L36 27 Z" fill="${fillColor}" />
+      <path
+        d="M38 19 C38 32 26 47 22 51 C18 47 6 32 6 19 A16 16 0 0 1 38 19"
+        fill="${fillColor}"
+      />
     </g>
     ${badge}
   </svg>`
@@ -276,7 +281,7 @@ export function pinMarkerImage(category: string, brandName?: string) {
     src,
     new window.kakao.maps.Size(width, height),
     {
-      offset: new window.kakao.maps.Point(width / 2, height - 4),
+      offset: new window.kakao.maps.Point(width / 2, 51),
     },
   )
   pinMarkerImageCache.set(cacheKey, markerImage)
