@@ -45,7 +45,7 @@ const viewMode = ref<'map' | 'list'>('map')
 const searchCenter = ref<Coordinates | null>(null)
 const isMapMoved = ref(false)
 const MOVE_THRESHOLD_METERS = 150
-const SEARCH_RADIUS_METERS = 500
+const SEARCH_RADIUS_METERS = 300
 
 let onBackgroundClick = () => {}
 const kakaoMap = useKakaoMap(mapContainer, controlsRef, sheetRef, {
@@ -215,9 +215,26 @@ const {
   enabled: computed(() => Boolean(activeCategoryId.value && searchCenter.value)),
 })
 
-const filteredMerchants = computed(
-  () => nearbyMerchants.value?.map((item) => toMerchant(item, activeCategoryName.value)) ?? [],
-)
+// merchantId가 브랜드 목록과 매칭되면 브랜드명을 붙인다. 실제로 브랜드 마커가 그려지는지는
+// markerIcon.ts의 brandMark 매핑에 그 브랜드가 등록돼 있는지에 달려 있어서(없으면 카테고리
+// 아이콘으로 자연스럽게 폴백), 카테고리별로 여기 게이트를 따로 관리할 필요가 없다.
+const brandNameByMerchantId = computed(() => {
+  const map = new Map<string, string>()
+  for (const brand of merchantBrands.value ?? []) {
+    map.set(brand.merchantId, brand.name)
+  }
+  return map
+})
+
+const filteredMerchants = computed(() => {
+  return (
+    nearbyMerchants.value?.map((item) => {
+      const merchant = toMerchant(item, activeCategoryName.value)
+      const brandName = brandNameByMerchantId.value.get(merchant.merchantId)
+      return brandName ? { ...merchant, brandName } : merchant
+    }) ?? []
+  )
+})
 
 const isNoMerchantsToastVisible = ref(false)
 let noMerchantsToastTimer: ReturnType<typeof setTimeout> | undefined

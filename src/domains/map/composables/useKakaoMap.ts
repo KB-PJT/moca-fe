@@ -30,6 +30,7 @@ export function useKakaoMap(
   let selectedMarker: any = null
   let selectedPlaceId: string | null = null
   let selectedMerchantCategory: string | null = null
+  let selectedMerchantBrandName: string | undefined = undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let currentLocationMarker: any = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,7 +51,9 @@ export function useKakaoMap(
       const isSelected = merchant.placeId === selectedPlaceId
       const marker = new window.kakao.maps.Marker({
         position: new window.kakao.maps.LatLng(merchant.latitude, merchant.longitude),
-        image: isSelected ? pinMarkerImage(merchant.category) : dotMarkerImage(merchant.category),
+        image: isSelected
+          ? pinMarkerImage(merchant.category, merchant.brandName)
+          : dotMarkerImage(merchant.category, merchant.brandName),
       })
 
       markerByPlaceId.set(merchant.placeId, marker)
@@ -59,6 +62,7 @@ export function useKakaoMap(
       if (isSelected) {
         selectedMarker = marker
         selectedMerchantCategory = merchant.category
+        selectedMerchantBrandName = merchant.brandName
       }
 
       return marker
@@ -84,24 +88,26 @@ export function useKakaoMap(
     if (!marker) return false
 
     if (selectedMarker && selectedMarker !== marker && selectedMerchantCategory) {
-      selectedMarker.setImage(dotMarkerImage(selectedMerchantCategory))
+      selectedMarker.setImage(dotMarkerImage(selectedMerchantCategory, selectedMerchantBrandName))
     }
 
-    marker.setImage(pinMarkerImage(merchant.category))
+    marker.setImage(pinMarkerImage(merchant.category, merchant.brandName))
     selectedMarker = marker
     selectedPlaceId = merchant.placeId
     selectedMerchantCategory = merchant.category
+    selectedMerchantBrandName = merchant.brandName
     return true
   }
 
   function clearSelectedMarker() {
     if (!selectedMarker) return
     if (selectedMerchantCategory) {
-      selectedMarker.setImage(dotMarkerImage(selectedMerchantCategory))
+      selectedMarker.setImage(dotMarkerImage(selectedMerchantCategory, selectedMerchantBrandName))
     }
     selectedMarker = null
     selectedPlaceId = null
     selectedMerchantCategory = null
+    selectedMerchantBrandName = undefined
   }
 
   function focusMarker(merchant: Merchant) {
