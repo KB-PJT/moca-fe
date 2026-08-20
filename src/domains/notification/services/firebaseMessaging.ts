@@ -58,9 +58,7 @@ export function isPushNotificationConfigured(): boolean {
   return hasFirebaseConfig()
 }
 
-export async function synchronizeFcmToken(
-  expectedAccessToken = useAuthStore().accessToken,
-): Promise<string | null> {
+export async function getCurrentFcmToken(): Promise<string | null> {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return null
 
   const [messaging, serviceWorkerRegistration] = await Promise.all([
@@ -73,6 +71,13 @@ export async function synchronizeFcmToken(
     vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
     serviceWorkerRegistration,
   })
+  return token || null
+}
+
+export async function synchronizeFcmToken(
+  expectedAccessToken = useAuthStore().accessToken,
+): Promise<string | null> {
+  const token = await getCurrentFcmToken()
   if (!token) return null
   if (!expectedAccessToken || useAuthStore().accessToken !== expectedAccessToken) return null
 

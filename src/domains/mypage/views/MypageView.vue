@@ -17,7 +17,10 @@ import { fetchBenefitPreference, logoutFromMoca } from '@/domains/auth/api/auth'
 import { getBenefitPreferenceLabel } from '@/domains/auth/constants/benefitPreference'
 import { fetchMyCards } from '@/domains/card/api/cardManagement'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
-import { removeFcmToken } from '@/domains/notification/services/firebaseMessaging'
+import {
+  getCurrentFcmToken,
+  removeFcmToken,
+} from '@/domains/notification/services/firebaseMessaging'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import ListItem from '@/shared/components/ListItem.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
@@ -250,8 +253,9 @@ async function handleLogout() {
   isLoggingOut.value = true
 
   try {
+    const fcmToken = await getCurrentFcmToken().catch(() => null)
+    await logoutFromMoca(fcmToken)
     await removeFcmToken().catch(() => undefined)
-    await logoutFromMoca()
   } finally {
     authStore.clearSession()
     isLogoutDialogOpen.value = false
