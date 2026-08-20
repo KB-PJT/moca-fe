@@ -102,12 +102,23 @@ export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenef
   }
 }
 
-export async function fetchRecentBenefits(
+export interface RecentBenefitsParams {
+  yearMonth?: string
+  limit?: number
+  userCardId?: string
+}
+
+export async function fetchRecentBenefits({
+  yearMonth,
   limit = 5,
-  userCardId?: string,
-): Promise<RecentBenefitItem[]> {
+  userCardId,
+}: RecentBenefitsParams = {}): Promise<RecentBenefitItem[]> {
   const response = await apiClient.get<RecentBenefitsApiResponse>('/api/v1/home/recent-history', {
-    params: { limit, ...(userCardId ? { userCardId } : {}) },
+    params: {
+      ...(yearMonth ? { yearMonth } : {}),
+      limit,
+      ...(userCardId ? { userCardId } : {}),
+    },
   })
 
   return response.data.data.history.map(toRecentBenefitItem)

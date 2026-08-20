@@ -11,6 +11,7 @@ import BenefitHistoryList from '@/domains/home/components/BenefitHistoryList.vue
 import CardImage from '@/shared/components/CardImage.vue'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
+import { useDelayedLoading } from '@/shared/composables/useDelayedLoading'
 import { Skeleton } from '@/shared/ui/skeleton'
 
 interface CardOption {
@@ -58,6 +59,7 @@ const displayedYearMonth = computed(() => {
 })
 const canGoNextMonth = computed(() => yearMonth.value < currentYearMonth)
 const isInitialLoading = computed(() => isLoading.value && !hasLoadedHistory.value)
+const showInitialLoadingSkeleton = useDelayedLoading(isInitialLoading)
 const selectedCard = computed(() => cards.value.find((card) => card.id === selectedCardId.value))
 const monthlyBenefitTotal = computed(() => historySummary.value.totalBenefitAmount)
 const totalPaymentAmount = computed(() =>
@@ -263,10 +265,11 @@ onMounted(loadCardsAndHistory)
         </div>
       </div>
 
-      <div v-if="isInitialLoading" class="space-y-4 px-5" aria-label="혜택 내역 로딩 중">
+      <div v-if="showInitialLoadingSkeleton" class="space-y-4 px-5" aria-label="혜택 내역 로딩 중">
         <Skeleton class="h-64 w-full rounded-md" />
         <Skeleton v-for="index in 3" :key="index" class="h-18 w-full rounded-md" />
       </div>
+      <div v-else-if="isInitialLoading" class="min-h-96" aria-busy="true" />
       <EmptyState
         v-else-if="loadError"
         :title="loadError"

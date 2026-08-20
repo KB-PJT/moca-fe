@@ -16,11 +16,13 @@ import SelectedCardInfo from '@/domains/home/components/SelectedCardInfo.vue'
 import EmptyState from '@/shared/components/EmptyState.vue'
 import MainHeader from '@/shared/components/MainHeader.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
+import { useDelayedLoading } from '@/shared/composables/useDelayedLoading'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { captureEvent } from '@/plugins/posthog'
 
 const activeCardIndex = ref(0)
 const cards = ref<HomeOwnedCard[]>([])
+const homeYearMonth = ref('')
 const isCardsLoading = ref(true)
 const cardsError = ref('')
 const greeting = ref<HomeGreetingResponse | null>(null)
@@ -28,9 +30,14 @@ const isGreetingLoading = ref(true)
 const greetingError = ref('')
 const recentBenefits = ref<RecentBenefitItem[]>([])
 const isRecentBenefitsLoading = ref(true)
+const hasLoadedRecentBenefits = ref(false)
 const recentBenefitsError = ref('')
 let recentBenefitsRequestId = 0
 const activeCard = computed(() => cards.value[activeCardIndex.value] ?? null)
+const isInitialRecentBenefitsLoading = computed(
+  () => isRecentBenefitsLoading.value && !hasLoadedRecentBenefits.value,
+)
+const showRecentBenefitsSkeleton = useDelayedLoading(isInitialRecentBenefitsLoading)
 const selectedBenefit = ref<RecentBenefitItem | null>(null)
 const isDetailSheetOpen = ref(false)
 const isCardBenefitDetailOpen = ref(false)
@@ -59,6 +66,7 @@ async function loadHomeCards() {
 
   try {
     const response = await fetchHomeCards()
+    homeYearMonth.value = response?.yearMonth ?? ''
     cards.value = response?.cards.map(toHomeOwnedCard) ?? []
     cardManagementStore.setDetailNavigationCardIds(cards.value.map((card) => card.id))
 
@@ -83,8 +91,9 @@ async function loadHomeCards() {
 }
 
 async function loadRecentBenefits(userCardId = activeCard.value?.id) {
-  if (!userCardId) {
+  if (!userCardId || !homeYearMonth.value) {
     recentBenefits.value = []
+    hasLoadedRecentBenefits.value = true
     isRecentBenefitsLoading.value = false
     return
   }
@@ -94,12 +103,18 @@ async function loadRecentBenefits(userCardId = activeCard.value?.id) {
   recentBenefitsError.value = ''
 
   try {
-    const result = await fetchRecentBenefits(5, userCardId)
+    const result = await fetchRecentBenefits({
+      yearMonth: homeYearMonth.value,
+      userCardId,
+      limit: 5,
+    })
     if (requestId !== recentBenefitsRequestId) return
     recentBenefits.value = result
+    hasLoadedRecentBenefits.value = true
   } catch {
     if (requestId !== recentBenefitsRequestId) return
     recentBenefits.value = []
+    hasLoadedRecentBenefits.value = true
     recentBenefitsError.value = '최근 결제 내역을 불러오지 못했어요.'
     captureEvent('api_load_failed', { source: 'home_recent_benefits' })
   } finally {
@@ -187,7 +202,8 @@ function selectCard(index: number) {
     <RecentBenefitHistory
       :items="recentBenefits"
       :selected-card-id="activeCard?.id"
-      :is-loading="isRecentBenefitsLoading"
+      :is-loading="showRecentBenefitsSkeleton"
+      :is-pending="isInitialRecentBenefitsLoading"
       :error="recentBenefitsError"
       @select="openBenefitDetail"
       @retry="loadRecentBenefits"

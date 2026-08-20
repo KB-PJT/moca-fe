@@ -7,7 +7,10 @@ import {
 
 const apiClientMocks = vi.hoisted(() => ({
   get: vi.fn<
-    (url: string, config: { params: { limit: number; userCardId?: string } }) => Promise<unknown>
+    (
+      url: string,
+      config: { params: { yearMonth?: string; limit: number; userCardId?: string } },
+    ) => Promise<unknown>
   >(),
 }))
 
@@ -67,10 +70,10 @@ describe('recentBenefits API', () => {
       data: { success: true, data: { history: [benefit] } },
     })
 
-    await fetchRecentBenefits(5, 'card-1')
+    await fetchRecentBenefits({ yearMonth: '2026-08', limit: 5, userCardId: 'card-1' })
 
     expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/home/recent-history', {
-      params: { limit: 5, userCardId: 'card-1' },
+      params: { yearMonth: '2026-08', limit: 5, userCardId: 'card-1' },
     })
   })
 
