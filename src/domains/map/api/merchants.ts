@@ -23,6 +23,8 @@ export interface Merchant {
     baselineAmount: number
     benefitLabel: string
   }
+  // 편의점처럼 브랜드별로 마커 색·워드마크를 구분해야 하는 카테고리에서만 채워진다.
+  brandName?: string
 }
 
 export interface MerchantCategory {
