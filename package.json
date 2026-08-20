@@ -29,6 +29,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.13",
+    "firebase": "^12.18.0",
     "pinia": "^3.0.4",
     "posthog-js": "^1.417.4",
     "pretendard": "^1.3.9",

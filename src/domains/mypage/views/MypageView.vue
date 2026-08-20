@@ -17,6 +17,7 @@ import { fetchBenefitPreference, logoutFromMoca } from '@/domains/auth/api/auth'
 import { getBenefitPreferenceLabel } from '@/domains/auth/constants/benefitPreference'
 import { fetchMyCards } from '@/domains/card/api/cardManagement'
 import { fetchMyPageSummary, updateLocationPermissionGranted } from '@/domains/mypage/api/mypage'
+import { removeFcmToken } from '@/domains/notification/services/firebaseMessaging'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import ListItem from '@/shared/components/ListItem.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
@@ -38,6 +39,7 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const authStore = useAuthStore()
 const isLogoutDialogOpen = ref(false)
+const isLoggingOut = ref(false)
 const isLocationOffConfirmOpen = ref(false)
 const locationPermissionError = ref('')
 const browserLocationPermission = ref<PermissionState | 'unsupported'>('prompt')
@@ -244,7 +246,11 @@ async function confirmTurnOffLocation() {
 }
 
 async function handleLogout() {
+  if (isLoggingOut.value) return
+  isLoggingOut.value = true
+
   try {
+    await removeFcmToken().catch(() => undefined)
     await logoutFromMoca()
   } finally {
     authStore.clearSession()
@@ -450,7 +456,7 @@ async function handleLogout() {
         <DialogClose as-child>
           <MocaButton variant="secondary" block>취소</MocaButton>
         </DialogClose>
-        <MocaButton block @click="handleLogout">로그아웃</MocaButton>
+        <MocaButton block :loading="isLoggingOut" @click="handleLogout">로그아웃</MocaButton>
       </DialogFooter>
     </DialogContent>
   </Dialog>

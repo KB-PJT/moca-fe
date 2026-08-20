@@ -13,10 +13,11 @@ export default defineConfig({
     vueDevTools(),
     tailwindcss(),
     VitePWA({
-      // 로컬 개발 서버에서도 manifest를 제공해 홈 화면 앱의 전체 경로 scope를 유지한다.
-      // dev 서버는 정적 빌드 산출물이 없어 precache 대상이 비어있다는 경고가 매번 떠서 꺼둠.
-      // PWA 설치 테스트가 필요하면 임시로 true로 바꿔서 확인.
-      devOptions: { enabled: false },
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'firebase-messaging-sw.ts',
+      // localhost 개발 서버에서도 FCM 서비스 워커와 푸시 수신을 검증한다.
+      devOptions: { enabled: true, type: 'module' },
       // 새 버전을 바로 적용하지 않고 사용자에게 업데이트 여부를 먼저 확인한다.
       registerType: 'prompt',
       // 서비스 워커는 PwaUpdatePrompt에서 직접 등록한다.
@@ -48,15 +49,9 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
-        // 빌드된 화면 코드, 스타일, 이미지, 폰트를 서비스 워커가 미리 캐싱한다.
+      injectManifest: {
+        // 커스텀 서비스 워커 안에 PWA precache 목록을 주입한다.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // 앱 내부 주소로 직접 접속하거나 새로고침해도 Vue 앱을 열어 준다.
-        navigateFallback: '/index.html',
-        // API 요청은 화면 주소가 아니므로 index.html로 대체하지 않는다.
-        navigateFallbackDenylist: [/^\/api(?:\/|$)/],
-        // 새 버전 배포 후 더 이상 사용하지 않는 이전 캐시를 정리한다.
-        cleanupOutdatedCaches: true,
       },
     }),
   ],
