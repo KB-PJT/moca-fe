@@ -11,6 +11,7 @@ import {
   Hamburger,
   ShoppingBag,
   ShoppingCart,
+  SprayCan,
   Utensils,
 } from '@lucide/vue'
 
@@ -24,6 +25,7 @@ export const categoryIcon: Record<string, typeof Utensils> = {
   편의점: ShoppingBag,
   대형마트: ShoppingCart,
   뷰티: Brush,
+  드럭스토어: SprayCan,
   주유소: Fuel,
   주유: Droplet,
   도서: Book,
