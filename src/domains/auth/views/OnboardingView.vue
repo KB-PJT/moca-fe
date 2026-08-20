@@ -1,25 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { CircleDollarSign, Coins, Plane, Sparkles, type LucideIcon } from '@lucide/vue'
 import {
   fetchBenefitPreference,
   updateBenefitPreference,
   type BenefitPreferenceType,
 } from '@/domains/auth/api/auth'
+import { BENEFIT_PREFERENCE_OPTIONS } from '@/domains/auth/constants/benefitPreference'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
 
 interface OnboardingStep {
   title: string
   description: string
-}
-
-interface PreferenceOption {
-  value: BenefitPreferenceType
-  title: string
-  description: string
-  icon: LucideIcon
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
@@ -38,33 +31,6 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: '어떤 혜택을 우선으로 볼까요?',
     description: '선호하는 혜택을 알려주시면\n나에게 더 유리한 카드를 먼저 추천해 드려요',
-  },
-]
-
-const PREFERENCE_OPTIONS: PreferenceOption[] = [
-  {
-    value: 'IMMEDIATE_SAVINGS',
-    title: '바로 할인받기',
-    description: '결제할 때 바로 할인이나 캐시백을 받고 싶어요',
-    icon: CircleDollarSign,
-  },
-  {
-    value: 'POINT_USAGE',
-    title: '포인트 모으기',
-    description: '쓸 수 있는 포인트를 차곡차곡 모으고 싶어요',
-    icon: Coins,
-  },
-  {
-    value: 'TRAVEL_MILEAGE',
-    title: '마일리지 쌓기',
-    description: '여행에 사용할 항공 마일리지를 쌓고 싶어요',
-    icon: Plane,
-  },
-  {
-    value: 'MAXIMUM_BENEFIT',
-    title: '혜택 금액 최대로',
-    description: '종류보다 가장 큰 금액의 혜택이 중요해요',
-    icon: Sparkles,
   },
 ]
 
@@ -204,7 +170,7 @@ async function handleNext() {
             <fieldset v-if="isLastStep" class="mt-7 flex w-full flex-col gap-2.5 text-left">
               <legend class="sr-only">선호 혜택 선택</legend>
               <button
-                v-for="option in PREFERENCE_OPTIONS"
+                v-for="option in BENEFIT_PREFERENCE_OPTIONS"
                 :key="option.value"
                 type="button"
                 :aria-pressed="selectedPreference === option.value"
