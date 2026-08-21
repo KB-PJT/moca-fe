@@ -147,7 +147,11 @@ function startPayment() {
   router.push({
     name: 'merchant-payment',
     params: { placeId: props.merchant.placeId },
-    query: { name: props.merchant.name },
+    query: {
+      name: props.merchant.name,
+      category: props.merchant.category,
+      brand: props.merchant.brandName,
+    },
   })
 }
 
