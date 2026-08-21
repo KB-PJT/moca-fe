@@ -13,7 +13,7 @@ const route = useRoute()
 
 // placeId는 `${merchantId}:${latitude}:${longitude}` 형태의 합성 키라, 실제 API 호출에 쓰는
 // merchantId는 첫 구간만 떼어내면 된다 (toMerchant() 참고).
-const merchantId = computed(() => String(route.params.placeId).split(':')[0])
+const merchantId = computed(() => String(route.params.placeId).split(':')[0] ?? '')
 const merchantName = computed(() => String(route.query.name ?? ''))
 
 const {

@@ -87,7 +87,7 @@ const categoryIcon: Record<string, string> = {
 
 // 편의점 브랜드 시그니처 마커. 흰 배지 안에 실제 로고 이미지를 넣고, 핀(또는 점 테두리)은
 // 그 브랜드를 대표하는 색으로 채운다.
-interface BrandMark {
+export interface BrandMark {
   fill: string
   logoUrl: string
   // 트리밍된 로고 원본의 가로/세로 비율(width/height). GS25·이마트24처럼 아주 넓적한
@@ -100,7 +100,7 @@ interface BrandMark {
   outlineColor?: string
 }
 
-const brandMark: Record<string, BrandMark> = {
+export const brandMark: Record<string, BrandMark> = {
   // 편의점
   CU: { fill: '#4B2FE0', logoUrl: cuLogoDataUrl, aspectRatio: 249 / 153 },
   GS25: { fill: '#22D1DE', logoUrl: gs25LogoDataUrl, aspectRatio: 1890 / 597 },
