@@ -11,6 +11,21 @@
       ]
     }
   ],
+  "images": {
+    "sizes": [128, 384],
+    "qualities": [75],
+    "formats": ["image/webp"],
+    "minimumCacheTTL": 2678400,
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "d1c5n4ri2guedi.cloudfront.net",
+        "port": "",
+        "pathname": "^/card/.*$",
+        "search": ""
+      }
+    ]
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
