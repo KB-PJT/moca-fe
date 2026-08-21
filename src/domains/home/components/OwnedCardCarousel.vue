@@ -57,6 +57,14 @@ function normalizeIndex(index: number) {
   return ((index % cardCount) + cardCount) % cardCount
 }
 
+function isActiveCard(virtualIndex: number) {
+  return virtualIndex === virtualActiveIndex.value
+}
+
+function shouldRenderCardImage(virtualIndex: number) {
+  return Math.abs(virtualIndex - virtualActiveIndex.value) <= 1
+}
+
 function resolveCardStyle(virtualIndex: number): CSSProperties {
   const distance = virtualIndex - virtualActiveIndex.value + dragOffsetX.value / CARD_STEP
   const absoluteDistance = Math.abs(distance)
@@ -225,10 +233,13 @@ watch(
           @click="activateVirtualCard(renderedCard.virtualIndex)"
         >
           <CardImage
+            v-if="shouldRenderCardImage(renderedCard.virtualIndex)"
             :src="renderedCard.card.imageUrl"
             :alt="`${renderedCard.card.name} 카드 이미지`"
             :width="CARD_WIDTH"
             :height="CARD_HEIGHT"
+            :loading="isActiveCard(renderedCard.virtualIndex) ? 'eager' : 'lazy'"
+            :fetch-priority="isActiveCard(renderedCard.virtualIndex) ? 'high' : 'low'"
             class="shadow-card"
           />
         </button>

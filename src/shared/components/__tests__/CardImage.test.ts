@@ -15,6 +15,15 @@ describe('CardImage', () => {
     expect(frameStyle).toContain('border-radius: 5.9% / 3.7%')
   })
 
+  it('이미지 로딩 방식과 네트워크 우선순위를 전달한다', () => {
+    const wrapper = mount(CardImage, {
+      props: { loading: 'lazy', fetchPriority: 'low' },
+    })
+
+    expect(wrapper.get('img').attributes('loading')).toBe('lazy')
+    expect(wrapper.get('img').attributes('fetchpriority')).toBe('low')
+  })
+
   it('카드 이미지 로드가 실패하면 기본 이미지로 교체한다', async () => {
     const wrapper = mount(CardImage, {
       props: { src: 'https://example.com/unavailable-card.png', alt: '테스트 카드' },

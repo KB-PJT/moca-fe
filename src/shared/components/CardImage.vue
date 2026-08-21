@@ -13,6 +13,8 @@ interface Props {
   height?: number | string
   orientation?: 'vertical' | 'horizontal'
   rounded?: boolean
+  loading?: 'eager' | 'lazy'
+  fetchPriority?: 'high' | 'low' | 'auto'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,6 +23,8 @@ const props = withDefaults(defineProps<Props>(), {
   small: false,
   orientation: 'vertical',
   rounded: true,
+  loading: 'eager',
+  fetchPriority: 'auto',
 })
 
 const displayedSrc = ref(defaultCardImageUrl)
@@ -110,6 +114,8 @@ function detectSourceOrientation(event: Event) {
     <img
       :src="displayedSrc"
       :alt="alt"
+      :loading="loading"
+      :fetchpriority="fetchPriority"
       class="max-w-none object-contain"
       :style="imageStyle"
       @load="detectSourceOrientation"
