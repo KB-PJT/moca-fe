@@ -12,17 +12,23 @@ import {
 } from '../homeCards'
 import { clearHomeCardsPrefetch, prefetchHomeCards } from '../homeCardsPrefetch'
 
-const apiClientMocks = vi.hoisted(() => ({
+const mocks = vi.hoisted(() => ({
+  accessToken: 'access-token' as string | null,
   get: vi.fn<(url: string) => Promise<unknown>>(),
 }))
 
+vi.mock('@/domains/auth/stores/auth', () => ({
+  useAuthStore: () => ({ accessToken: mocks.accessToken }),
+}))
+
 vi.mock('@/shared/api/client', () => ({
-  default: apiClientMocks,
+  default: { get: mocks.get },
 }))
 
 describe('homeCards API', () => {
   beforeEach(() => {
     clearHomeCardsPrefetch()
+    mocks.accessToken = 'access-token'
     vi.clearAllMocks()
   })
 
@@ -33,14 +39,14 @@ describe('homeCards API', () => {
       selectedUserCardId: 'card-1',
       cards: [],
     }
-    apiClientMocks.get.mockResolvedValue({ data: { success: true, data: responseData } })
+    mocks.get.mockResolvedValue({ data: { success: true, data: responseData } })
 
     await expect(fetchHomeCards()).resolves.toEqual(responseData)
-    expect(apiClientMocks.get).toHaveBeenCalledWith('/api/v1/home/cards')
+    expect(mocks.get).toHaveBeenCalledWith('/api/v1/home/cards')
   })
 
   it('홈 데이터가 없는 404 응답은 빈 상태로 처리한다', async () => {
-    apiClientMocks.get.mockRejectedValue({
+    mocks.get.mockRejectedValue({
       isAxiosError: true,
       response: { status: 404 },
     })
@@ -54,13 +60,35 @@ describe('homeCards API', () => {
       orderMode: 'AUTO',
       cards: [],
     }
-    apiClientMocks.get.mockResolvedValue({ data: { success: true, data: responseData } })
+    mocks.get.mockResolvedValue({ data: { success: true, data: responseData } })
 
     const prefetchedRequest = prefetchHomeCards()
 
     await expect(fetchHomeCards()).resolves.toEqual(responseData)
     await expect(prefetchedRequest).resolves.toEqual(responseData)
-    expect(apiClientMocks.get).toHaveBeenCalledOnce()
+    expect(mocks.get).toHaveBeenCalledOnce()
+  })
+
+  it('인증 세션이 바뀌면 이전 세션에서 미리 요청한 홈 카드 응답을 재사용하지 않는다', async () => {
+    const firstSessionResponse = {
+      yearMonth: '2026-08',
+      orderMode: 'AUTO' as const,
+      cards: [],
+    }
+    const nextSessionResponse = {
+      yearMonth: '2026-09',
+      orderMode: 'AUTO' as const,
+      cards: [],
+    }
+    mocks.get
+      .mockResolvedValueOnce({ data: { success: true, data: firstSessionResponse } })
+      .mockResolvedValueOnce({ data: { success: true, data: nextSessionResponse } })
+
+    await prefetchHomeCards()
+    mocks.accessToken = 'next-access-token'
+
+    await expect(fetchHomeCards()).resolves.toEqual(nextSessionResponse)
+    expect(mocks.get).toHaveBeenCalledTimes(2)
   })
 
   it('API 카드 응답을 홈 카드 모델로 변환한다', () => {
