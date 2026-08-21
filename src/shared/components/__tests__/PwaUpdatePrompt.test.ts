@@ -3,13 +3,18 @@ import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import PwaUpdatePrompt from '@/shared/components/PwaUpdatePrompt.vue'
 
+type RegisterOptions = {
+  onNeedRefresh?: () => void
+  onRegisteredSW?: (swUrl: string, registration: ServiceWorkerRegistration | undefined) => void
+}
+
 const pwaMocks = vi.hoisted(() => ({
-  options: null as { onNeedRefresh?: () => void } | null,
+  options: null as RegisterOptions | null,
   updateServiceWorker: vi.fn<(reloadPage?: boolean) => Promise<void>>(),
 }))
 
 vi.mock('virtual:pwa-register', () => ({
-  registerSW: (options: { onNeedRefresh?: () => void }) => {
+  registerSW: (options: RegisterOptions) => {
     pwaMocks.options = options
     return pwaMocks.updateServiceWorker
   },
@@ -32,6 +37,7 @@ const globalStubs = {
 
 describe('PwaUpdatePrompt', () => {
   beforeEach(() => {
+    sessionStorage.clear()
     pwaMocks.updateServiceWorker.mockReset()
     pwaMocks.updateServiceWorker.mockResolvedValue(undefined)
   })
@@ -71,5 +77,38 @@ describe('PwaUpdatePrompt', () => {
 
     expect(wrapper.find('[data-update-prompt]').exists()).toBe(false)
     expect(pwaMocks.updateServiceWorker).not.toHaveBeenCalled()
+  })
+
+  it('나중에 선택한 업데이트는 같은 세션의 새로고침에서 다시 안내하지 않는다', async () => {
+    const wrapper = mount(PwaUpdatePrompt, { global: { stubs: globalStubs } })
+    pwaMocks.options?.onNeedRefresh?.()
+    await nextTick()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === '나중에')
+      ?.trigger('click')
+    wrapper.unmount()
+
+    const reloadedWrapper = mount(PwaUpdatePrompt, { global: { stubs: globalStubs } })
+    pwaMocks.options?.onNeedRefresh?.()
+    await nextTick()
+
+    expect(reloadedWrapper.find('[data-update-prompt]').exists()).toBe(false)
+  })
+
+  it('서비스 워커 등록 직후와 화면 복귀 시 업데이트를 확인한다', () => {
+    const update = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    const registration = { update, waiting: null } as unknown as ServiceWorkerRegistration
+    const wrapper = mount(PwaUpdatePrompt, { global: { stubs: globalStubs } })
+
+    pwaMocks.options?.onRegisteredSW?.('/firebase-messaging-sw.js', registration)
+
+    expect(update).toHaveBeenCalledOnce()
+
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(update).toHaveBeenCalledTimes(2)
+
+    wrapper.unmount()
   })
 })
