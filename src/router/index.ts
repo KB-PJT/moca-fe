@@ -132,6 +132,16 @@ const router = createRouter({
           meta: { requiresActiveCard: true },
         },
         {
+          // "MOCA로 결제하기"로 진입하는 목업 결제 화면. TabLayout 자식으로 둬서 MapView가
+          // KeepAlive로 유지된 채 결제 화면 밑에 그대로 남아있게 하고(지도 상태 보존),
+          // KB스타뱅킹 참고해서 하단 탭바는 그대로 노출한다.
+          // transition 메타로 시트가 이어서 위로 올라와 화면을 덮는 슬라이드 애니메이션을 준다.
+          path: 'map/merchants/:placeId/pay',
+          name: 'merchant-payment',
+          component: () => import('@/domains/map/views/MerchantPaymentView.vue'),
+          meta: { requiresActiveCard: true, hideBottomBar: true, transition: 'slide-up' },
+        },
+        {
           path: 'report',
           name: 'report',
           component: () => import('@/domains/benefit-report/views/ReportView.vue'),

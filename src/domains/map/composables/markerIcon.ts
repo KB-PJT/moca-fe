@@ -13,7 +13,9 @@ import { oliveLogoDataUrl } from '@/domains/map/assets/logos/beauty/logoDataUrls
 import { kyoboLogoDataUrl } from '@/domains/map/assets/logos/bookstore/logoDataUrls'
 import {
   beanLogoDataUrl,
+  composeLogoDataUrl,
   ediyaLogoDataUrl,
+  mammothLogoDataUrl,
   mgcLogoDataUrl,
   paulLogoDataUrl,
   starbucksLogoDataUrl,
@@ -85,16 +87,20 @@ const categoryIcon: Record<string, string> = {
 
 // 편의점 브랜드 시그니처 마커. 흰 배지 안에 실제 로고 이미지를 넣고, 핀(또는 점 테두리)은
 // 그 브랜드를 대표하는 색으로 채운다.
-interface BrandMark {
+export interface BrandMark {
   fill: string
   logoUrl: string
   // 트리밍된 로고 원본의 가로/세로 비율(width/height). GS25·이마트24처럼 아주 넓적한
   // 워드마크를 정사각형 박스에 억지로 넣으면 다들 같은 높이로 짜부라져 잘 안 보이므로,
   // 브랜드마다 원에 내접하는 최대 크기의 박스를 이 비율 기준으로 따로 계산한다.
   aspectRatio: number
+  // 점/핀 마커의 fill 색상 테두리. 컴포즈커피처럼 fill이 밝아 흰 지도 배경·흰 뱃지와
+  // 경계가 흐려지는 브랜드에만 지정한다. 점 마커에서는 원래 fill색이던 링 테두리를,
+  // 핀 마커에서는 없던 teardrop 테두리를 이 색으로 그린다.
+  outlineColor?: string
 }
 
-const brandMark: Record<string, BrandMark> = {
+export const brandMark: Record<string, BrandMark> = {
   // 편의점
   CU: { fill: '#4B2FE0', logoUrl: cuLogoDataUrl, aspectRatio: 249 / 153 },
   GS25: { fill: '#22D1DE', logoUrl: gs25LogoDataUrl, aspectRatio: 1890 / 597 },
@@ -115,10 +121,20 @@ const brandMark: Record<string, BrandMark> = {
   // 카페
   커피빈: { fill: '#6B2C91', logoUrl: beanLogoDataUrl, aspectRatio: 332 / 246 },
   이디야: { fill: '#123974', logoUrl: ediyaLogoDataUrl, aspectRatio: 323 / 138 },
-  메가MGC커피: { fill: '#FFC72C', logoUrl: mgcLogoDataUrl, aspectRatio: 223 / 345 },
+  메가MGC커피: {
+    fill: '#FFC72C',
+    logoUrl: mgcLogoDataUrl,
+    aspectRatio: 223 / 345,
+    // 컴포즈커피랑 둘 다 노란 계열이라 구분되도록 연한 주황 테두리를 준다.
+    outlineColor: '#FFA94D',
+  },
   폴바셋: { fill: '#E6007E', logoUrl: paulLogoDataUrl, aspectRatio: 655 / 457 },
   스타벅스: { fill: '#00704A', logoUrl: starbucksLogoDataUrl, aspectRatio: 1 },
   투썸플레이스: { fill: '#C8102E', logoUrl: twosomeLogoDataUrl, aspectRatio: 1 },
+  컴포즈커피: { fill: '#F5C91A', logoUrl: composeLogoDataUrl, aspectRatio: 443 / 441 },
+  매머드커피: { fill: '#000000', logoUrl: mammothLogoDataUrl, aspectRatio: 275 / 256 },
+  // 매머드커피의 다른 매장 포맷(익스프레스)이라 같은 로고/색을 재사용한다.
+  매머드익스프레스: { fill: '#000000', logoUrl: mammothLogoDataUrl, aspectRatio: 275 / 256 },
 
   // 백화점
   현대백화점: { fill: '#1E5945', logoUrl: hyundaiLogoDataUrl, aspectRatio: 389 / 140 },
@@ -190,7 +206,7 @@ export function dotMarkerImage(category: string, brandName?: string) {
         return `<defs>
       <clipPath id="dot-badge-clip"><circle cx="${cx}" cy="${cy}" r="${r}" /></clipPath>
     </defs>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="white" stroke="${brand.fill}" stroke-width="3" />
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="white" stroke="${brand.outlineColor ?? brand.fill}" stroke-width="3" />
     <image href="${brand.logoUrl}" xlink:href="${brand.logoUrl}" x="${cx - box.width / 2}" y="${cy - box.height / 2}" width="${box.width}" height="${box.height}" preserveAspectRatio="xMidYMid meet" clip-path="url(#dot-badge-clip)" />`
       })()
     : `<circle cx="${size / 2}" cy="${size / 2}" r="${size / 2 - 2}" fill="${DOT_COLOR}" stroke="white" stroke-width="2.5" />
@@ -252,6 +268,7 @@ export function pinMarkerImage(category: string, brandName?: string) {
   const height = 56
   const brand = brandName ? brandMark[brandName] : undefined
   const fillColor = brand ? brand.fill : DOT_COLOR
+  const strokeAttr = brand?.outlineColor ? ` stroke="${brand.outlineColor}" stroke-width="1.5"` : ''
 
   const badge = brand
     ? brandPinBadge(brand)
@@ -271,7 +288,7 @@ export function pinMarkerImage(category: string, brandName?: string) {
     <g filter="url(#pin-shadow)">
       <path
         d="M38 19 C38 32 26 47 22 51 C18 47 6 32 6 19 A16 16 0 0 1 38 19"
-        fill="${fillColor}"
+        fill="${fillColor}"${strokeAttr}
       />
     </g>
     ${badge}

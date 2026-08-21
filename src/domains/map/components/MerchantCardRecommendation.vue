@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onActivated, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { LoaderCircle, Star } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
@@ -19,6 +20,7 @@ import {
 import MyCardRankingPreview from '@/domains/map/components/MyCardRankingPreview.vue'
 import BenefitConditionList from '@/domains/map/components/BenefitConditionList.vue'
 import CardImage from '@/shared/components/CardImage.vue'
+import MocaButton from '@/shared/components/MocaButton.vue'
 import { captureEvent } from '@/plugins/posthog'
 
 interface Props {
@@ -32,6 +34,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
 
 const DEFAULT_PAYMENT_AMOUNT = 10000
 
@@ -133,6 +136,23 @@ function resetAmount() {
   appliedAmount.value = null
   paymentAmount.value = DEFAULT_PAYMENT_AMOUNT
   paymentAmountInput.value = ''
+}
+
+function startPayment() {
+  if (!recommendedCard.value) return
+  captureEvent('mock_payment_started', {
+    merchantId: props.merchant.merchantId,
+    cardName: recommendedCard.value.cardName,
+  })
+  router.push({
+    name: 'merchant-payment',
+    params: { placeId: props.merchant.placeId },
+    query: {
+      name: props.merchant.name,
+      category: props.merchant.category,
+      brand: props.merchant.brandName,
+    },
+  })
 }
 
 // 라우트 히스토리 이동 등으로 컴포넌트가 언마운트되지 않은 채 가맹점만 바뀌는 경우,
@@ -260,14 +280,12 @@ watch(merchantId, () => {
 
         <!-- 하단 시트(압축)에는 안 보이고 상세에서만 노출. -->
         <template v-if="expanded">
-          <button
-            v-if="!isCalculatorOpen"
-            type="button"
-            class="text-caption bg-card text-gray hover:bg-primary w-full rounded-md py-2 transition-colors hover:text-white"
-            @click="isCalculatorOpen = true"
-          >
-            실제 할인 금액 계산해보기
-          </button>
+          <div v-if="!isCalculatorOpen" class="grid grid-cols-2 gap-2">
+            <MocaButton variant="secondary" class="text-caption!" @click="isCalculatorOpen = true">
+              계산해보기
+            </MocaButton>
+            <MocaButton class="text-caption!" @click="startPayment">MOCA로 결제하기</MocaButton>
+          </div>
 
           <div v-else class="space-y-2">
             <Input
