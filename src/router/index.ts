@@ -157,6 +157,11 @@ const router = createRouter({
           component: () => import('@/domains/mypage/views/BenefitPreferenceView.vue'),
         },
         {
+          path: 'mypage/new-card',
+          name: 'new-card-recommendation',
+          component: () => import('@/domains/card/views/NewCardRecommendationView.vue'),
+        },
+        {
           path: 'mypage/notices',
           name: 'mypage-notices',
           component: () => import('@/domains/mypage/views/NoticeView.vue'),

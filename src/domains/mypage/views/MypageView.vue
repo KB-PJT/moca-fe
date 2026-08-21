@@ -187,6 +187,10 @@ function navigateToBenefitPreference() {
   void router.push({ name: 'mypage-benefit-preference' })
 }
 
+function navigateToNewCardRecommendation() {
+  void router.push({ name: 'new-card-recommendation' })
+}
+
 function navigateToNotices() {
   void router.push({ name: 'mypage-notices' })
 }
@@ -293,46 +297,62 @@ async function handleLogout() {
       aria-labelledby="mypage-profile-heading"
       class="mb-6 w-full rounded-lg border border-divider bg-card p-5"
     >
-      <div class="flex items-center">
-        <strong id="mypage-profile-heading" class="text-subheading text-charcoal">
-          {{ nickname }}님
-        </strong>
-        <button
-          type="button"
-          class="-my-2 ml-1 flex size-11 items-center justify-center rounded-full"
-          aria-label="프로필 수정"
-          @click="navigateToProfile"
-        >
-          <span
-            class="flex size-7 items-center justify-center rounded-full bg-screen text-primary"
-            aria-hidden="true"
-          >
-            <Pencil class="size-4" />
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="flex items-center">
+            <strong id="mypage-profile-heading" class="text-subheading text-charcoal">
+              {{ nickname }}님
+            </strong>
+            <button
+              type="button"
+              class="-my-2 ml-1 flex size-11 items-center justify-center rounded-full"
+              aria-label="프로필 수정"
+              @click="navigateToProfile"
+            >
+              <span
+                class="flex size-7 items-center justify-center rounded-full bg-screen text-primary"
+                aria-hidden="true"
+              >
+                <Pencil class="size-4" />
+              </span>
+            </button>
+          </div>
+          <span class="mt-1 block text-caption font-semibold text-gray">
+            Google 계정으로 이용 중
           </span>
-        </button>
+          <span
+            v-if="isMyCardsPending"
+            class="mt-2 flex items-center gap-1 text-label text-gray"
+            aria-live="polite"
+          >
+            <CreditCard class="size-3" />
+            연결 카드 조회 중
+          </span>
+          <div
+            v-else-if="isMyCardsError"
+            class="mt-2 flex items-center gap-2 text-label text-error"
+          >
+            <span class="flex items-center gap-1">
+              <CreditCard class="size-3" />
+              카드 조회 실패
+            </span>
+            <button type="button" class="font-semibold underline" @click="retryMyCards">
+              다시 시도
+            </button>
+          </div>
+          <span v-else class="mt-2 flex items-center gap-1 text-label text-primary">
+            <CreditCard class="size-3" />
+            연결 카드 {{ connectedCardCount }}개
+          </span>
+        </div>
+        <MocaButton
+          variant="secondary"
+          class="h-8 shrink-0 rounded-sm px-3 text-caption font-semibold"
+          @click="navigateToNewCardRecommendation"
+        >
+          새카드
+        </MocaButton>
       </div>
-      <span class="mt-1 block text-caption font-semibold text-gray"> Google 계정으로 이용 중 </span>
-      <span
-        v-if="isMyCardsPending"
-        class="mt-2 flex items-center gap-1 text-label text-gray"
-        aria-live="polite"
-      >
-        <CreditCard class="size-3" />
-        연결 카드 조회 중
-      </span>
-      <div v-else-if="isMyCardsError" class="mt-2 flex items-center gap-2 text-label text-error">
-        <span class="flex items-center gap-1">
-          <CreditCard class="size-3" />
-          카드 조회 실패
-        </span>
-        <button type="button" class="font-semibold underline" @click="retryMyCards">
-          다시 시도
-        </button>
-      </div>
-      <span v-else class="mt-2 flex items-center gap-1 text-label text-primary">
-        <CreditCard class="size-3" />
-        연결 카드 {{ connectedCardCount }}개
-      </span>
     </section>
 
     <h2 class="mb-2 px-1 text-body font-semibold text-gray">내 서비스 관리</h2>
