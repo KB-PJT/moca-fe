@@ -1,15 +1,21 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import BottomBar from '@/shared/components/BottomBar.vue'
 
 const route = useRoute()
+
+// 템플릿 표현식 안에 유니온 타입(string | undefined)을 그대로 캐스트하면 `|` 문자를
+// vue-eslint-parser가 Vue 2 필터 문법으로 오인해 lint 에러가 난다. 스크립트에서
+// 미리 계산해두면 그 문제도 없고, meta.transition(타입상 unknown)도 명확히 좁혀진다.
+const transitionName = computed(() => route.meta.transition as string | undefined)
 </script>
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
     <div class="relative min-h-0 flex-1 overflow-hidden">
-      <RouterView v-slot="{ Component, route: matchedRoute }">
-        <Transition :name="matchedRoute.meta.transition">
+      <RouterView v-slot="{ Component }">
+        <Transition :name="transitionName">
           <KeepAlive include="MapView">
             <component :is="Component" />
           </KeepAlive>
