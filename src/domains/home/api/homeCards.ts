@@ -1,11 +1,10 @@
-import axios from 'axios'
 import {
   CARD_ISSUERS,
   CARD_ISSUER_LIST,
   DEFAULT_CARD_ISSUER_ACCENT_COLOR,
   isCardIssuerId,
 } from '@/domains/card/constants/cardIssuers'
-import apiClient from '@/shared/api/client'
+import { consumePrefetchedHomeCards } from '@/domains/home/api/homeCardsPrefetch'
 
 export interface HomeCardSummaryResponse {
   receivedBenefitAmount: number
@@ -38,11 +37,6 @@ export interface HomeCardsResponse {
   orderMode: 'AUTO' | 'MANUAL'
   selectedUserCardId?: string | null
   cards: HomeCardResponse[]
-}
-
-interface HomeCardsApiResponse {
-  success: boolean
-  data: HomeCardsResponse
 }
 
 export interface HomeOwnedCard {
@@ -94,12 +88,6 @@ export function toHomeOwnedCard(card: HomeCardResponse): HomeOwnedCard {
   }
 }
 
-export async function fetchHomeCards(): Promise<HomeCardsResponse | null> {
-  try {
-    const response = await apiClient.get<HomeCardsApiResponse>('/api/v1/home/cards')
-    return response.data.data
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) return null
-    throw error
-  }
+export function fetchHomeCards(): Promise<HomeCardsResponse | null> {
+  return consumePrefetchedHomeCards()
 }

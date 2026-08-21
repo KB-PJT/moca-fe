@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
     preserveCardsOnNextLoad: vi.fn<() => void>(),
   },
   fetchMyCards: vi.fn<() => Promise<MyCardsResponse>>(),
+  prefetchHomeCards: vi.fn<() => Promise<null>>(),
+  clearHomeCardsPrefetch: vi.fn<() => void>(),
   restoreInitialMocaSession: vi.fn<() => Promise<boolean>>(),
 }))
 
@@ -22,6 +24,11 @@ vi.mock('@/domains/card/api/cardManagement', async (importOriginal) => ({
 
 vi.mock('@/domains/card/stores/cardManagement', () => ({
   useCardManagementStore: () => mocks.cardManagementStore,
+}))
+
+vi.mock('@/domains/home/api/homeCardsPrefetch', () => ({
+  prefetchHomeCards: mocks.prefetchHomeCards,
+  clearHomeCardsPrefetch: mocks.clearHomeCardsPrefetch,
 }))
 
 vi.mock('@/shared/api/client', () => ({
@@ -62,6 +69,9 @@ describe('card access route guard', () => {
     mocks.restoreInitialMocaSession.mockResolvedValue(true)
     mocks.fetchMyCards.mockReset()
     mocks.fetchMyCards.mockResolvedValue(createCardsResponse([createCard('active')]))
+    mocks.prefetchHomeCards.mockReset()
+    mocks.prefetchHomeCards.mockResolvedValue(null)
+    mocks.clearHomeCardsPrefetch.mockReset()
     mocks.cardManagementStore.setCards.mockReset()
     mocks.cardManagementStore.preserveCardsOnNextLoad.mockReset()
   })
@@ -98,6 +108,13 @@ describe('card access route guard', () => {
 
     expect(router.currentRoute.value.name).toBe('report')
     expect(mocks.cardManagementStore.setCards).toHaveBeenCalled()
+  })
+
+  it('홈 진입 시 카드 상태 확인과 홈 카드 조회를 함께 시작한다', async () => {
+    await router.push('/home')
+
+    expect(mocks.prefetchHomeCards).toHaveBeenCalledOnce()
+    expect(mocks.clearHomeCardsPrefetch).not.toHaveBeenCalled()
   })
 
   it.each([

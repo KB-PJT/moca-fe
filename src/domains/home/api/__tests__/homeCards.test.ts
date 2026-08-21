@@ -10,6 +10,7 @@ import {
   type HomeCardResponse,
   type HomeCardsResponse,
 } from '../homeCards'
+import { clearHomeCardsPrefetch, prefetchHomeCards } from '../homeCardsPrefetch'
 
 const apiClientMocks = vi.hoisted(() => ({
   get: vi.fn<(url: string) => Promise<unknown>>(),
@@ -20,7 +21,10 @@ vi.mock('@/shared/api/client', () => ({
 }))
 
 describe('homeCards API', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    clearHomeCardsPrefetch()
+    vi.clearAllMocks()
+  })
 
   it('홈 보유카드 응답의 data를 반환한다', async () => {
     const responseData: HomeCardsResponse = {
@@ -42,6 +46,21 @@ describe('homeCards API', () => {
     })
 
     await expect(fetchHomeCards()).resolves.toBeNull()
+  })
+
+  it('미리 시작한 홈 카드 요청을 화면에서 중복 호출 없이 재사용한다', async () => {
+    const responseData: HomeCardsResponse = {
+      yearMonth: '2026-08',
+      orderMode: 'AUTO',
+      cards: [],
+    }
+    apiClientMocks.get.mockResolvedValue({ data: { success: true, data: responseData } })
+
+    const prefetchedRequest = prefetchHomeCards()
+
+    await expect(fetchHomeCards()).resolves.toEqual(responseData)
+    await expect(prefetchedRequest).resolves.toEqual(responseData)
+    expect(apiClientMocks.get).toHaveBeenCalledOnce()
   })
 
   it('API 카드 응답을 홈 카드 모델로 변환한다', () => {

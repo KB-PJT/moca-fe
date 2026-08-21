@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/domains/auth/stores/auth'
 import { fetchMyCards, resolveCardAccessState } from '@/domains/card/api/cardManagement'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
+import { clearHomeCardsPrefetch, prefetchHomeCards } from '@/domains/home/api/homeCardsPrefetch'
 import { restoreInitialMocaSession } from '@/shared/api/client'
 import { capturePageview } from '@/plugins/posthog'
 
@@ -220,6 +221,8 @@ router.beforeEach(async (to, from) => {
   }
 
   if (requiresActiveCard && accessToken) {
+    if (to.name === 'home') void prefetchHomeCards()
+
     try {
       const response = await fetchMyCards()
       const cardAccessState = resolveCardAccessState(response)
@@ -227,6 +230,7 @@ router.beforeEach(async (to, from) => {
       cardManagementStore.setCards(response)
 
       if (cardAccessState === 'none') {
+        clearHomeCardsPrefetch()
         return {
           name: 'card-connect',
           query: { required: 'true' },
@@ -235,6 +239,7 @@ router.beforeEach(async (to, from) => {
       }
 
       if (cardAccessState === 'inactive-only') {
+        clearHomeCardsPrefetch()
         cardManagementStore.preserveCardsOnNextLoad()
 
         if (to.name === 'card-manage' && to.query.required === 'activate') return true
