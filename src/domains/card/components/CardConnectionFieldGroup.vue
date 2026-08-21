@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Eye, EyeOff } from '@lucide/vue'
+import { ref } from 'vue'
 import type {
   CardConnectionField,
   CardConnectionFieldKey,
@@ -23,9 +24,25 @@ const emit = defineEmits<{
   togglePassword: [fieldKey: CardConnectionFieldKey]
 }>()
 
+const focusedFieldKey = ref<CardConnectionFieldKey | null>(null)
+
 function displayValue(field: CardConnectionField, value: string) {
-  if (field.format === 'card-number') return value.replace(/(\d{4})(?=\d)/g, '$1 ')
+  if (field.format === 'card-number') {
+    const shouldMask = focusedFieldKey.value !== field.key && value.length === field.exactLength
+    const displayCardNumber = shouldMask ? value.replace(/\d(?=\d{4})/g, '•') : value
+
+    return displayCardNumber.replace(/(.{4})(?=.)/g, '$1 ')
+  }
   return value
+}
+
+function focusField(field: CardConnectionField) {
+  focusedFieldKey.value = field.key
+}
+
+function blurField(field: CardConnectionField) {
+  focusedFieldKey.value = null
+  emit('blur', field)
 }
 
 function inputType(
@@ -77,7 +94,8 @@ function descriptionId(fieldKey: CardConnectionFieldKey) {
             "
             class="h-7 border-0 bg-transparent p-0 pr-9 text-body font-semibold shadow-none focus-visible:border-0 focus-visible:ring-0"
             @update:model-value="(value) => emit('update', field, value)"
-            @blur="emit('blur', field)"
+            @focus="focusField(field)"
+            @blur="blurField(field)"
           />
           <Button
             v-if="field.inputType === 'password'"
