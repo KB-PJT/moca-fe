@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/domains/auth/stores/auth'
 import apiClient from '@/shared/api/client'
 import type { HomeCardsResponse } from '@/domains/home/api/homeCards'
 
@@ -7,7 +8,12 @@ interface HomeCardsApiResponse {
   data: HomeCardsResponse
 }
 
-let prefetchedHomeCards: Promise<HomeCardsResponse | null> | undefined
+interface PrefetchedHomeCards {
+  accessToken: string | null
+  request: Promise<HomeCardsResponse | null>
+}
+
+let prefetchedHomeCards: PrefetchedHomeCards | undefined
 
 async function requestHomeCards(): Promise<HomeCardsResponse | null> {
   try {
@@ -20,12 +26,15 @@ async function requestHomeCards(): Promise<HomeCardsResponse | null> {
 }
 
 export function prefetchHomeCards(): Promise<HomeCardsResponse | null> {
-  if (!prefetchedHomeCards) {
-    prefetchedHomeCards = requestHomeCards()
-    void prefetchedHomeCards.catch(() => undefined)
+  const accessToken = useAuthStore().accessToken
+
+  if (!prefetchedHomeCards || prefetchedHomeCards.accessToken !== accessToken) {
+    const request = requestHomeCards()
+    prefetchedHomeCards = { accessToken, request }
+    void request.catch(() => undefined)
   }
 
-  return prefetchedHomeCards
+  return prefetchedHomeCards.request
 }
 
 export function clearHomeCardsPrefetch() {
@@ -33,7 +42,9 @@ export function clearHomeCardsPrefetch() {
 }
 
 export function consumePrefetchedHomeCards(): Promise<HomeCardsResponse | null> {
-  const prefetchedRequest = prefetchedHomeCards
+  const accessToken = useAuthStore().accessToken
+  const prefetchedRequest =
+    prefetchedHomeCards?.accessToken === accessToken ? prefetchedHomeCards.request : undefined
   prefetchedHomeCards = undefined
 
   return prefetchedRequest ?? requestHomeCards()
