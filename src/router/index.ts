@@ -131,6 +131,17 @@ const router = createRouter({
           meta: { requiresActiveCard: true },
         },
         {
+          // "MOCA로 결제하기"로 진입하는 목업 결제 화면. TabLayout 자식으로 둬서 MapView가
+          // KeepAlive로 유지된 채 결제 화면 밑에 그대로 남아있게 하고(지도 상태 보존),
+          // hideBottomBar로 이 화면에서만 하단 탭바를 가려 전체 화면처럼 보이게 한다.
+          // 진입 애니메이션은 TabLayout 전체에 걸리는 성능 문제 때문에 일단 없앴다
+          // (Transition으로 모든 탭 전환을 감싸니 탭 전환/지도 시트 렉이 심해짐).
+          path: 'map/merchants/:placeId/pay',
+          name: 'merchant-payment',
+          component: () => import('@/domains/map/views/MerchantPaymentView.vue'),
+          meta: { requiresActiveCard: true, hideBottomBar: true },
+        },
+        {
           path: 'report',
           name: 'report',
           component: () => import('@/domains/benefit-report/views/ReportView.vue'),

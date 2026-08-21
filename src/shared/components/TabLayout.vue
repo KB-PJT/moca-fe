@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
 import BottomBar from '@/shared/components/BottomBar.vue'
+
+const route = useRoute()
 </script>
 
 <template>
@@ -11,6 +14,6 @@ import BottomBar from '@/shared/components/BottomBar.vue'
         </KeepAlive>
       </RouterView>
     </div>
-    <BottomBar />
+    <BottomBar v-if="!route.meta.hideBottomBar" />
   </div>
 </template>
