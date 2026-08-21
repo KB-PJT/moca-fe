@@ -21,7 +21,7 @@ export default defineConfig({
       // 새 버전을 바로 적용하지 않고 사용자에게 업데이트 여부를 먼저 확인한다.
       registerType: 'prompt',
       // 서비스 워커는 PwaUpdatePrompt에서 직접 등록한다.
-      injectRegister: null,
+      injectRegister: false,
       // public 디렉터리의 앱 아이콘과 파비콘도 precache에 포함한다.
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {

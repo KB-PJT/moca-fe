@@ -18,6 +18,13 @@ declare let self: ServiceWorkerGlobalScope & {
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 
+// prompt 방식의 업데이트 버튼이 보낸 메시지를 받아 새 워커를 즉시 활성화한다.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    void self.skipWaiting()
+  }
+})
+
 // 개발 서버에는 /index.html precache 항목이 없고 Vite가 직접 SPA fallback을 처리한다.
 // 실제 빌드에서만 Workbox의 오프라인 navigation fallback을 등록한다.
 if (!import.meta.env.DEV) {
