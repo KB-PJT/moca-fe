@@ -131,9 +131,10 @@ describe('CardIssuerConnectView', () => {
     })
   })
 
-  it('카드번호와 비밀번호 필드는 숫자만 허용하고 비밀번호 보기 기능을 제공한다', async () => {
+  it('카드번호는 포커스를 벗어나면 마스킹하고 비밀번호 보기 기능을 제공한다', async () => {
     const { wrapper } = await mountAt('hyundai')
     const homepagePassword = wrapper.get<HTMLInputElement>('#card-connection-homepagePassword')
+    const cardNumber = wrapper.get<HTMLInputElement>('#card-connection-cardNumber')
 
     expect(wrapper.findAll('input')).toHaveLength(5)
     expect(homepagePassword.attributes('type')).toBe('password')
@@ -141,13 +142,18 @@ describe('CardIssuerConnectView', () => {
     await wrapper.get('button[aria-label="홈페이지 비밀번호 보기"]').trigger('click')
     expect(homepagePassword.attributes('type')).toBe('text')
 
-    await wrapper.get('#card-connection-cardNumber').setValue('1234-5678-abcd-9012-3456')
+    await cardNumber.trigger('focus')
+    await cardNumber.setValue('1234-5678-abcd-9012-3456')
     await wrapper.get('#card-connection-cardPassword').setValue('1a2b34')
     await wrapper.get('#card-connection-birthDate').setValue('95-01-01abc')
 
-    expect(wrapper.get<HTMLInputElement>('#card-connection-cardNumber').element.value).toBe(
-      '1234 5678 9012 3456',
-    )
+    expect(cardNumber.element.value).toBe('1234 5678 9012 3456')
+
+    await cardNumber.trigger('blur')
+    expect(cardNumber.element.value).toBe('•••• •••• •••• 3456')
+
+    await cardNumber.trigger('focus')
+    expect(cardNumber.element.value).toBe('1234 5678 9012 3456')
     expect(wrapper.get<HTMLInputElement>('#card-connection-cardPassword').element.value).toBe(
       '1234',
     )
