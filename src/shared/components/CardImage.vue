@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import defaultCardImageUrl from '@/assets/img/img_default_card.png'
+import { optimizeCardImageUrl } from '@/shared/utils/cardImageUrl'
 
 const LARGE_CARD_SIZE = { width: 200, height: 322 } as const
 const SMALL_CARD_SIZE = { width: 40, height: 64 } as const
@@ -30,6 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
 const displayedSrc = ref(defaultCardImageUrl)
 const sourceOrientation = ref<'vertical' | 'horizontal' | 'square' | null>(null)
 const presetSize = computed(() => (props.small ? SMALL_CARD_SIZE : LARGE_CARD_SIZE))
+const optimizationWidth = computed(() => (props.small ? 128 : 384))
 const resolvedWidth = computed(() => {
   if (props.width !== undefined) return normalizeSize(props.width)
   const width =
@@ -76,10 +78,10 @@ function normalizeSize(size?: number | string) {
 }
 
 watch(
-  () => props.src,
-  (src) => {
+  [() => props.src, optimizationWidth],
+  ([src, width]) => {
     sourceOrientation.value = null
-    displayedSrc.value = src?.trim() || defaultCardImageUrl
+    displayedSrc.value = optimizeCardImageUrl(src, width) || defaultCardImageUrl
   },
   { immediate: true },
 )
