@@ -187,10 +187,6 @@ function navigateToBenefitPreference() {
   void router.push({ name: 'mypage-benefit-preference' })
 }
 
-function navigateToNewCardRecommendation() {
-  void router.push({ name: 'new-card-recommendation' })
-}
-
 function navigateToNotices() {
   void router.push({ name: 'mypage-notices' })
 }
@@ -345,13 +341,6 @@ async function handleLogout() {
             연결 카드 {{ connectedCardCount }}개
           </span>
         </div>
-        <MocaButton
-          variant="secondary"
-          class="h-8 shrink-0 rounded-sm px-3 text-caption font-semibold"
-          @click="navigateToNewCardRecommendation"
-        >
-          새카드
-        </MocaButton>
       </div>
     </section>
 

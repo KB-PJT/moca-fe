@@ -2,7 +2,15 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { BadgePercent, Check, Lock, LoaderCircle, RefreshCw } from '@lucide/vue'
+import {
+  BadgePercent,
+  Check,
+  ChevronRight,
+  Lock,
+  LoaderCircle,
+  RefreshCw,
+  Store,
+} from '@lucide/vue'
 import {
   fetchMerchantCardRecommendations,
   type RankedCardBenefit,
@@ -16,6 +24,7 @@ import CardImage from '@/shared/components/CardImage.vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import CardPinDialog from '@/domains/map/components/CardPinDialog.vue'
 import MockQrCode from '@/domains/map/components/MockQrCode.vue'
+import NewCardRecommendationSheet from '@/domains/map/components/NewCardRecommendationSheet.vue'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/sheet'
 
 const route = useRoute()
@@ -157,6 +166,9 @@ async function handleQrScanned() {
 function returnToMap() {
   router.replace({ name: 'map' })
 }
+
+// 완료 직후, 결제 완료 화면을 벗어나지 않고 그 자리에서 맞춤 카드 추천을 바텀시트로 보여준다.
+const isNewCardSheetOpen = ref(false)
 </script>
 
 <template>
@@ -208,6 +220,23 @@ function returnToMap() {
           }}</span>
         </div>
       </div>
+
+      <button
+        type="button"
+        class="mt-4 flex w-full items-center gap-3 rounded-lg border border-divider/60 bg-linear-to-br from-card to-accent p-3 text-left"
+        @click="isNewCardSheetOpen = true"
+      >
+        <span
+          class="flex size-10 shrink-0 items-center justify-center rounded-full bg-screen text-primary"
+        >
+          <Store class="size-5" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-body font-bold text-charcoal">맞춤 카드 추천이 도착했어요</p>
+          <p class="text-caption text-gray">방금 결제 내역을 분석했어요</p>
+        </div>
+        <ChevronRight class="size-4 shrink-0 text-gray" aria-hidden="true" />
+      </button>
     </div>
 
     <div v-else class="flex h-full flex-col">
@@ -363,5 +392,7 @@ function returnToMap() {
       :card-name="selectedCard.cardName"
       @confirm="handlePinConfirmed"
     />
+
+    <NewCardRecommendationSheet v-model:open="isNewCardSheetOpen" />
   </PageLayout>
 </template>

@@ -5,8 +5,7 @@ import type {
   PerformanceSummary,
   PerformanceSummaryCardItem,
 } from '@/domains/benefit-report/api/performanceReport'
-import { formatAmount, formatAmountWithUnit } from '@/shared/utils/format'
-import Skeleton from '@/shared/ui/skeleton/Skeleton.vue'
+import { formatAmountWithUnit } from '@/shared/utils/format'
 
 interface NearestAchievement {
   cardName: string
@@ -15,9 +14,6 @@ interface NearestAchievement {
 
 const props = defineProps<{
   summary: PerformanceSummary
-  // 카드별 실적 목록(다른 API 응답)에서 합산해 넘겨받는 이번 달 실적 총액. 두 API가 다
-  // 응답해야 채워지므로 아직 없을 수 있어 optional(그동안 스켈레톤을 보여준다).
-  totalPerformanceAmount?: number | null
   // 카드별 실적 목록(다른 API 응답)에서 계산해 넘겨받는, 미달성 카드 중 남은 금액이
   // 가장 적은 카드. 두 API가 다 응답해야 채워지므로 아직 없을 수 있어 optional.
   nearestAchievement?: NearestAchievement | null
@@ -37,37 +33,36 @@ const notStartedCount = computed(
   <div class="rounded-lg border border-divider/60 bg-linear-to-br from-card to-accent p-4">
     <div class="flex items-center justify-between gap-2">
       <p class="text-subheading font-bold text-charcoal">
-        {{ Number(summary.yearMonth.split('-')[1]) }}월 실적 금액
+        {{ Number(summary.yearMonth.split('-')[1]) }}월 실적 현황
       </p>
       <span class="shrink-0 rounded-full bg-white/70 px-2.5 py-1 text-label text-gray">
         보유 카드 {{ summary.cardCount }}장
       </span>
     </div>
-    <div class="mt-1 flex items-baseline gap-1">
-      <Skeleton v-if="totalPerformanceAmount == null" class="h-8 w-32" />
-      <span v-else class="text-display font-bold text-primary">{{
-        formatAmount(totalPerformanceAmount)
-      }}</span>
-      <span v-if="totalPerformanceAmount != null" class="text-caption font-semibold text-gray"
-        >원</span
-      >
-    </div>
+
+    <p class="mt-2 text-heading font-bold text-charcoal">
+      <template v-if="inProgressCount > 0">
+        <span class="text-primary">{{ inProgressCount }}장</span>의 카드에 실적이 더 필요해요
+      </template>
+      <template v-else>이번 달 카드 실적을 잘 챙기고 있어요</template>
+    </p>
+    <p class="mt-1 text-caption text-gray">달성한 카드는 추가 실적을 신경 쓰지 않아도 돼요.</p>
 
     <div class="mt-3 grid min-w-0 grid-cols-3 gap-1.5">
-      <div class="flex flex-col items-center gap-1 rounded-md bg-success/10 py-2.5">
+      <div class="flex flex-col items-center gap-1 rounded-md bg-success/10 py-3">
         <CircleCheck class="size-4 text-success" />
-        <p class="text-subheading font-bold text-success">{{ summary.achievedCardCount }}</p>
-        <p class="text-caption font-semibold text-gray">달성</p>
+        <p class="text-heading font-bold text-success">{{ summary.achievedCardCount }}장</p>
+        <p class="text-caption font-bold text-success">충분해요</p>
       </div>
-      <div class="flex flex-col items-center gap-1 rounded-md bg-primary/10 py-2.5">
+      <div class="flex flex-col items-center gap-1 rounded-md bg-primary/10 py-3">
         <TrendingUp class="size-4 text-primary" />
-        <p class="text-subheading font-bold text-primary">{{ inProgressCount }}</p>
-        <p class="text-caption font-semibold text-gray">진행 중</p>
+        <p class="text-heading font-bold text-primary">{{ inProgressCount }}장</p>
+        <p class="text-caption font-bold text-primary">더 채워야 해요</p>
       </div>
-      <div class="flex flex-col items-center gap-1 rounded-md bg-[#8C7F74]/10 py-2.5">
+      <div class="flex flex-col items-center gap-1 rounded-md bg-[#8C7F74]/10 py-3">
         <CircleDashed class="size-4 text-[#8C7F74]" />
-        <p class="text-subheading font-bold text-[#8C7F74]">{{ notStartedCount }}</p>
-        <p class="text-caption font-semibold text-gray">미사용</p>
+        <p class="text-heading font-bold text-[#8C7F74]">{{ notStartedCount }}장</p>
+        <p class="text-caption font-bold text-[#8C7F74]">미사용</p>
       </div>
     </div>
 
