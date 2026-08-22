@@ -2,7 +2,7 @@
 import { computed, onActivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { LoaderCircle, Star } from '@lucide/vue'
+import { LoaderCircle, Star, X } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import type { Merchant } from '@/domains/map/api/merchants'
@@ -136,6 +136,13 @@ function resetAmount() {
   appliedAmount.value = null
   paymentAmount.value = DEFAULT_PAYMENT_AMOUNT
   paymentAmountInput.value = ''
+}
+
+// 계산기를 닫고 "계산해보기 / MOCA로 결제하기" 버튼 행으로 되돌아간다. 계산기 안에는
+// 이걸 나갈 방법이 없어서(초기화/적용하기뿐) 한번 열면 못 빠져나오던 버그를 고친다.
+function closeCalculator() {
+  resetAmount()
+  isCalculatorOpen.value = false
 }
 
 function startPayment() {
@@ -288,6 +295,17 @@ watch(merchantId, () => {
           </div>
 
           <div v-else class="space-y-2">
+            <div class="flex items-center justify-between">
+              <p class="text-caption font-semibold text-charcoal">실제 할인 금액 계산해보기</p>
+              <button
+                type="button"
+                aria-label="계산기 닫기"
+                class="text-gray"
+                @click="closeCalculator"
+              >
+                <X class="size-4" />
+              </button>
+            </div>
             <Input
               v-model="paymentAmountInput"
               type="number"
