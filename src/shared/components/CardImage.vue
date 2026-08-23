@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import defaultCardImageUrl from '@/assets/img/img_default_card.png'
+import defaultCardImageUrl from '@/assets/img/img_default_card.webp'
 
 const LARGE_CARD_SIZE = { width: 200, height: 322 } as const
 const SMALL_CARD_SIZE = { width: 40, height: 64 } as const

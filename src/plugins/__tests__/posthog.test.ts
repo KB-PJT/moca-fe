@@ -46,7 +46,7 @@ describe('initPostHog / capturePageview', () => {
   it('키가 있으면 초기화하고 이후 pageview를 보낸다', async () => {
     const { initPostHog, capturePageview } = await import('@/plugins/posthog')
 
-    initPostHog('phc_abc', 'https://us.i.posthog.com')
+    await initPostHog('phc_abc', 'https://us.i.posthog.com')
     capturePageview('/home')
 
     expect(posthogMocks.init).toHaveBeenCalledWith(
@@ -64,7 +64,7 @@ describe('initPostHog / capturePageview', () => {
   it('api_host를 생략하면 기본 US Cloud 주소를 사용한다', async () => {
     const { initPostHog } = await import('@/plugins/posthog')
 
-    initPostHog('phc_abc')
+    await initPostHog('phc_abc')
 
     expect(posthogMocks.init).toHaveBeenCalledWith(
       'phc_abc',
@@ -83,7 +83,7 @@ describe('initPostHog / capturePageview', () => {
   it('초기화 후 captureEvent는 이름과 속성을 그대로 전달한다', async () => {
     const { initPostHog, captureEvent } = await import('@/plugins/posthog')
 
-    initPostHog('phc_abc')
+    await initPostHog('phc_abc')
     captureEvent('card_link_started', { institutionCode: '0301' })
 
     expect(posthogMocks.capture).toHaveBeenCalledWith('card_link_started', {

@@ -1,10 +1,28 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
+
+// 전체 CSS 번들이 <head>에서 렌더링을 막지 않도록, media="print" 스왑 기법으로 비동기 로드한다.
+// index.html에 정적으로 넣어둔 초기 로딩 화면이 CSS를 기다리지 않고 즉시 페인트되게 하기 위함이다.
+function deferStylesheetsPlugin(): Plugin {
+  return {
+    name: 'defer-stylesheets',
+    apply: 'build',
+    enforce: 'post',
+    transformIndexHtml(html) {
+      return html.replace(
+        /<link rel="stylesheet"([^>]*?)href="([^"]+)"([^>]*)>/g,
+        (_match, before: string, href: string, after: string) =>
+          `<link rel="stylesheet"${before}href="${href}"${after} media="print" onload="this.media='all'">` +
+          `<noscript><link rel="stylesheet" href="${href}"></noscript>`,
+      )
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -12,6 +30,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     tailwindcss(),
+    deferStylesheetsPlugin(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -58,6 +77,21 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  // 지원 브라우저를 최신 기준으로 명시해, 우리 코드에 불필요한 legacy 폴리필이
+  // 섞여 들어가지 않게 한다(서드파티 라이브러리 자체의 legacy 코드는 대상 밖).
+  build: {
+    target: 'es2022',
+  },
+  // 배포 환경에선 vercel.json의 rewrite가 /api를 실제 백엔드로 프록시해주지만,
+  // vite preview는 정적 파일만 서빙하므로 로컬 프로덕션 빌드 테스트용으로 동일하게 흉내낸다.
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'https://api.mocabe.store',
+        changeOrigin: true,
+      },
     },
   },
 })

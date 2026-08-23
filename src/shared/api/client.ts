@@ -70,7 +70,10 @@ async function restoreCurrentUser(): Promise<void> {
 export async function restoreMocaSession(): Promise<boolean> {
   try {
     await refreshAccessToken()
-    await restoreCurrentUser()
+    // 라우터 가드는 accessToken 유무만으로 리다이렉트를 결정하므로, 화면 렌더를 막지
+    // 않도록 프로필 조회는 백그라운드로 돌린다. 실패해도 유효한 토큰 자체는 살아있어야
+    // 하므로 세션을 지우지 않는다.
+    void restoreCurrentUser().catch(() => {})
     return true
   } catch {
     useAuthStore().clearSession()

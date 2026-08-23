@@ -2,6 +2,14 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <!-- 카카오맵 SDK가 내부적으로 타일/마커 이미지를 http://로 요청해서 생기는
+         mixed content를 막는다. SDK 자체는 우리가 고칠 수 없으므로, 브라우저가
+         나가는 요청을 https로 자동 승격하도록 한다. -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+    <!-- 지도 화면 진입 시 카카오맵 타일 CDN으로의 연결(TCP/TLS)을 미리 맺어둔다. -->
+    <link rel="preconnect" href="https://mts.daumcdn.net" />
+    <link rel="preconnect" href="https://t1.daumcdn.net" />
+    <link rel="preconnect" href="https://dapi.kakao.com" crossorigin />
     <link rel="icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/icons/moca-app-icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -10,10 +18,46 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="MOCA" />
+    <meta
+      name="description"
+      content="MOCA - 결제 전에 가장 유리한 카드를 추천하고, 혜택을 한눈에 관리하는 스마트 카드지갑"
+    />
     <title>MOCA</title>
+    <style>
+      /* Vue가 마운트되어 #app을 교체하기 전까지, 인증 확인 네트워크 왕복 동안
+         빈 화면 대신 즉시 그려지는 정적 로딩 화면. JS/네트워크에 의존하지 않는다. */
+      #app-loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+      }
+      #app-loading svg {
+        animation: app-loading-spin 0.8s linear infinite;
+      }
+      @keyframes app-loading-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div id="app-loading" aria-hidden="true">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#ede8e3" stroke-width="3" />
+          <path
+            d="M12 2a10 10 0 0 1 10 10"
+            stroke="#ff8836"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

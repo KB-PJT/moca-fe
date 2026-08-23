@@ -55,7 +55,7 @@ const kakaoMap = useKakaoMap(mapContainer, controlsRef, sheetRef, {
     isMapMoved.value = distanceMeters(searchCenter.value, coordinates) > MOVE_THRESHOLD_METERS
   },
 })
-const { isMapReady, mapLoadError, loadKakaoMaps } = kakaoMap
+const { isMapReady, isMapVisuallyReady, mapLoadError, loadKakaoMaps } = kakaoMap
 
 const {
   currentLocation,
@@ -272,6 +272,11 @@ const {
 onBackgroundClick = onSheetClose
 
 const isScreenReady = computed(() => isMapReady.value && isLocationCheckComplete.value)
+// 로딩 오버레이 배경만 지도 타일이 실제로 그려지는 시점(isMapVisuallyReady)까지 유지한다.
+// 버튼·목록 등 나머지 화면 로직은 기존 isScreenReady(SDK 준비 시점) 기준을 그대로 쓴다.
+const isMapVisuallyScreenReady = computed(
+  () => isMapVisuallyReady.value && isLocationCheckComplete.value,
+)
 
 function openListView() {
   onSheetClose()
@@ -331,7 +336,9 @@ watch(currentLocation, (coordinates) => {
     <div
       class="pointer-events-none absolute inset-0 z-10 flex flex-col"
       :class="
-        viewMode === 'list' ? 'bg-card' : (!isScreenReady || isCategoriesPending) && 'bg-screen'
+        viewMode === 'list'
+          ? 'bg-card'
+          : (!isMapVisuallyScreenReady || isCategoriesPending) && 'bg-screen'
       "
     >
       <div

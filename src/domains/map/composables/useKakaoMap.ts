@@ -38,6 +38,10 @@ export function useKakaoMap(
   let script: HTMLScriptElement | null = null
 
   const isMapReady = ref(false)
+  // isMapReady는 지도 객체가 생성된 시점(타일이 아직 안 그려짐)에 true가 되므로,
+  // 로딩 오버레이를 너무 일찍 걷어버려 빈 지도 위에 타일이 하나씩 그려지는 게 보인다.
+  // idle 이벤트(패닝/줌/타일 로딩이 가라앉은 시점)까지는 오버레이를 유지하기 위한 별도 상태.
+  const isMapVisuallyReady = ref(false)
   const mapLoadError = ref(false)
 
   function renderMarkers(merchants: Merchant[], onMarkerClick: (merchant: Merchant) => void) {
@@ -200,6 +204,11 @@ export function useKakaoMap(
     })
 
     window.kakao.maps.event.addListener(mapInstance, 'click', onMapClick)
+    // 최초 idle(패닝/줌/타일 로딩이 가라앉음)에서 한 번만 시각적으로 준비됐다고 표시한다.
+    // idle은 이후에도 반복 발생하지만, 이미 true인 값을 다시 true로 두는 건 무해하다.
+    window.kakao.maps.event.addListener(mapInstance, 'idle', () => {
+      isMapVisuallyReady.value = true
+    })
 
     if (onDragEnd) {
       window.kakao.maps.event.addListener(mapInstance, 'dragend', () => {
@@ -238,6 +247,7 @@ export function useKakaoMap(
 
   return {
     isMapReady,
+    isMapVisuallyReady,
     mapLoadError,
     loadKakaoMaps,
     renderMarkers,
