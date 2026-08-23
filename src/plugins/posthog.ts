@@ -25,6 +25,12 @@ export function initPostHog(apiKey?: string, apiHost?: string): Promise<void> {
       capture_pageview: false,
       // 카드/결제 화면 클릭·입력을 의도치 않게 수집하지 않도록 자동 캡처는 끄고 필요한 이벤트만 명시적으로 보낸다.
       autocapture: false,
+      // dead-clicks-autocapture 스크립트가 별도로 로드되어 메인 스레드를 차단했었다.
+      // capture_dead_clicks: false만으로는 원격(프로젝트 대시보드) 설정에 따라
+      // 여전히 로드될 수 있어서, 세션 리플레이·서베이·dead-clicks 같은 부가 스크립트
+      // 자체를 아예 요청하지 않도록 확실하게 막는다. 지금 안 쓰는 기능들이라 안전하다.
+      capture_dead_clicks: false,
+      disable_external_dependency_loading: true,
       // identify() 호출 전까지는 익명 이벤트로만 수집하고 개인 프로필을 만들지 않는다.
       person_profiles: 'identified_only',
     })
