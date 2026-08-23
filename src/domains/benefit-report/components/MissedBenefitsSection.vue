@@ -115,7 +115,7 @@ function progressPercent(item: MissedBenefitItem) {
 <template>
   <div ref="rootEl">
     <p class="flex items-center gap-1.5">
-      <span class="text-subheading font-bold text-charcoal">이번 달 놓치고 있는 혜택</span>
+      <span class="text-subheading font-bold text-charcoal">이번 달 남은 한도</span>
       <span v-if="missedReport" class="text-body font-bold text-primary">
         {{ formatAmountWithUnit(totalMissedAmount) }} 상당
       </span>
@@ -200,7 +200,7 @@ function progressPercent(item: MissedBenefitItem) {
         class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
       >
         <TriangleAlert class="size-6 text-gray" />
-        <p class="text-caption text-gray">놓친 혜택 정보를 불러오지 못했어요.</p>
+        <p class="text-caption text-gray">남은 한도 정보를 불러오지 못했어요.</p>
         <button
           type="button"
           class="text-caption font-semibold text-primary"
@@ -215,7 +215,7 @@ function progressPercent(item: MissedBenefitItem) {
         class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
       >
         <Info class="size-6 text-disabled" />
-        <p class="text-caption text-gray">이 카드는 이번 달 놓친 혜택이 없어요.</p>
+        <p class="text-caption text-gray">이 카드는 이번 달 남은 한도가 없어요.</p>
       </div>
 
       <Transition

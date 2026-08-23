@@ -102,7 +102,7 @@ function toggleNotice(id: number) {
         <label class="relative block">
           <span class="sr-only">공지사항 검색</span>
           <Search
-            class="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-[#8C7F74]"
+            class="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted"
             aria-hidden="true"
           />
           <input
@@ -124,9 +124,7 @@ function toggleNotice(id: number) {
           type="button"
           :aria-pressed="selectedCategory === category"
           class="text-caption shrink-0 rounded-full px-3.5 py-1.5 font-bold transition-colors"
-          :class="
-            selectedCategory === category ? 'bg-primary text-white' : 'bg-divider text-[#8C7F74]'
-          "
+          :class="selectedCategory === category ? 'bg-primary text-white' : 'bg-divider text-muted'"
           @click="selectCategory(category)"
         >
           {{ category }}
@@ -161,7 +159,7 @@ function toggleNotice(id: number) {
                 {{ notice.title }}
               </strong>
               <ChevronDown
-                class="size-4 shrink-0 text-[#8C7F74] transition-transform"
+                class="size-4 shrink-0 text-muted transition-transform"
                 :class="expandedNoticeIds.has(notice.id) && 'rotate-180'"
                 aria-hidden="true"
               />
