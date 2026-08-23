@@ -25,7 +25,10 @@ function iconFor(categoryName: string) {
 }
 
 const first = computed(() => props.items.find((item) => item.rank === 1))
-const rest = computed(() => props.items.filter((item) => item.rank !== 1))
+// 2위/3위 자리는 항상 2칸을 채운다. 데이터가 없는 순위는 빈 카드로 보여줘서
+// 카테고리가 2개뿐일 때 그리드에 빈 칸이 남는 문제를 없앤다.
+const second = computed(() => props.items.find((item) => item.rank === 2))
+const third = computed(() => props.items.find((item) => item.rank === 3))
 </script>
 
 <template>
@@ -58,23 +61,40 @@ const rest = computed(() => props.items.filter((item) => item.rank !== 1))
 
     <div class="mt-2 grid grid-cols-2 gap-2">
       <div
-        v-for="item in rest"
-        :key="item.rank"
-        class="rounded-lg border border-divider bg-card p-3"
+        v-for="(item, index) in [second, third]"
+        :key="index"
+        class="rounded-lg border border-divider bg-card p-3.5"
       >
-        <div class="flex items-center justify-between">
-          <span class="flex size-8 items-center justify-center rounded-full bg-accent text-primary">
-            <component :is="iconFor(item.categoryName)" class="size-4" />
-          </span>
-          <span class="text-caption font-semibold text-gray"
-            >{{ RANK_MEDAL[item.rank] }} {{ item.rank }}위</span
-          >
-        </div>
-        <p class="mt-2 text-caption text-gray">{{ item.categoryName }}</p>
-        <p class="text-body font-bold text-charcoal">
-          {{ formatAmountWithUnit(item.benefitAmount).replace('원', '')
-          }}<span class="text-caption font-normal text-gray">원</span>
-        </p>
+        <template v-if="item">
+          <div class="flex items-center gap-1.5">
+            <span
+              class="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-primary"
+            >
+              <component :is="iconFor(item.categoryName)" class="size-3.5" />
+            </span>
+            <span class="truncate text-caption font-semibold text-charcoal">{{
+              item.categoryName
+            }}</span>
+            <span class="shrink-0 text-label">{{ RANK_MEDAL[item.rank] }}</span>
+            <span class="ml-auto shrink-0 text-caption font-bold text-charcoal">
+              {{ formatAmountWithUnit(item.benefitAmount).replace('원', '')
+              }}<span class="text-label font-normal text-gray">원</span>
+            </span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="flex items-center gap-1.5">
+            <span
+              class="flex size-7 shrink-0 items-center justify-center rounded-full bg-divider text-gray"
+            >
+              <Tag class="size-3.5" />
+            </span>
+            <span class="truncate text-caption font-semibold text-gray">아직 없음</span>
+            <span class="ml-auto shrink-0 text-label opacity-40">{{
+              RANK_MEDAL[index === 0 ? 2 : 3]
+            }}</span>
+          </div>
+        </template>
       </div>
     </div>
 

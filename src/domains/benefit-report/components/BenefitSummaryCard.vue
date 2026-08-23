@@ -1,57 +1,92 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { Info } from '@lucide/vue'
 import {
   BENEFIT_TYPE_COLORS,
   type BenefitSummary,
+  type BenefitType,
 } from '@/domains/benefit-report/api/benefitReport'
-import { formatAmount, formatAmountWithUnit } from '@/shared/utils/format'
-import BenefitDonutChart from '@/domains/benefit-report/components/BenefitDonutChart.vue'
+import { formatAmount, formatAmountWithUnit, formatSignedAmount } from '@/shared/utils/format'
+
+// Chart.js가 이 컴포넌트 청크의 대부분을 차지해서, 실적 탭만 보는 사용자도
+// 다운로드하게 됐었다. 실제로 도넛 차트가 그려질 때만 별도 청크로 불러온다.
+const BenefitDonutChart = defineAsyncComponent(
+  () => import('@/domains/benefit-report/components/BenefitDonutChart.vue'),
+)
 
 const props = defineProps<{
   summary: BenefitSummary
 }>()
 
-const donutSize = 120
+const donutSize = 96
 
-const comparisonText = computed(() => {
+// 이번 달 실제로 받은 유형이 없어도(0원이어도) 어떤 유형들이 있는지는 항상 보여준다.
+const BENEFIT_TYPE_LABELS: Record<BenefitType, string> = {
+  DISCOUNT: '할인',
+  CASHBACK: '캐시백',
+  POINT: '포인트',
+}
+
+const displayRows = computed(() => {
+  const amountByType = new Map(props.summary.breakdown.map((item) => [item.type, item.amount]))
+
+  return (Object.keys(BENEFIT_TYPE_LABELS) as BenefitType[]).map((type) => ({
+    type,
+    label: BENEFIT_TYPE_LABELS[type],
+    amount: amountByType.get(type) ?? 0,
+  }))
+})
+
+const comparisonBadgeText = computed(() => {
   const diff = props.summary.differenceAmount
 
-  if (diff > 0) return `지난달보다 ${formatAmountWithUnit(diff)} 더 받았어요 ↑`
-  if (diff < 0) return `지난달보다 ${formatAmountWithUnit(Math.abs(diff))} 덜 받았어요 ↓`
-  return '지난달과 동일해요'
+  if (diff === 0) return '지난달과 동일'
+  return `지난달보다 ${formatSignedAmount(diff)}`
 })
 </script>
 
 <template>
-  <div class="rounded-lg bg-accent p-4">
-    <p class="text-caption text-gray">이번 달 받은 총혜택</p>
-    <p class="mt-1 flex items-center gap-1">
-      <span class="text-display text-charcoal"
+  <div class="rounded-lg border border-divider/60 bg-linear-to-br from-card to-accent p-4">
+    <div class="flex items-center justify-between gap-2">
+      <p class="text-subheading font-bold text-charcoal">이번 달 받은 총혜택</p>
+      <span
+        class="shrink-0 rounded-full bg-white/70 px-2.5 py-1 text-label"
+        :class="summary.differenceAmount < 0 ? 'text-error' : 'text-success'"
+      >
+        {{ comparisonBadgeText }}
+      </span>
+    </div>
+
+    <p class="mt-2 flex items-center gap-1">
+      <span class="text-display font-bold text-charcoal"
         >{{ formatAmount(summary.totalBenefitAmount) }}원</span
       >
       <Info class="size-3.5 text-gray" />
     </p>
-    <p v-if="comparisonText" class="mt-1 text-caption font-semibold text-success">
-      {{ comparisonText }}
-    </p>
 
-    <div v-if="summary.breakdown.length > 0" class="mt-3 flex items-center gap-10">
+    <div class="mt-3 flex items-center gap-8">
       <BenefitDonutChart :breakdown="summary.breakdown" :size="donutSize" />
 
-      <dl class="flex flex-1 flex-col space-y-2">
-        <div v-for="item in summary.breakdown" :key="item.type" class="flex items-center gap-2">
+      <dl class="flex min-w-0 flex-1 flex-col gap-2">
+        <div v-for="row in displayRows" :key="row.type" class="flex items-center gap-2">
           <span
             class="size-2.5 shrink-0 rounded-full"
-            :style="{ backgroundColor: BENEFIT_TYPE_COLORS[item.type] }"
+            :style="{ backgroundColor: BENEFIT_TYPE_COLORS[row.type] }"
           />
-          <dt class="text-caption font-semibold text-charcoal">{{ item.label }}</dt>
-          <dd class="ml-auto text-body font-semibold text-charcoal">
-            {{ formatAmountWithUnit(item.amount) }}
+          <dt class="text-caption font-semibold text-charcoal">{{ row.label }}</dt>
+          <dd
+            class="ml-auto text-body font-semibold"
+            :class="row.amount > 0 ? 'text-charcoal' : 'text-gray'"
+          >
+            {{ formatAmountWithUnit(row.amount) }}
           </dd>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="size-2.5 shrink-0 rounded-full bg-divider" />
+          <dt class="text-caption font-semibold text-charcoal">마일리지</dt>
+          <dd class="ml-auto text-label text-gray">원화 환산 제외</dd>
         </div>
       </dl>
     </div>
-    <p v-else class="mt-3 text-caption text-gray">이번 달 받은 혜택이 아직 없어요.</p>
   </div>
 </template>
