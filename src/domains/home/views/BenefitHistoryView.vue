@@ -386,12 +386,11 @@ onMounted(loadCardsAndHistory)
         </section>
       </div>
 
-      <p
+      <EmptyState
         v-else-if="hasLoadedHistory && !loadError"
-        class="px-5 py-20 text-center text-body text-[#8C7F74]"
-      >
-        해당 월의 혜택 내역이 없어요.
-      </p>
+        title="해당 월의 혜택 내역이 없어요"
+        description="다른 달을 선택해보세요."
+      />
     </div>
   </PageLayout>
 

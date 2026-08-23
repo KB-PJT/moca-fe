@@ -53,9 +53,7 @@ async function saveProfile() {
   <PageLayout title="프로필 수정" has-bottom-bar>
     <form id="profile-edit-form" class="-mt-2" @submit.prevent="saveProfile">
       <div>
-        <label for="nickname" class="text-caption mb-2 block font-bold text-[#8C7F74]">
-          닉네임
-        </label>
+        <label for="nickname" class="text-caption mb-2 block font-bold text-muted"> 닉네임 </label>
         <input
           id="nickname"
           v-model="nickname"
@@ -86,7 +84,7 @@ async function saveProfile() {
       </div>
 
       <section class="mt-5" aria-labelledby="connected-account-title">
-        <h2 id="connected-account-title" class="text-caption mb-2 font-bold text-[#8C7F74]">
+        <h2 id="connected-account-title" class="text-caption mb-2 font-bold text-muted">
           연결된 계정
         </h2>
         <div class="flex min-h-15.75 items-center gap-3 rounded-md bg-screen px-4 py-3.5">
@@ -100,11 +98,9 @@ async function saveProfile() {
             <strong class="text-body block truncate font-semibold text-charcoal">
               {{ email }}
             </strong>
-            <span class="text-micro block font-normal text-[#8C7F74]">
-              Google 로그인 (변경 불가)
-            </span>
+            <span class="text-micro block font-normal text-muted"> Google 로그인 (변경 불가) </span>
           </span>
-          <LockKeyhole class="size-3.5 shrink-0 text-[#8C7F74]" aria-hidden="true" />
+          <LockKeyhole class="size-3.5 shrink-0 text-muted" aria-hidden="true" />
         </div>
       </section>
     </form>

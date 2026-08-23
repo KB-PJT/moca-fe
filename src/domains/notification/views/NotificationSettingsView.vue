@@ -142,21 +142,21 @@ onMounted(loadNotificationSettings)
     <div class="-mx-5 -my-6 pb-4">
       <aside
         v-if="!isDeviceNotificationAllowed"
-        class="mx-5 mt-4 flex items-center gap-3 rounded-md bg-[#FEF3C7] p-4"
+        class="mx-5 mt-4 flex items-center gap-3 rounded-md bg-warning/10 p-4"
         aria-label="기기 알림 권한 안내"
       >
-        <BellOff class="size-4.5 shrink-0 text-[#B45309]" aria-hidden="true" />
+        <BellOff class="size-4.5 shrink-0 text-warning" aria-hidden="true" />
         <span class="min-w-0 flex-1">
-          <strong class="text-caption block font-bold text-[#92400E]">
+          <strong class="text-caption block font-bold text-warning">
             기기 알림 권한이 꺼져 있어요.
           </strong>
-          <span class="text-label block font-normal text-[#B45309]">
+          <span class="text-label block font-normal text-warning">
             알림을 받으려면 권한을 허용해주세요.
           </span>
         </span>
         <button
           type="button"
-          class="text-label shrink-0 rounded-full bg-[#92400E] px-2.5 py-1.5 font-bold text-white"
+          class="text-label shrink-0 rounded-full bg-warning px-2.5 py-1.5 font-bold text-white"
           :disabled="isTokenSyncing"
           @click="requestNotificationPermission"
         >
