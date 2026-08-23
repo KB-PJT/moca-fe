@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import defaultCardImageUrl from '@/assets/img/img_default_card.png'
+import defaultCardImageUrl from '@/assets/img/img_default_card.webp'
 import CardImage from '@/shared/components/CardImage.vue'
 
 describe('CardImage', () => {
