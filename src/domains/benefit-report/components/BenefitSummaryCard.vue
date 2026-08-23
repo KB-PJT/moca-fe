@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { Info } from '@lucide/vue'
 import {
   BENEFIT_TYPE_COLORS,
@@ -7,7 +7,12 @@ import {
   type BenefitType,
 } from '@/domains/benefit-report/api/benefitReport'
 import { formatAmount, formatAmountWithUnit, formatSignedAmount } from '@/shared/utils/format'
-import BenefitDonutChart from '@/domains/benefit-report/components/BenefitDonutChart.vue'
+
+// Chart.js가 이 컴포넌트 청크의 대부분을 차지해서, 실적 탭만 보는 사용자도
+// 다운로드하게 됐었다. 실제로 도넛 차트가 그려질 때만 별도 청크로 불러온다.
+const BenefitDonutChart = defineAsyncComponent(
+  () => import('@/domains/benefit-report/components/BenefitDonutChart.vue'),
+)
 
 const props = defineProps<{
   summary: BenefitSummary

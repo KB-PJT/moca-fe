@@ -103,7 +103,13 @@ function remainingAmountText(card: PerformanceCardItem): string | null {
       @click="goToCardHistory(card.userCardId)"
     >
       <div class="flex items-center gap-3">
-        <CardImage :src="card.cardImageUrl" :alt="`${card.cardName} 카드 이미지`" small />
+        <CardImage
+          :src="card.cardImageUrl"
+          :alt="`${card.cardName} 카드 이미지`"
+          small
+          loading="lazy"
+          fetch-priority="low"
+        />
         <div class="min-w-0 flex-1">
           <div class="flex items-center justify-between gap-2">
             <span class="truncate text-body font-bold text-charcoal">{{ card.cardName }}</span>
