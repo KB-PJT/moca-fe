@@ -11,10 +11,12 @@ export function shouldInitPostHog(apiKey?: string): boolean {
 
 // posthog-js는 초기 렌더 크리티컬 패스에 필요 없으므로, 메인 번들에서 분리해
 // 동적으로 불러온다. 로드가 끝나기 전에 발생하는 pageview/이벤트는 조용히 무시된다.
-export function initPostHog(apiKey?: string, apiHost?: string): void {
-  if (!shouldInitPostHog(apiKey)) return
+// 호출부(main.ts)는 await 없이 fire-and-forget으로 쓰지만, 테스트에서 로드 완료를
+// 기다릴 수 있도록 Promise를 반환한다.
+export function initPostHog(apiKey?: string, apiHost?: string): Promise<void> {
+  if (!shouldInitPostHog(apiKey)) return Promise.resolve()
 
-  void import('posthog-js').then(({ default: posthog }) => {
+  return import('posthog-js').then(({ default: posthog }) => {
     posthog.init(apiKey!.trim(), {
       api_host: apiHost?.trim() || DEFAULT_API_HOST,
       // SDK가 버전에 따라 기본 동작을 바꿔도 이 스냅샷 기준 동작을 유지한다.
