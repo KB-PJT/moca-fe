@@ -13,6 +13,7 @@ import {
   fetchMissedBenefits,
   type MissedBenefitItem,
 } from '@/domains/benefit-report/api/benefitReport'
+import { fetchPerformanceCards } from '@/domains/benefit-report/api/performanceReport'
 import { fetchMyCards } from '@/domains/card/api/cardManagement'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import CardImage from '@/shared/components/CardImage.vue'
@@ -63,6 +64,25 @@ const {
 
 const benefits = computed(() => missedReport.value?.benefits ?? [])
 const totalMissedAmount = computed(() => missedReport.value?.totalMissedBenefitAmount ?? 0)
+
+// 한도가 아예 없는 카드와 실적 문턱을 아직 못 넘겨 구간이 안 열린 카드는 missed API 응답이
+// 똑같이 비어있어서 구분이 안 된다. 리포트 탭에 이미 있는 실적 데이터로 후자만 가려낸다.
+const { data: performanceCardsResult } = useQuery({
+  queryKey: computed(() => ['benefit-report', 'performance-cards', props.yearMonth]),
+  queryFn: () => fetchPerformanceCards(props.yearMonth),
+})
+
+const currentCardPerformance = computed(() =>
+  performanceCardsResult.value?.cards.find(
+    (item) => item.userCardId === currentCard.value?.userCardId,
+  ),
+)
+
+const performanceNotMet = computed(() => {
+  const performance = currentCardPerformance.value
+  if (!performance || performance.tiers.length === 0) return null
+  return performance.isCurrentTierAchieved ? null : performance
+})
 
 // 카드 전환으로 놓친 혜택 개수가 늘어났는지 기록해뒀다가,
 // 새 카드 콘텐츠가 다 나타난 뒤(@after-enter)에 늘어난 만큼 스크롤한다.
@@ -116,7 +136,7 @@ function progressPercent(item: MissedBenefitItem) {
   <div ref="rootEl">
     <p class="flex items-center gap-1.5">
       <span class="text-subheading font-bold text-charcoal">이번 달 남은 한도</span>
-      <span v-if="missedReport" class="text-body font-bold text-primary">
+      <span v-if="benefits.length > 0" class="text-body font-bold text-primary">
         {{ formatAmountWithUnit(totalMissedAmount) }} 상당
       </span>
     </p>
@@ -208,6 +228,22 @@ function progressPercent(item: MissedBenefitItem) {
         >
           다시 시도
         </button>
+      </div>
+
+      <div
+        v-else-if="benefits.length === 0 && performanceNotMet"
+        class="mt-3 flex flex-col items-center justify-center gap-2 rounded-lg border border-divider bg-card py-8 text-center"
+      >
+        <span class="rounded-full bg-warning/10 px-2 py-0.5 text-label font-bold text-warning">
+          미충족
+        </span>
+        <p class="text-caption text-gray">
+          전월 실적이
+          <span class="font-semibold text-charcoal">
+            {{ formatAmountWithUnit(performanceNotMet.remainingAmountToNextTier) }}
+          </span>
+          부족해서 이 혜택을 못 받아요.
+        </p>
       </div>
 
       <div
