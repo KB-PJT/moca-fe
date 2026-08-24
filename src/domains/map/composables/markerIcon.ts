@@ -17,6 +17,7 @@ import {
   ediyaLogoDataUrl,
   mammothLogoDataUrl,
   mgcLogoDataUrl,
+  paikLogoDataUrl,
   paulLogoDataUrl,
   starbucksLogoDataUrl,
   twosomeLogoDataUrl,
@@ -135,6 +136,13 @@ export const brandMark: Record<string, BrandMark> = {
   매머드커피: { fill: '#000000', logoUrl: mammothLogoDataUrl, aspectRatio: 275 / 256 },
   // 매머드커피의 다른 매장 포맷(익스프레스)이라 같은 로고/색을 재사용한다.
   매머드익스프레스: { fill: '#000000', logoUrl: mammothLogoDataUrl, aspectRatio: 275 / 256 },
+  빽다방: {
+    fill: '#FFE90A',
+    logoUrl: paikLogoDataUrl,
+    aspectRatio: 1,
+    // MGC·컴포즈커피도 노란 계열이라, 로고 자체에 쓰인 네이비로 테두리를 줘서 구분한다.
+    outlineColor: '#1B2A5E',
+  },
 
   // 백화점
   현대백화점: { fill: '#1E5945', logoUrl: hyundaiLogoDataUrl, aspectRatio: 389 / 140 },
