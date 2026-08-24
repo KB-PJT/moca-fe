@@ -287,7 +287,7 @@ async function handleLogout() {
   </Transition>
 
   <PageLayout hide-app-bar has-bottom-bar>
-    <MainHeader title="마이" />
+    <MainHeader title="마이페이지" />
 
     <section
       aria-labelledby="mypage-profile-heading"

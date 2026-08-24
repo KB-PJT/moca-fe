@@ -308,7 +308,7 @@ const isNewCardSheetOpen = ref(false)
           />
         </button>
 
-        <p class="text-heading font-bold text-charcoal">{{ selectedCard.cardName }}</p>
+        <p class="text-subheading font-bold text-charcoal">{{ selectedCard.cardName }}</p>
 
         <span
           class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-2 text-body font-bold text-primary"

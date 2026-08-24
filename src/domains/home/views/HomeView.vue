@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { Wallet } from '@lucide/vue'
 import { useCardManagementStore } from '@/domains/card/stores/cardManagement'
 import { fetchHomeCards, toHomeOwnedCard, type HomeOwnedCard } from '@/domains/home/api/homeCards'
 import { fetchHomeGreeting, type HomeGreetingResponse } from '@/domains/home/api/homeGreeting'
@@ -143,7 +144,16 @@ function selectCard(index: number) {
 <template>
   <PageLayout hide-app-bar has-bottom-bar :horizontal-padding="false">
     <div class="px-5">
-      <MainHeader title="MOCA" />
+      <MainHeader>
+        <div class="flex items-center gap-2">
+          <span
+            class="from-[#FFB067] via-[#FF8836] to-[#F2701C] flex size-7 shrink-0 items-center justify-center rounded-[9px] bg-linear-to-br"
+          >
+            <Wallet class="size-4 text-white" :stroke-width="2.5" />
+          </span>
+          <h1 class="text-subheading text-charcoal">MOCA</h1>
+        </div>
+      </MainHeader>
     </div>
 
     <p
