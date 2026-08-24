@@ -22,6 +22,11 @@ function formatAmount(amount: number) {
 function hasMissedBenefit(item: RecentBenefitItem) {
   return item.missedBenefitAmount > 0 && item.rejectionReason === 'PERFORMANCE_NOT_MET'
 }
+
+function formatBenefitAmount(item: RecentBenefitItem) {
+  const prefix = item.benefitType === '할인' ? '-' : ''
+  return `${prefix}${formatAmount(item.benefitAmount)}`
+}
 </script>
 
 <template>
@@ -41,11 +46,11 @@ function hasMissedBenefit(item: RecentBenefitItem) {
         <span
           class="size-2.5 shrink-0 rounded-full"
           :class="{
-            'bg-[#E8A54F]': item.benefitType === '할인',
-            'bg-[#75B27D]': item.benefitType === '캐시백',
-            'bg-brown': item.benefitType === '포인트',
-            'bg-[#4B9CC6]': item.benefitType === '마일리지',
-            'bg-brown-light': !item.benefitType,
+            'bg-[#E8A54F]': item.benefitType === '할인' && !hasMissedBenefit(item),
+            'bg-[#75B27D]': item.benefitType === '캐시백' && !hasMissedBenefit(item),
+            'bg-brown': item.benefitType === '포인트' && !hasMissedBenefit(item),
+            'bg-[#4B9CC6]': item.benefitType === '마일리지' && !hasMissedBenefit(item),
+            'bg-gray': !item.benefitType || hasMissedBenefit(item),
           }"
           aria-hidden="true"
         />
@@ -54,7 +59,7 @@ function hasMissedBenefit(item: RecentBenefitItem) {
           <span class="flex items-center gap-1.5">
             <strong class="text-body font-normal text-charcoal">{{ item.merchantName }}</strong>
             <span
-              v-if="item.benefitType"
+              v-if="item.benefitType && !hasMissedBenefit(item)"
               class="rounded-full px-1.5 py-0.5 text-micro font-normal"
               :class="{
                 'bg-[#FCF6F0] text-[#DC933C]': item.benefitType === '할인',
@@ -67,7 +72,7 @@ function hasMissedBenefit(item: RecentBenefitItem) {
             </span>
           </span>
           <span class="mt-1 block truncate text-caption font-normal text-gray">
-            {{ item.description }}
+            {{ hasMissedBenefit(item) ? '일반 결제' : item.description }}
           </span>
         </span>
 
@@ -84,7 +89,7 @@ function hasMissedBenefit(item: RecentBenefitItem) {
               놓친 혜택 {{ formatAmount(item.missedBenefitAmount) }}
             </template>
             <template v-else-if="item.benefitType">
-              -{{ formatAmount(item.benefitAmount) }}
+              {{ formatBenefitAmount(item) }}
             </template>
             <template v-else>혜택 없음</template>
           </strong>
@@ -105,14 +110,14 @@ function hasMissedBenefit(item: RecentBenefitItem) {
           <span class="flex items-center gap-1.5">
             <strong class="text-body font-normal text-charcoal">{{ item.merchantName }}</strong>
             <span
-              v-if="item.benefitType"
+              v-if="item.benefitType && !hasMissedBenefit(item)"
               class="rounded-full bg-[#FEF3C6] px-1.5 py-0.5 text-micro text-[#973C00]"
             >
               {{ item.benefitType }}
             </span>
           </span>
           <span class="mt-0.5 block truncate text-caption font-normal text-[#8C7F74]">
-            {{ item.description }}
+            {{ hasMissedBenefit(item) ? '일반 결제' : item.description }}
             <span class="px-1 text-[#8C7F74]/40" aria-hidden="true">·</span>
             {{ item.cardName }}
           </span>
@@ -123,7 +128,7 @@ function hasMissedBenefit(item: RecentBenefitItem) {
             놓친 혜택 {{ formatAmount(item.missedBenefitAmount) }}
           </strong>
           <strong v-else-if="item.benefitType" class="block text-body font-normal text-benefit">
-            -{{ formatAmount(item.benefitAmount) }}
+            {{ formatBenefitAmount(item) }}
           </strong>
           <strong v-else class="block text-caption font-normal text-gray">혜택 없음</strong>
           <span class="block text-caption font-normal text-charcoal">
