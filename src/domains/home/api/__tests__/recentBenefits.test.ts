@@ -86,6 +86,15 @@ describe('recentBenefits API', () => {
     })
   })
 
+  it('카드명 뒤의 마스킹된 카드번호를 제거한다', () => {
+    expect(
+      toRecentBenefitItem({
+        ...benefit,
+        cardName: '신한카드 Point Plan 체크 캐릭터형(짱구) 44991481****721*',
+      }).cardName,
+    ).toBe('신한카드 Point Plan 체크 캐릭터형(짱구)')
+  })
+
   it('혜택이 없는 승인 내역을 일반 결제로 변환한다', () => {
     expect(toRecentBenefitItem(generalPayment)).toMatchObject({
       id: 'approval-2',
