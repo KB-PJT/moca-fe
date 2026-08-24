@@ -76,7 +76,7 @@ function formatOccurredAt(value: string): string {
 }
 
 function removeMaskedCardNumber(cardName: string): string {
-  return cardName.replace(/\s+\d[\d*\s-]*$/, '').trim()
+  return cardName.replace(/(?:\s*[·ㆍ]\s*|\s+)(?=[\d*\s-]*\*)\d[\d*\s-]*$/, '').trim()
 }
 
 export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenefitItem {

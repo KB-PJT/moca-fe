@@ -95,6 +95,16 @@ describe('recentBenefits API', () => {
     ).toBe('신한카드 Point Plan 체크 캐릭터형(짱구)')
   })
 
+  it('마스킹 문자가 없는 카드명 끝자리 숫자는 유지한다', () => {
+    expect(toRecentBenefitItem({ ...benefit, cardName: '현대카드 2' }).cardName).toBe('현대카드 2')
+  })
+
+  it('구분점 뒤의 마스킹 카드번호와 구분점을 함께 제거한다', () => {
+    expect(
+      toRecentBenefitItem({ ...benefit, cardName: '현대카드 · 5**********103*' }).cardName,
+    ).toBe('현대카드')
+  })
+
   it('혜택이 없는 승인 내역을 일반 결제로 변환한다', () => {
     expect(toRecentBenefitItem(generalPayment)).toMatchObject({
       id: 'approval-2',
