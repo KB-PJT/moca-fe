@@ -75,6 +75,10 @@ function formatOccurredAt(value: string): string {
   return `${getPart('month')}월 ${getPart('day')}일 ${getPart('hour')}:${getPart('minute')}`
 }
 
+function removeMaskedCardNumber(cardName: string): string {
+  return cardName.replace(/(?:\s*[·ㆍ]\s*|\s+)(?=[\d*\s-]*\*)\d[\d*\s-]*$/, '').trim()
+}
+
 export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenefitItem {
   const hasBenefit = Boolean(benefit.benefitType && benefit.benefitAmount > 0)
   const hasMissedBenefit = Boolean(benefit.benefitType && benefit.missedBenefitAmount > 0)
@@ -88,7 +92,7 @@ export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenef
         : null,
     description:
       hasBenefit || hasMissedBenefit ? (benefit.benefitTitle ?? '적용 혜택') : '일반 결제',
-    cardName: benefit.cardName,
+    cardName: removeMaskedCardNumber(benefit.cardName),
     cardLastFour: '',
     benefitAmount: benefit.benefitAmount,
     missedBenefitAmount: benefit.missedBenefitAmount,

@@ -29,6 +29,11 @@ const hasMissedBenefit = computed(
 function formatAmount(amount: number) {
   return `${currencyFormatter.format(amount)}원`
 }
+
+function formatBenefitAmount(item: RecentBenefitItem) {
+  const prefix = item.benefitType === '할인' ? '-' : ''
+  return `${prefix}${formatAmount(item.benefitAmount)}`
+}
 </script>
 
 <template>
@@ -56,8 +61,8 @@ function formatAmount(amount: number) {
 
         <dl class="mt-5 divide-y divide-divider">
           <div class="flex items-center justify-between py-3">
-            <dt class="text-body text-[#8C7F74]">사용 카드</dt>
-            <dd class="text-body font-normal text-charcoal">
+            <dt class="shrink-0 text-body text-[#8C7F74]">사용 카드</dt>
+            <dd class="min-w-0 flex-1 text-right text-body font-normal break-keep text-charcoal">
               {{ item.cardName }}
               <template v-if="item.cardLastFour">•••• {{ item.cardLastFour }}</template>
             </dd>
@@ -80,7 +85,7 @@ function formatAmount(amount: number) {
           >
             <dt class="text-body text-[#8C7F74]">받은 혜택</dt>
             <dd class="text-body font-normal text-benefit">
-              -{{ formatAmount(item.benefitAmount) }} {{ item.benefitType }}
+              {{ formatBenefitAmount(item) }} {{ item.benefitType }}
             </dd>
           </div>
           <div
