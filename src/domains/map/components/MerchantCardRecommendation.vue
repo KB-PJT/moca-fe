@@ -2,7 +2,7 @@
 import { computed, onActivated, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { LoaderCircle, Star, X } from '@lucide/vue'
+import { CircleCheck, LoaderCircle, Star, X } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import type { Merchant } from '@/domains/map/api/merchants'
@@ -10,12 +10,14 @@ import { fetchMerchantCardRecommendations } from '@/domains/map/api/merchants'
 import { formatRewardLabel } from '@/domains/map/utils/rewardFormat'
 import { toConditionItems } from '@/domains/map/utils/benefitConditionMap'
 import {
-  achievedTierNumber,
   gaugeFillPercent,
   hasPerformanceRequirement,
+  isTierAchieved,
+  maxTierAmount,
   nextUnachievedTier,
-  segmentEndAmount,
-  targetTierNumber,
+  tierMarkerAlign,
+  tierPositionPercent,
+  visibleTiers,
 } from '@/domains/map/utils/tierGauge'
 import MyCardRankingPreview from '@/domains/map/components/MyCardRankingPreview.vue'
 import BenefitConditionList from '@/domains/map/components/BenefitConditionList.vue'
@@ -83,22 +85,30 @@ watch(isError, (hasError) => {
 // mount 시점이 아니라 recommendedCard가 실제로 생길 때마다 다시 재생한다.
 const isFilled = ref(false)
 
-watch(recommendedCard, (card, previousCard) => {
-  if (!card) return
-  isFilled.value = false
-  requestAnimationFrame(() => {
-    isFilled.value = true
-  })
-
-  // 결제 금액 재계산으로 같은 추천 결과가 갱신될 때마다가 아니라, 새 가맹점의 추천 결과를
-  // 처음 확인했을 때만 잡는다.
-  if (!previousCard) {
-    captureEvent('card_recommendation_viewed', {
-      merchantId: props.merchant.merchantId,
-      cardName: card.cardName,
+watch(
+  recommendedCard,
+  (card, previousCard) => {
+    if (!card) return
+    isFilled.value = false
+    requestAnimationFrame(() => {
+      isFilled.value = true
     })
-  }
-})
+
+    // 결제 금액 재계산으로 같은 추천 결과가 갱신될 때마다가 아니라, 새 가맹점의 추천 결과를
+    // 처음 확인했을 때만 잡는다.
+    if (!previousCard) {
+      captureEvent('card_recommendation_viewed', {
+        merchantId: props.merchant.merchantId,
+        cardName: card.cardName,
+      })
+    }
+  },
+  // immediate: true로, 컴포넌트가 (keep-alive 재활성화가 아니라) 완전히 새로 마운트됐는데
+  // 쿼리 캐시엔 이미 결과가 있는 경우(다른 화면 갔다 router.back()으로 돌아오는 등)도 처리한다.
+  // 이땐 recommendedCard가 "바뀌는" 게 아니라 처음부터 값이 있어서 watch가 아예 안 불렸고,
+  // isFilled가 계속 false로 남아 게이지가 빈 채로 굳어 있었다.
+  { immediate: true },
+)
 
 // 지도 탭이 KeepAlive로 캐싱되면서, 다른 탭에 갔다가 돌아오는 건 recommendedCard가
 // 바뀌는 게 아니라 이 컴포넌트가 비활성화(deactivated)됐다 재활성화(activated)되는
@@ -233,38 +243,42 @@ watch(merchantId, () => {
         </div>
 
         <template v-if="hasPerformanceRequirement(recommendedCard)">
+          <p class="text-caption text-gray">
+            전월 실적 {{ formatAmountWithUnit(recommendedCard.previousMonthSpendKrw) }} /
+            {{ formatAmountWithUnit(maxTierAmount(recommendedCard)) }}
+          </p>
+
           <div
-            class="relative h-3"
+            class="relative mt-3 mb-3 h-1.5 rounded-full bg-divider"
             role="progressbar"
             aria-label="전월 실적 달성률"
             aria-valuemin="0"
             aria-valuemax="100"
             :aria-valuenow="gaugeFillPercent(recommendedCard)"
           >
-            <div class="bg-divider h-full overflow-hidden rounded-full">
-              <div
-                class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
-                :style="{ width: `${isFilled ? gaugeFillPercent(recommendedCard) : 0}%` }"
-              />
-            </div>
+            <div
+              class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
+              :style="{ width: `${isFilled ? gaugeFillPercent(recommendedCard) : 0}%` }"
+            />
             <span
-              class="text-label absolute inset-0 flex items-center justify-center text-charcoal"
+              v-for="tier in visibleTiers(recommendedCard)"
+              :key="tier.tier"
+              class="absolute top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold"
+              :style="
+                tierMarkerAlign(recommendedCard, tier) === 'center'
+                  ? { left: `${tierPositionPercent(recommendedCard, tier)}%` }
+                  : undefined
+              "
+              :class="[
+                isTierAchieved(recommendedCard, tier)
+                  ? 'bg-primary text-white'
+                  : 'border-divider bg-card text-gray border',
+                tierMarkerAlign(recommendedCard, tier) === 'start' && 'left-0',
+                tierMarkerAlign(recommendedCard, tier) === 'center' && '-translate-x-1/2',
+                tierMarkerAlign(recommendedCard, tier) === 'end' && 'right-0',
+              ]"
             >
-              {{ formatAmountWithUnit(recommendedCard.previousMonthSpendKrw) }}/{{
-                formatAmountWithUnit(segmentEndAmount(recommendedCard))
-              }}
-            </span>
-            <span
-              v-if="achievedTierNumber(recommendedCard) !== null"
-              class="bg-primary absolute top-1/2 left-0 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-[10px] font-bold text-white"
-            >
-              {{ achievedTierNumber(recommendedCard) }}
-            </span>
-            <span
-              v-if="targetTierNumber(recommendedCard) !== null"
-              class="border-divider bg-card text-gray absolute top-1/2 right-0 flex size-5 -translate-y-1/2 items-center justify-center rounded-full border text-[10px] font-bold"
-            >
-              {{ targetTierNumber(recommendedCard) }}
+              {{ tier.tier }}
             </span>
           </div>
 
@@ -283,7 +297,22 @@ watch(merchantId, () => {
             </span>
             남았어요!
           </p>
+          <p
+            v-else-if="visibleTiers(recommendedCard).length"
+            class="text-caption text-success text-right font-semibold"
+          >
+            모든 구간 실적달성 완료
+          </p>
         </template>
+
+        <!-- tiers도 requiredPreviousSpendKrw도 없는 카드 = 전월 실적과 무관하게 항상 적용되는 혜택. -->
+        <p
+          v-else
+          class="text-caption text-success flex items-center justify-end gap-1 font-semibold"
+        >
+          <CircleCheck class="size-3.5" />
+          실적 조건 없이 바로 적용돼요
+        </p>
 
         <!-- 하단 시트(압축)에는 안 보이고 상세에서만 노출. -->
         <template v-if="expanded">

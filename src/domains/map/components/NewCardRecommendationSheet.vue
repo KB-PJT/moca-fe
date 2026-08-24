@@ -66,9 +66,9 @@ function openCardDetail() {
                 <img :src="kbCardLogo" alt="" class="size-7 rounded-sm" />
                 KB국민카드
               </span>
-              <p class="mt-2 text-heading text-charcoal">WE:SH Daily 카드</p>
-              <p class="mt-1 text-caption text-gray">편의점 선택 할인</p>
-              <p class="mt-1 text-heading text-primary">GS25·CU 10%</p>
+              <p class="mt-2 text-subheading text-charcoal">WE:SH Daily 카드</p>
+              <p class="mt-1 text-label text-gray">편의점 선택 할인</p>
+              <p class="mt-1 text-subheading text-primary">GS25·CU 10%</p>
             </div>
           </div>
 
