@@ -17,10 +17,13 @@ const monthlyProgressRate = computed(() => {
 const remainingBenefitAmount = computed(() =>
   props.item ? Math.max(props.item.monthlyBenefitLimit - props.item.monthlyBenefitUsed, 0) : 0,
 )
-const hasMissedBenefit = computed(
+const isUnappliedBenefit = computed(
   () =>
-    Boolean(props.item?.missedBenefitAmount) &&
-    props.item?.rejectionReason === 'PERFORMANCE_NOT_MET',
+    props.item?.calculationStatus === 'NOT_APPLIED' ||
+    props.item?.calculationStatus === 'NOT_CALCULATED',
+)
+const hasMissedBenefit = computed(
+  () => isUnappliedBenefit.value && Boolean(props.item?.missedBenefitAmount),
 )
 
 function formatAmount(amount: number) {
@@ -71,13 +74,19 @@ function formatAmount(amount: number) {
               {{ formatAmount(item.missedBenefitAmount) }} {{ item.benefitType }}
             </dd>
           </div>
-          <div v-else-if="item.benefitType" class="flex items-center justify-between py-3">
+          <div
+            v-else-if="item.benefitType && !isUnappliedBenefit"
+            class="flex items-center justify-between py-3"
+          >
             <dt class="text-body text-[#8C7F74]">받은 혜택</dt>
             <dd class="text-body font-normal text-benefit">
               -{{ formatAmount(item.benefitAmount) }} {{ item.benefitType }}
             </dd>
           </div>
-          <div v-if="item.benefitType" class="flex items-center justify-between py-3">
+          <div
+            v-if="item.benefitType && !isUnappliedBenefit"
+            class="flex items-center justify-between py-3"
+          >
             <dt class="text-body text-[#8C7F74]">
               {{ hasMissedBenefit ? '놓친 혜택 정보' : '적용 혜택' }}
             </dt>
@@ -106,7 +115,7 @@ function formatAmount(amount: number) {
         </dl>
 
         <section
-          v-if="item.benefitType && !hasMissedBenefit"
+          v-if="item.benefitType && !isUnappliedBenefit"
           class="mt-4"
           aria-labelledby="monthly-benefit-status-title"
         >

@@ -166,6 +166,34 @@ describe('BenefitHistoryView', () => {
     expect(progress.get('div').attributes('style')).toContain('width: 75%')
   })
 
+  it('미적용 혜택은 거절 사유와 관계없이 일반 결제로 표시한다', async () => {
+    fetchBenefitHistory.mockResolvedValueOnce({
+      ...historyResult,
+      items: [
+        {
+          ...historyResult.items[0]!,
+          id: 'benefit-not-applied',
+          merchantName: '미적용 가맹점',
+          benefitType: '포인트',
+          description: '특별 적립',
+          benefitAmount: 0,
+          missedBenefitAmount: 0,
+          calculationStatus: 'NOT_APPLIED',
+          rejectionReason: 'TARGET_NOT_MATCHED',
+        },
+      ],
+    })
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const item = wrapper.get('button[aria-label="미적용 가맹점 내역 상세 보기"]')
+    expect(item.text()).toContain('일반 결제')
+    expect(item.text()).toContain('혜택 없음')
+    expect(item.text()).not.toContain('특별 적립')
+    expect(item.text()).not.toContain('포인트')
+  })
+
   it('서버가 선택한 카드로 첫 혜택 내역을 조회한다', async () => {
     fetchHomeCards.mockResolvedValueOnce({ ...cardsResponse, selectedUserCardId: 'card-2' })
     const wrapper = mountView()

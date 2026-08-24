@@ -289,7 +289,8 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('맥도날드')
     expect(wrapper.text()).toContain('KB국민 청춘대로 톡톡카드')
     expect(wrapper.text()).toContain('스타벅스')
-    expect(wrapper.text()).toContain('-1,500원')
+    expect(wrapper.text()).toContain('1,500원')
+    expect(wrapper.text()).not.toContain('-1,500원')
     expect(wrapper.findAll('button[aria-label$="내역 상세 보기"]')).toHaveLength(5)
     expect(wrapper.find('button[aria-label$="내역 상세 보기"]').attributes('aria-label')).toBe(
       '맥도날드 내역 상세 보기',
