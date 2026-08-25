@@ -39,13 +39,19 @@ describe('OnboardingView', () => {
     const wrapper = mount(OnboardingView)
 
     expect(wrapper.get('img').attributes('alt')).toBe('내 카드를 한눈에 화면 미리보기')
+    expect(wrapper.get('img').attributes('src')).toContain('01-home.jpg')
 
     const nextButton = wrapper.findAll('button').find((button) => button.text().trim() === '다음')
     await nextButton?.trigger('click')
     expect(wrapper.get('img').attributes('alt')).toBe('결제 전 혜택 확인 화면 미리보기')
+    expect(wrapper.get('img').attributes('src')).toContain('02-map-recommendation.jpg')
 
     await nextButton?.trigger('click')
     expect(wrapper.get('img').attributes('alt')).toBe('혜택 리포트 분석 화면 미리보기')
+    expect(wrapper.get('img').attributes('src')).toContain('03-benefit-report.jpg')
+
+    await nextButton?.trigger('click')
+    expect(wrapper.find('img').exists()).toBe(false)
   })
 
   it('저장된 혜택 선호 성향을 불러와 선택 상태로 표시한다', async () => {
