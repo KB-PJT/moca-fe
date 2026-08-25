@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onActivated, ref, watch } from 'vue'
+import { computed, onActivated, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { CircleCheck, LoaderCircle, Star, X } from '@lucide/vue'
+import { CircleCheck, Info, LoaderCircle, Star, X } from '@lucide/vue'
 import { Input } from '@/shared/ui/input'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 import type { Merchant } from '@/domains/map/api/merchants'
@@ -43,11 +43,10 @@ function monthlyLimitFillPercent(card: { monthlyUsedKrw: number; monthlyLimitKrw
   return Math.min(100, Math.floor((card.monthlyUsedKrw / card.monthlyLimitKrw) * 100))
 }
 
-const DEFAULT_PAYMENT_AMOUNT = 10000
-
 // 계산기에서 결제 금액을 입력해 "적용하기"를 누르면 이 값을 바꿔서 쿼리를 다시 호출한다.
+// 초기 조회에는 임의의 기본 결제 금액을 가정하지 않고 amount 없이 요청한다 —
 // rewardUnit이 percent/KRW/point/mile로 다양해서, 실제 예상 혜택은 서버가 계산한 값을 그대로 쓴다.
-const paymentAmount = ref(DEFAULT_PAYMENT_AMOUNT)
+const paymentAmount = ref<number | undefined>(undefined)
 
 const merchantId = computed(() => props.merchant.merchantId)
 
@@ -66,7 +65,12 @@ const {
   // 쿼리키의 merchantId가 같을 때만 이전 데이터를 재사용한다.
   placeholderData: (previousData, previousQuery) => {
     if (!previousQuery) return undefined
-    const [, previousMerchantId] = previousQuery.queryKey as [string, string, string, number]
+    const [, previousMerchantId] = previousQuery.queryKey as [
+      string,
+      string,
+      string,
+      number | undefined,
+    ]
     return previousMerchantId === merchantId.value ? previousData : undefined
   },
 })
@@ -136,20 +140,46 @@ const isValidAmountInput = computed(() => {
   return Boolean(paymentAmountInput.value) && !Number.isNaN(amount) && amount > 0
 })
 
+// 계산 결과로 1위 추천 카드가 바뀌면 알려주는 토스트. 재조회가 끝나 recommendedCard가
+// 실제로 갱신되는 시점(watch)에 비교해야, 로딩 중인 이전 데이터와 비교하는 오탐을 피한다.
+const isRankingChangedToastVisible = ref(false)
+let rankingChangedToastTimer: ReturnType<typeof setTimeout> | undefined
+
+function showRankingChangedToast() {
+  if (rankingChangedToastTimer) clearTimeout(rankingChangedToastTimer)
+  isRankingChangedToastVisible.value = true
+  rankingChangedToastTimer = setTimeout(() => {
+    isRankingChangedToastVisible.value = false
+  }, 2500)
+}
+
+onBeforeUnmount(() => {
+  if (rankingChangedToastTimer) clearTimeout(rankingChangedToastTimer)
+})
+
 function applyAmount() {
   if (!isValidAmountInput.value) return
   const amount = Number(paymentAmountInput.value)
+  const previousTopCardId = recommendedCard.value?.userCardId ?? null
+
   appliedAmount.value = amount
   paymentAmount.value = amount
   captureEvent('benefit_calculator_used', {
     merchantId: props.merchant.merchantId,
     paymentAmount: amount,
   })
+
+  const stopWatchingResult = watch(recommendedCard, (card) => {
+    stopWatchingResult()
+    if (card && previousTopCardId && card.userCardId !== previousTopCardId) {
+      showRankingChangedToast()
+    }
+  })
 }
 
 function resetAmount() {
   appliedAmount.value = null
-  paymentAmount.value = DEFAULT_PAYMENT_AMOUNT
+  paymentAmount.value = undefined
   paymentAmountInput.value = ''
 }
 
@@ -183,7 +213,7 @@ watch(merchantId, () => {
   isCalculatorOpen.value = false
   paymentAmountInput.value = ''
   appliedAmount.value = null
-  paymentAmount.value = DEFAULT_PAYMENT_AMOUNT
+  paymentAmount.value = undefined
 })
 </script>
 
@@ -406,6 +436,7 @@ watch(merchantId, () => {
                 초기화
               </button>
               <button
+                v-if="appliedAmount === null"
                 type="button"
                 class="text-caption bg-primary disabled:opacity-40 flex-1 rounded-md py-2 text-white"
                 :disabled="!isValidAmountInput"
@@ -413,6 +444,9 @@ watch(merchantId, () => {
               >
                 적용하기
               </button>
+              <MocaButton v-else class="text-caption! flex-1" @click="startPayment">
+                MOCA로 결제하기
+              </MocaButton>
             </div>
           </div>
         </template>
@@ -444,6 +478,22 @@ watch(merchantId, () => {
     </template>
 
     <p v-else class="text-caption text-gray mt-4">이 가맹점에서 받을 수 있는 혜택이 아직 없어요.</p>
+
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="translate-y-2 opacity-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-to-class="translate-y-2 opacity-0"
+    >
+      <div
+        v-if="isRankingChangedToastVisible"
+        role="status"
+        class="bg-charcoal fixed inset-x-5 bottom-[max(1rem,var(--safe-area-bottom))] z-50 flex items-center gap-2 rounded-2xl px-4 py-3 text-white shadow-lg"
+      >
+        <Info class="size-4 shrink-0 text-white/70" />
+        <p class="flex-1 text-caption">혜택 순위가 바뀌었어요!</p>
+      </div>
+    </Transition>
   </div>
 </template>
 
