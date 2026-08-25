@@ -68,7 +68,8 @@ self.addEventListener('notificationclick', (event) => {
   }
 
   const hasMocaTarget =
-    (data.type === 'PERFORMANCE_DEADLINE' && Boolean(data.userCardId)) ||
+    data.type === 'PERFORMANCE_DEADLINE' ||
+    data.target === 'REPORT' ||
     data.type === 'TIME_BASED_BENEFIT' ||
     data.target === 'MAP'
   if (!hasMocaTarget) return
