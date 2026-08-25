@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { Store } from '@lucide/vue'
+import { Coffee } from '@lucide/vue'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/shared/ui/sheet'
 import kbCardLogo from '@/domains/card/assets/issuer-logos/kb-fill.svg'
 
-const weshDailyCardImage =
-  'https://img1.kbcard.com/ST/img/cxc/kbcard/upload/img/product/09570_img.png'
+const goodDayCardImage =
+  'https://img1.kbcard.com/ST/img/cxc/kbcard/upload/img/product/09061_img.png'
 
 const open = defineModel<boolean>('open', { default: false })
 
 function openCardDetail() {
   window.open(
-    'https://card.kbcard.com/CRD/DVIEW/HCAMCXPRICAC0076?mainCC=a&cooperationcode=09570',
+    'https://card.kbcard.com/CRD/DVIEW/HCAMCXPRICAC0076?mainCC=a&cooperationcode=09061',
     '_blank',
     'noopener,noreferrer',
   )
@@ -36,17 +36,17 @@ function openCardDetail() {
           <span
             class="flex size-10 shrink-0 items-center justify-center rounded-full bg-screen text-primary"
           >
-            <Store class="size-5" />
+            <Coffee class="size-5" />
           </span>
           <p class="mt-2 text-caption font-semibold text-gray">방금 결제 소비 분석</p>
-          <h2 class="mt-1 text-subheading text-charcoal">이번 달 편의점 6번째 이용이에요</h2>
-          <p class="mt-2 text-caption text-gray">이번 달 편의점에서 총 48,700원을 결제했어요</p>
+          <h2 class="mt-1 text-subheading text-charcoal">이번 달 카페 6번째 이용이에요</h2>
+          <p class="mt-2 text-caption text-gray">이번 달 카페에서 총 48,700원을 결제했어요</p>
         </div>
       </section>
 
       <section class="mt-6">
         <p class="text-caption font-semibold text-primary">소비패턴 맞춤 추천</p>
-        <h2 class="mt-1 text-subheading text-charcoal">편의점 혜택이 큰 카드를 추천해요</h2>
+        <h2 class="mt-1 text-subheading text-charcoal">카페 혜택이 큰 카드를 추천해요</h2>
 
         <div
           class="mt-3 flex flex-col overflow-hidden rounded-lg border border-divider/60 bg-linear-to-br from-card to-accent"
@@ -54,8 +54,8 @@ function openCardDetail() {
           <div class="flex items-center justify-center gap-8 px-6 py-4">
             <div class="relative flex h-47 w-30 shrink-0 items-center justify-center">
               <img
-                :src="weshDailyCardImage"
-                alt="KB국민 WE:SH Daily 카드"
+                :src="goodDayCardImage"
+                alt="KB국민 굿데이카드"
                 class="h-30 w-47 max-w-none rotate-90 rounded-sm shadow-card"
               />
             </div>
@@ -66,9 +66,10 @@ function openCardDetail() {
                 <img :src="kbCardLogo" alt="" class="size-7 rounded-sm" />
                 KB국민카드
               </span>
-              <p class="mt-2 text-subheading text-charcoal">WE:SH Daily 카드</p>
-              <p class="mt-1 text-label text-gray">편의점 선택 할인</p>
-              <p class="mt-1 text-subheading text-primary">GS25·CU 10%</p>
+              <p class="mt-2 text-subheading text-charcoal">굿데이카드</p>
+              <p class="mt-1 text-label text-gray">커피전문점 추가 할인</p>
+              <p class="mt-1 text-subheading text-primary">카페 10%</p>
+              <p class="mt-1 text-micro text-gray">전월 실적 60만원 이상 · 월 최대 5천원</p>
             </div>
           </div>
 
@@ -76,7 +77,7 @@ function openCardDetail() {
             <div class="flex items-center justify-between gap-4">
               <div>
                 <p class="text-body font-semibold text-charcoal">이번 달 받을 수 있었던 혜택</p>
-                <p class="mt-0.5 text-label font-normal text-gray">편의점 이용 48,700원 기준</p>
+                <p class="mt-0.5 text-label font-normal text-gray">카페 이용 48,700원 기준</p>
               </div>
               <strong class="text-subheading text-primary">4,870원</strong>
             </div>
