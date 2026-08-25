@@ -23,6 +23,8 @@ interface BenefitHistoryResponseItem {
     achievedAmount: number
     remainingAmount: number
   } | null
+  monthlyBenefitUsed: number | null
+  monthlyBenefitLimit: number | null
 }
 
 export interface BenefitHistorySummary {
@@ -107,6 +109,8 @@ export async function fetchBenefitHistory({
         calculationStatus: item.calculationStatus,
         rejectionReason: item.rejectionReason,
         performanceShortfall: item.performanceShortfall,
+        monthlyBenefitUsed: item.monthlyBenefitUsed,
+        monthlyBenefitLimit: item.monthlyBenefitLimit,
         occurredAt: item.approvedAt,
       }),
     ),

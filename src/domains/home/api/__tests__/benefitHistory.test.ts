@@ -38,6 +38,8 @@ describe('benefitHistory API', () => {
               calculationStatus: 'APPLIED',
               rejectionReason: null,
               performanceShortfall: null,
+              monthlyBenefitUsed: 3_000,
+              monthlyBenefitLimit: 10_000,
             },
           ],
           summary,
@@ -49,7 +51,14 @@ describe('benefitHistory API', () => {
     await expect(
       fetchBenefitHistory({ yearMonth: '2026-08', userCardId: 'card-1' }),
     ).resolves.toMatchObject({
-      items: [{ merchantName: '스타벅스', benefitType: '할인' }],
+      items: [
+        {
+          merchantName: '스타벅스',
+          benefitType: '할인',
+          monthlyBenefitUsed: 3_000,
+          monthlyBenefitLimit: 10_000,
+        },
+      ],
       summary,
       totalCount: 1,
     })
@@ -88,6 +97,8 @@ describe('benefitHistory API', () => {
                 achievedAmount: 200_000,
                 remainingAmount: 100_000,
               },
+              monthlyBenefitUsed: null,
+              monthlyBenefitLimit: null,
             },
           ],
           summary,
@@ -140,6 +151,8 @@ describe('benefitHistory API', () => {
               calculationStatus: 'NOT_CALCULATED',
               rejectionReason: null,
               performanceShortfall: null,
+              monthlyBenefitUsed: null,
+              monthlyBenefitLimit: null,
             },
           ],
           summary: {
