@@ -7,15 +7,29 @@ const props = defineProps<{ item: RecentBenefitItem | null }>()
 const open = defineModel<boolean>('open', { default: false })
 const currencyFormatter = new Intl.NumberFormat('ko-KR')
 
+const hasMonthlyBenefitUsage = computed(
+  () =>
+    Boolean(props.item?.benefitType) &&
+    (props.item?.calculationStatus === 'APPLIED' ||
+      props.item?.calculationStatus === 'PARTIALLY_APPLIED') &&
+    props.item?.monthlyBenefitUsed !== null &&
+    props.item?.monthlyBenefitLimit !== null &&
+    Number(props.item?.monthlyBenefitLimit) > 0,
+)
+
 const monthlyProgressRate = computed(() => {
-  if (!props.item || props.item.monthlyBenefitLimit <= 0) return 0
+  if (!props.item || !hasMonthlyBenefitUsage.value) return 0
   return Math.min(
-    Math.round((props.item.monthlyBenefitUsed / props.item.monthlyBenefitLimit) * 100),
+    Math.round(
+      ((props.item.monthlyBenefitUsed ?? 0) / (props.item.monthlyBenefitLimit ?? 1)) * 100,
+    ),
     100,
   )
 })
 const remainingBenefitAmount = computed(() =>
-  props.item ? Math.max(props.item.monthlyBenefitLimit - props.item.monthlyBenefitUsed, 0) : 0,
+  props.item && hasMonthlyBenefitUsage.value
+    ? Math.max((props.item.monthlyBenefitLimit ?? 0) - (props.item.monthlyBenefitUsed ?? 0), 0)
+    : 0,
 )
 const isUnappliedBenefit = computed(
   () =>
@@ -120,7 +134,7 @@ function formatBenefitAmount(item: RecentBenefitItem) {
         </dl>
 
         <section
-          v-if="item.benefitType && !isUnappliedBenefit"
+          v-if="hasMonthlyBenefitUsage"
           class="mt-4"
           aria-labelledby="monthly-benefit-status-title"
         >
@@ -129,8 +143,8 @@ function formatBenefitAmount(item: RecentBenefitItem) {
               월 혜택 사용 현황
             </h3>
             <p class="text-caption text-[#8C7F74]">
-              {{ currencyFormatter.format(item.monthlyBenefitUsed) }} /
-              {{ formatAmount(item.monthlyBenefitLimit) }}
+              {{ currencyFormatter.format(item.monthlyBenefitUsed ?? 0) }} /
+              {{ formatAmount(item.monthlyBenefitLimit ?? 0) }}
             </p>
           </div>
           <div

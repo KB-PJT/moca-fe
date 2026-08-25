@@ -22,6 +22,8 @@ export interface RecentBenefitResponse {
   calculationStatus: CalculationStatus
   rejectionReason: string | null
   performanceShortfall?: PerformanceShortfall | null
+  monthlyBenefitUsed: number | null
+  monthlyBenefitLimit: number | null
   occurredAt: string
 }
 
@@ -46,8 +48,8 @@ export interface RecentBenefitItem {
   rejectionReason: string | null
   performanceShortfall: PerformanceShortfall | null
   occurredAt: string
-  monthlyBenefitUsed: number
-  monthlyBenefitLimit: number
+  monthlyBenefitUsed: number | null
+  monthlyBenefitLimit: number | null
 }
 
 const benefitTypeLabels: Record<BenefitType, NonNullable<RecentBenefitItem['benefitType']>> = {
@@ -101,8 +103,8 @@ export function toRecentBenefitItem(benefit: RecentBenefitResponse): RecentBenef
     rejectionReason: benefit.rejectionReason,
     performanceShortfall: benefit.performanceShortfall ?? null,
     occurredAt: formatOccurredAt(benefit.occurredAt),
-    monthlyBenefitUsed: 0,
-    monthlyBenefitLimit: 0,
+    monthlyBenefitUsed: benefit.monthlyBenefitUsed,
+    monthlyBenefitLimit: benefit.monthlyBenefitLimit,
   }
 }
 

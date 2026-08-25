@@ -30,6 +30,8 @@ const benefit: RecentBenefitResponse = {
   missedBenefitAmount: 0,
   calculationStatus: 'APPLIED',
   rejectionReason: null,
+  monthlyBenefitUsed: 3_000,
+  monthlyBenefitLimit: 10_000,
   occurredAt: '2026-08-12T06:08:47.909Z',
 }
 
@@ -45,6 +47,8 @@ const generalPayment: RecentBenefitResponse = {
   missedBenefitAmount: 0,
   calculationStatus: 'NOT_APPLIED',
   rejectionReason: null,
+  monthlyBenefitUsed: null,
+  monthlyBenefitLimit: null,
   occurredAt: '2026-08-12T05:00:00.000Z',
 }
 
@@ -82,6 +86,8 @@ describe('recentBenefits API', () => {
       id: 'approval-1',
       benefitType: '할인',
       description: '카페 10% 할인',
+      monthlyBenefitUsed: 3_000,
+      monthlyBenefitLimit: 10_000,
       occurredAt: '8월 12일 15:08',
     })
   })
