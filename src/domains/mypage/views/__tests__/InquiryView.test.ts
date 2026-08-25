@@ -38,7 +38,6 @@ describe('InquiryView', () => {
     const submitButton = wrapper.get<HTMLButtonElement>('button[type="submit"]')
     expect(submitButton.element.disabled).toBe(true)
 
-    await wrapper.get('button[aria-pressed="false"]').trigger('click')
     await wrapper.get('#inquiry-title').setValue('카드가 연동되지 않아요')
     await wrapper.get('#inquiry-content').setValue('카드를 여러 번 등록해도 연결되지 않습니다.')
 
