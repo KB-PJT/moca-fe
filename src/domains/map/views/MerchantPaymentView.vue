@@ -6,10 +6,10 @@ import {
   BadgePercent,
   Check,
   ChevronRight,
+  Coffee,
   Lock,
   LoaderCircle,
   RefreshCw,
-  Store,
 } from '@lucide/vue'
 import {
   fetchMerchantCardRecommendations,
@@ -229,7 +229,7 @@ const isNewCardSheetOpen = ref(false)
         <span
           class="flex size-10 shrink-0 items-center justify-center rounded-full bg-screen text-primary"
         >
-          <Store class="size-5" />
+          <Coffee class="size-5" />
         </span>
         <div class="min-w-0 flex-1">
           <p class="text-body font-bold text-charcoal">맞춤 카드 추천이 도착했어요</p>

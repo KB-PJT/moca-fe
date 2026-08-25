@@ -6,6 +6,9 @@ import {
   updateBenefitPreference,
   type BenefitPreferenceType,
 } from '@/domains/auth/api/auth'
+import onboardingHomeImage from '@/domains/auth/assets/onboarding/01-home.jpg'
+import onboardingMapImage from '@/domains/auth/assets/onboarding/02-map-recommendation.jpg'
+import onboardingReportImage from '@/domains/auth/assets/onboarding/03-benefit-report.jpg'
 import { BENEFIT_PREFERENCE_OPTIONS } from '@/domains/auth/constants/benefitPreference'
 import MocaButton from '@/shared/components/MocaButton.vue'
 import PageLayout from '@/shared/components/PageLayout.vue'
@@ -13,20 +16,24 @@ import PageLayout from '@/shared/components/PageLayout.vue'
 interface OnboardingStep {
   title: string
   description: string
+  image?: string
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     title: '내 카드를 한눈에',
     description: '보유한 모든 카드의 실적과 혜택을\n한 화면에서 확인하세요',
+    image: onboardingHomeImage,
   },
   {
     title: '결제 전 혜택 확인',
     description: '주변 가맹점에서 어떤 카드로 결제하면\n가장 유리한지 바로 알려드려요',
+    image: onboardingMapImage,
   },
   {
     title: '혜택 리포트 분석',
     description: '월별 카드 실적과 혜택 달성률을\n한눈에 파악하고 관리하세요',
+    image: onboardingReportImage,
   },
   {
     title: '어떤 혜택을 우선으로 볼까요?',
@@ -158,7 +165,13 @@ async function handleNext() {
             :key="currentStepIndex"
             class="flex w-full flex-1 flex-col items-center justify-center"
           >
-            <div v-if="!isLastStep" class="h-100 w-49 rounded-md bg-screen" aria-hidden="true" />
+            <img
+              v-if="currentStep.image"
+              :src="currentStep.image"
+              :alt="`${currentStep.title} 화면 미리보기`"
+              class="h-100 w-auto max-w-full rounded-md border border-brown/20 bg-card object-cover object-top shadow-card"
+              draggable="false"
+            />
 
             <h1 :class="isLastStep ? 'text-heading' : 'mt-8 text-subheading'" class="text-charcoal">
               {{ currentStep.title }}
