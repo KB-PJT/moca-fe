@@ -76,9 +76,17 @@ function formatBenefitAmount(item: RecentBenefitItem) {
         <dl class="mt-5 divide-y divide-divider">
           <div class="flex items-center justify-between py-3">
             <dt class="shrink-0 text-body text-[#8C7F74]">사용 카드</dt>
-            <dd class="min-w-0 flex-1 text-right text-body font-normal break-keep text-charcoal">
+            <dd
+              class="flex min-w-0 flex-1 items-center justify-end gap-1.5 text-right text-body font-normal break-keep text-charcoal"
+            >
               {{ item.cardName }}
               <template v-if="item.cardLastFour">•••• {{ item.cardLastFour }}</template>
+              <span
+                v-if="hasMissedBenefit"
+                class="shrink-0 rounded-full bg-warning/10 px-2 py-0.5 text-label font-bold text-warning"
+              >
+                미충족
+              </span>
             </dd>
           </div>
           <div class="flex items-center justify-between py-3">

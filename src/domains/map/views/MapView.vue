@@ -527,7 +527,7 @@ watch(currentLocation, (coordinates) => {
     <div
       v-if="selectedMerchant"
       ref="sheetRef"
-      class="bg-card scrollbar-hide absolute inset-x-0 bottom-0 z-20 overflow-y-auto rounded-t-2xl p-5 [transition:transform_300ms_ease-out]"
+      class="bg-card scrollbar-hide absolute inset-x-0 bottom-0 z-20 overflow-y-auto overscroll-contain rounded-t-2xl p-5 [transition:transform_300ms_ease-out]"
       :class="!sheet.isExpanding.value && 'max-h-4/5'"
       :style="{
         height: sheet.heightPx.value ?? undefined,
