@@ -35,6 +35,19 @@ describe('OnboardingView', () => {
     vi.mocked(updateBenefitPreference).mockResolvedValue()
   })
 
+  it('기존 3개 온보딩 단계에 서비스 화면 이미지를 순서대로 표시한다', async () => {
+    const wrapper = mount(OnboardingView)
+
+    expect(wrapper.get('img').attributes('alt')).toBe('내 카드를 한눈에 화면 미리보기')
+
+    const nextButton = wrapper.findAll('button').find((button) => button.text().trim() === '다음')
+    await nextButton?.trigger('click')
+    expect(wrapper.get('img').attributes('alt')).toBe('결제 전 혜택 확인 화면 미리보기')
+
+    await nextButton?.trigger('click')
+    expect(wrapper.get('img').attributes('alt')).toBe('혜택 리포트 분석 화면 미리보기')
+  })
+
   it('저장된 혜택 선호 성향을 불러와 선택 상태로 표시한다', async () => {
     vi.mocked(fetchBenefitPreference).mockResolvedValue('TRAVEL_MILEAGE')
     const wrapper = mount(OnboardingView)
