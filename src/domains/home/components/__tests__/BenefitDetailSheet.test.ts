@@ -46,6 +46,17 @@ describe('BenefitDetailSheet', () => {
     expect(wrapper.get('[role="progressbar"]').attributes('aria-valuenow')).toBe('30')
   })
 
+  it.each([
+    { monthlyBenefitUsed: null, monthlyBenefitLimit: 10_000, condition: '사용액이 null' },
+    { monthlyBenefitUsed: 3_000, monthlyBenefitLimit: null, condition: '한도가 null' },
+    { monthlyBenefitUsed: 3_000, monthlyBenefitLimit: 0, condition: '한도가 0' },
+  ])('적용 혜택이어도 $condition 이면 월 사용 현황을 숨긴다', (monthlyBenefit) => {
+    const wrapper = mountSheet({ ...appliedBenefit, ...monthlyBenefit })
+
+    expect(wrapper.find('[role="progressbar"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('월 혜택 사용 현황')
+  })
+
   it('실적 미충족 내역은 실적 정보만 표시하고 월 사용 현황은 숨긴다', () => {
     const wrapper = mountSheet({
       ...appliedBenefit,
