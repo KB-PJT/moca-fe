@@ -8,6 +8,9 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { CacheFirst } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { resolveNotificationPath } from '@/domains/notification/utils/notificationNavigation'
 import type { FcmNotificationData } from '@/domains/notification/types/fcm'
 
@@ -34,6 +37,19 @@ if (!import.meta.env.DEV) {
     }),
   )
 }
+
+// 카드/가맹점 등 <img> 요청은 재요청해도 내용이 거의 바뀌지 않으므로
+// 재방문 시 네트워크 없이 즉시 표시되도록 CacheFirst로 캐싱한다.
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new CacheFirst({
+    cacheName: 'moca-images',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 80, maxAgeSeconds: 30 * 24 * 60 * 60 }),
+    ],
+  }),
+)
 
 // Firebase Messaging은 getMessaging() 시 자체 notificationclick 핸들러를 등록한다.
 // MOCA data payload가 있는 알림은 그보다 먼저 가로채 앱 라우팅을 우선 적용한다.

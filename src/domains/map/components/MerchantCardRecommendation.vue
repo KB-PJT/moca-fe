@@ -38,6 +38,11 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 
+function monthlyLimitFillPercent(card: { monthlyUsedKrw: number; monthlyLimitKrw: number | null }) {
+  if (!card.monthlyLimitKrw || card.monthlyLimitKrw <= 0) return 0
+  return Math.min(100, Math.floor((card.monthlyUsedKrw / card.monthlyLimitKrw) * 100))
+}
+
 const DEFAULT_PAYMENT_AMOUNT = 10000
 
 // 계산기에서 결제 금액을 입력해 "적용하기"를 누르면 이 값을 바꿔서 쿼리를 다시 호출한다.
@@ -305,7 +310,37 @@ watch(merchantId, () => {
           </p>
         </template>
 
-        <!-- tiers도 requiredPreviousSpendKrw도 없는 카드 = 전월 실적과 무관하게 항상 적용되는 혜택. -->
+        <!-- tiers도 requiredPreviousSpendKrw도 없는 카드 = 전월 실적과 무관하게 항상 적용되는 혜택.
+             다만 월 한도(monthlyLimitKrw)가 있으면 실적 대신 이번 달 한도 사용량을 보여준다 —
+             그래야 한도를 다 써서 지금 적용 안 되는 경우를 "바로 적용돼요"라고 잘못 말하지 않는다. -->
+        <template v-else-if="recommendedCard.monthlyLimitKrw != null">
+          <p class="text-caption text-gray">
+            이번 달 한도 {{ formatAmountWithUnit(recommendedCard.monthlyUsedKrw) }} /
+            {{ formatAmountWithUnit(recommendedCard.monthlyLimitKrw) }}
+          </p>
+
+          <div
+            class="relative mt-3 h-1.5 rounded-full bg-divider"
+            role="progressbar"
+            aria-label="이번 달 한도 사용률"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-valuenow="monthlyLimitFillPercent(recommendedCard)"
+          >
+            <div
+              class="gauge-fill bg-primary h-full rounded-full transition-[width] duration-1000 ease-out"
+              :style="{ width: `${isFilled ? monthlyLimitFillPercent(recommendedCard) : 0}%` }"
+            />
+          </div>
+
+          <p class="text-caption text-charcoal text-right font-semibold mt-1.5">
+            남은
+            <span class="text-primary">
+              {{ formatAmountWithUnit(recommendedCard.monthlyRemainingKrw ?? 0) }}
+            </span>
+          </p>
+        </template>
+
         <p
           v-else
           class="text-caption text-success flex items-center justify-end gap-1 font-semibold"

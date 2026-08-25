@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onDeactivated, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useRoute } from 'vue-router'
 import {
@@ -106,6 +106,14 @@ const {
 const activeCategoryId = ref<string | null>(null)
 const activeMerchantId = ref<string | null>(null)
 const isCategoryPickerOpen = ref(false)
+
+// 카테고리 선택 시트를 열어둔 채로 다른 탭으로 이동하면 이 뷰는 언마운트가 아니라
+// deactivated만 되어, reka-ui가 모달 열림 중 다른 요소에 걸어둔 aria-hidden/inert를
+// 되돌리는 클린업이 영영 실행되지 않는다. 그러면 돌아온 뒤 다른 화면 터치가 안 먹는
+// 문제로 이어지므로, 비활성화 시점에 강제로 닫아 정상적인 닫힘 경로를 타게 한다.
+onDeactivated(() => {
+  isCategoryPickerOpen.value = false
+})
 // 카테고리 선택이 최초 자동 노출로 이뤄졌는지, 사용자가 직접 버튼을 눌러 바꾼 건지 구분해
 // posthog로 같이 보낸다 — "한 번만 보여줘도 충분한지" 판단할 실사용 데이터로 쓴다.
 const categoryPickerSource = ref<'auto' | 'manual'>('manual')
