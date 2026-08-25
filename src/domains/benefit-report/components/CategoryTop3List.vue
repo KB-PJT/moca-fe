@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Bus, Coffee, Store, Tag, type LucideIcon } from '@lucide/vue'
 import type { BenefitCategoryItem } from '@/domains/benefit-report/api/benefitReport'
+import { categoryIcon, DEFAULT_CATEGORY_ICON } from '@/domains/map/utils/categoryIcon'
 import { formatAmountWithUnit } from '@/shared/utils/format'
 
 const props = defineProps<{
@@ -14,14 +14,8 @@ const RANK_MEDAL: Record<number, string> = {
   3: '🥉',
 }
 
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  카페: Coffee,
-  편의점: Store,
-  교통: Bus,
-}
-
 function iconFor(categoryName: string) {
-  return CATEGORY_ICONS[categoryName] ?? Tag
+  return categoryIcon[categoryName] ?? DEFAULT_CATEGORY_ICON
 }
 
 const first = computed(() => props.items.find((item) => item.rank === 1))
@@ -87,7 +81,7 @@ const third = computed(() => props.items.find((item) => item.rank === 3))
             <span
               class="flex size-7 shrink-0 items-center justify-center rounded-full bg-divider text-gray"
             >
-              <Tag class="size-3.5" />
+              <component :is="DEFAULT_CATEGORY_ICON" class="size-3.5" />
             </span>
             <span class="truncate text-caption font-semibold text-gray">아직 없음</span>
             <span class="ml-auto shrink-0 text-label opacity-40">{{
