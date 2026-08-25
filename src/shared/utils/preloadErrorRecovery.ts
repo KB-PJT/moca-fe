@@ -19,6 +19,8 @@ export function recoverFromPreloadError(
     storage = window.sessionStorage,
   }: PreloadErrorRecoveryOptions = {},
 ) {
+  event.preventDefault()
+
   const lastReloadAt = Number(storage.getItem(PRELOAD_ERROR_RELOAD_KEY))
   const canReload =
     !Number.isFinite(lastReloadAt) ||
@@ -28,7 +30,6 @@ export function recoverFromPreloadError(
 
   if (!canReload) return
 
-  event.preventDefault()
   storage.setItem(PRELOAD_ERROR_RELOAD_KEY, String(now))
   reload()
 }

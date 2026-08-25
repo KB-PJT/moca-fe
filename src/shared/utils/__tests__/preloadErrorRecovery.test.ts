@@ -24,7 +24,7 @@ describe('recoverFromPreloadError', () => {
     recoverFromPreloadError(firstEvent, { now: 1_000, reload, storage: sessionStorage })
     recoverFromPreloadError(secondEvent, { now: 2_000, reload, storage: sessionStorage })
 
-    expect(secondEvent.defaultPrevented).toBe(false)
+    expect(secondEvent.defaultPrevented).toBe(true)
     expect(reload).toHaveBeenCalledOnce()
   })
 
