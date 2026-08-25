@@ -63,6 +63,12 @@ export function useLocationPermission(isMapReady: Ref<boolean>) {
   onDeactivated(() => {
     wasWatchingBeforeDeactivate = watchId !== null
     pauseWatchingPosition()
+
+    // 다이얼로그를 열어둔 채로 탭을 이동하면 언마운트가 아니라 deactivated만 되어,
+    // reka-ui가 모달 열림 중 다른 요소에 걸어둔 aria-hidden/inert를 되돌리는 클린업이
+    // 영영 실행되지 않는다. 그러면 돌아온 뒤 다른 화면 터치가 안 먹는 문제로 이어지므로,
+    // 비활성화 시점에 강제로 닫아 정상적인 닫힘 경로를 타게 한다.
+    isLocationModalOpen.value = false
   })
 
   onActivated(() => {
