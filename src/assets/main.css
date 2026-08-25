@@ -54,8 +54,10 @@
   --color-charcoal: #2f2f2f;
   --color-gray: #8b8b8b;
   /* text-gray보다 따뜻한 톤의 보조 텍스트 색. 여러 화면에서 이미 반복적으로
-     쓰이고 있어 하드코딩 대신 정식 토큰으로 등록한다. */
-  --color-muted: #8c7f74;
+     쓰이고 있어 하드코딩 대신 정식 토큰으로 등록한다.
+     이름을 --color-muted로 하면 아래 shadcn 매핑(--color-muted: var(--muted))에
+     덮어써져 text-muted가 배경용 --muted(#f8f5f2)로 컴파일되므로 별도 이름을 쓴다. */
+  --color-muted-text: #8c7f74;
   --color-primary-hover: #f2701c;
   --color-brown: #a67c52;
   --color-brown-light: #d6b98c;
