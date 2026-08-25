@@ -8,6 +8,9 @@ import App from './App.vue'
 import router from './router'
 import { queryClient } from '@/plugins/vue-query'
 import { initPostHog } from '@/plugins/posthog'
+import { recoverFromPreloadError } from '@/shared/utils/preloadErrorRecovery'
+
+window.addEventListener('vite:preloadError', recoverFromPreloadError)
 
 initPostHog(import.meta.env.VITE_POSTHOG_KEY, import.meta.env.VITE_POSTHOG_HOST)
 
