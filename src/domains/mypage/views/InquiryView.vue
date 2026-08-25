@@ -33,7 +33,7 @@ const inquiryTypeMap: Record<InquiryCategory, InquiryType> = {
 
 const authStore = useAuthStore()
 const router = useRouter()
-const selectedCategory = ref<InquiryCategory | null>(null)
+const selectedCategory = ref<InquiryCategory | null>('카드 연동')
 const title = ref('')
 const content = ref('')
 const email = ref(authStore.user?.email ?? '')
@@ -125,7 +125,7 @@ async function submitInquiry() {
   <PageLayout title="문의하기" has-bottom-bar>
     <form id="inquiry-form" class="-mt-1" @submit.prevent="submitInquiry">
       <fieldset>
-        <legend class="text-caption mb-2 font-bold text-muted">
+        <legend class="text-caption mb-2 font-bold text-muted-text">
           문의 유형 <span class="text-error" aria-hidden="true">*</span>
         </legend>
         <div class="flex flex-wrap gap-2" aria-label="문의 유형">
@@ -135,7 +135,7 @@ async function submitInquiry() {
             type="button"
             class="text-caption rounded-full px-3.5 py-1.5 font-bold transition-colors"
             :class="
-              selectedCategory === category ? 'bg-primary text-white' : 'bg-divider text-muted'
+              selectedCategory === category ? 'bg-primary text-white' : 'bg-divider text-muted-text'
             "
             :aria-pressed="selectedCategory === category"
             @click="selectCategory(category)"
@@ -146,7 +146,7 @@ async function submitInquiry() {
       </fieldset>
 
       <div class="mt-5">
-        <label for="inquiry-title" class="text-caption mb-2 block font-bold text-muted">
+        <label for="inquiry-title" class="text-caption mb-2 block font-bold text-muted-text">
           제목 <span class="text-error" aria-hidden="true">*</span>
         </label>
         <input
@@ -162,7 +162,7 @@ async function submitInquiry() {
       </div>
 
       <div class="mt-5">
-        <label for="inquiry-content" class="text-caption mb-2 block font-bold text-muted">
+        <label for="inquiry-content" class="text-caption mb-2 block font-bold text-muted-text">
           문의 내용 <span class="text-error" aria-hidden="true">*</span>
         </label>
         <textarea
@@ -177,7 +177,7 @@ async function submitInquiry() {
       </div>
 
       <div class="mt-5">
-        <label for="inquiry-email" class="text-caption mb-2 block font-bold text-muted">
+        <label for="inquiry-email" class="text-caption mb-2 block font-bold text-muted-text">
           답변받을 이메일 <span class="text-error" aria-hidden="true">*</span>
         </label>
         <input
