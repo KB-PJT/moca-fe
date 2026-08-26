@@ -20,15 +20,17 @@ const props = withDefaults(defineProps<Props>(), {
   appliedAmount: null,
 })
 
-// 미충족 카드 밑에 왜 미충족인지 보여줄 첫 번째 미충족 사유.
-function unmetReasonText(item: RankedCardBenefit): string | null {
-  const reason = item.recommendationReasons.find((candidate) => !candidate.satisfied)
-  return reason ? describeRecommendationReason(reason) : null
+// 미충족 카드 밑에 왜 미충족인지 보여줄 미충족 사유 전부(최소 결제금액, 전월 실적 등
+// 여러 조건이 동시에 미충족일 수 있어 첫 번째만 보여주면 나머지가 가려진다).
+function unmetReasonTexts(item: RankedCardBenefit): string[] {
+  return item.recommendationReasons
+    .filter((candidate) => !candidate.satisfied)
+    .map(describeRecommendationReason)
 }
 
 // 미충족 사유 박스는 상세 페이지에서 항상 보이지 않고, 카드를 눌러야 펼쳐지게 한다.
 function isExpandable(item: RankedCardBenefit): boolean {
-  return Boolean(props.detailed && !item.performanceMet && unmetReasonText(item))
+  return Boolean(props.detailed && !item.performanceMet && unmetReasonTexts(item).length)
 }
 
 const expandedCardIds = ref(new Set<string>())
@@ -132,12 +134,12 @@ function toggleReason(userCardId: string) {
           leave-from-class="opacity-100"
           leave-to-class="opacity-0"
         >
-          <p
+          <div
             v-if="isExpandable(item) && expandedCardIds.has(item.userCardId)"
-            class="text-label text-gray bg-screen mt-3 w-9/10 mx-auto rounded-md p-3"
+            class="text-label text-gray bg-screen mt-3 w-9/10 mx-auto space-y-1 rounded-md p-3"
           >
-            {{ unmetReasonText(item) }}
-          </p>
+            <p v-for="text in unmetReasonTexts(item)" :key="text">{{ text }}</p>
+          </div>
         </Transition>
       </div>
     </div>
